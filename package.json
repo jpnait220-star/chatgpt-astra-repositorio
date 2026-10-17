@@ -1,7 +1,9 @@
 {
   "name": "duckcleans",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-  "scripts": {"test": "node --test tests/*.test.js"}
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
 }

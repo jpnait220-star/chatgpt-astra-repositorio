@@ -77,7 +77,8 @@ test('background worker integration with simulated Chrome APIs', async t => {
   h.api.tabs.get=async id=>{if(id===race.id) h.tabs.get(id).active=true; return originalGet(id);};
   h.api.alarms.onAlarm.emit({name:'duckcleans-sweep'}); await h.rpc({type:'getState'});
   assert.ok(h.tabs.has(race.id)); h.api.tabs.get=originalGet;
-  state=await h.rpc({type:'settings',settings:{minutes:2}}); assert.equal(state.settings.minutes,15);
+  state=await h.rpc({type:'settings',settings:{minutes:0}}); assert.equal(state.settings.minutes,1);
+  state=await h.rpc({type:'settings',settings:{minutes:2}}); assert.equal(state.settings.minutes,2);
   state=await h.rpc({type:'settings',settings:{minutes:60}}); assert.equal(state.settings.minutes,60);
   await h.rpc({type:'favorite',id:ids.favorite});
   assert.equal(h.api.storage.session.data.records[ids.favorite].lastActive,now);

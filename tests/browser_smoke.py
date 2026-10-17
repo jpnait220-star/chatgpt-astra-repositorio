@@ -59,7 +59,8 @@ try:
         gui.wait_for_function("document.querySelector('#timeoutDisplay').textContent === '30'")
         assert rpc({'type':'getState'})['settings']['minutes']==30
         # Validate the background independently from input constraints.
-        assert rpc({'type':'settings','settings':{'minutes':1}})['settings']['minutes']==15
+        assert rpc({'type':'settings','settings':{'minutes':0}})['settings']['minutes']==1
+        rpc({'type':'settings','settings':{'minutes':15}})
         gui.evaluate('(id) => chrome.tabs.update(id, {pinned:true})',ids['pinned'])
         rpc({'type':'getState'})
         def expire():

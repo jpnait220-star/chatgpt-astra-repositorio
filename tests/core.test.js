@@ -7,11 +7,20 @@ const record = { lastActive:now - 15 * 60000, favorite:false };
 const settings = { minutes:15, paused:false };
 const gui = 'chrome-extension://test/dashboard.html';
 test('enforces the minimum, maximum, and valid default timeout', () => {
-  for (const input of [0,-1,2,14]) assert.equal(normalizeSettings({minutes:input}).minutes,15);
+  for (const input of [0,-1,.4]) assert.equal(normalizeSettings({minutes:input}).minutes,1);
+  for (const input of [1,2,14,15]) assert.equal(normalizeSettings({minutes:input}).minutes,input);
   assert.equal(normalizeSettings({minutes:2000}).minutes,1440);
   assert.equal(normalizeSettings({minutes:'bad'}).minutes,15);
   assert.equal(normalizeSettings().minutes,15);
   assert.equal(normalizeSettings({minutes:30.7}).minutes,31);
+});
+test('one-minute timeout closes at 60 seconds and still protects the GUI and favorites', () => {
+  const config = { minutes: 1, paused: false };
+  const idle = { lastActive: now - 60000, favorite: false };
+  assert.equal(canClose(tab,idle,config,now-1,gui),false);
+  assert.equal(canClose(tab,idle,config,now,gui),true);
+  assert.equal(canClose(tab,{...idle,favorite:true},config,now,gui),false);
+  assert.equal(canClose({...tab,url:gui},idle,config,now+86400000,gui),false);
 });
 test('closes only after the complete inactivity interval', () => {
   assert.equal(canClose(tab,record,settings,now-1,gui),false);

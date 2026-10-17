@@ -1,0 +1,36 @@
+DuckCleans GUI — versão 1.1.0
+
+COMO INSTALAR
+1. Extraia TODO o ZIP. Não carregue a extensão diretamente de dentro do ZIP.
+2. Guarde a pasta em um lugar permanente, por exemplo: Documentos\DuckCleans.
+3. Abra opera://extensions e ative "Modo do desenvolvedor".
+4. Use "Carregar sem compactação" e escolha a pasta que contém manifest.json.
+5. Clique no patinho para abrir DuckCleans GUI.
+
+Não apague nem mova essa pasta depois de instalar: o Opera lê a extensão dela.
+
+SE APARECER ERR_FILE_NOT_FOUND
+Esse erro significa que o Opera não conseguiu encontrar o arquivo solicitado.
+Verifique se a pasta usada na instalação ainda existe e se dashboard.html,
+manifest.json, os arquivos .js, .css e a pasta icons estão dentro dela.
+
+Para atualizar mantendo o mesmo caminho:
+- Extraia a versão nova e copie os arquivos para a pasta instalada, substituindo
+  os da versão anterior. Não crie uma pasta extra dentro da pasta antiga.
+- Em opera://extensions, clique em Recarregar na DuckCleans.
+- Feche a aba com erro e abra o painel novamente clicando no patinho.
+
+Se a pasta antiga foi apagada ou veio de um local temporário, carregue a pasta
+permanente com "Carregar sem compactação". Se surgir uma extensão duplicada,
+remova apenas a instalação antiga. Reinstalar em outro caminho pode reiniciar
+as configurações. Recarregar a extensão limpa os favoritos da sessão.
+
+O QUE MUDOU
+- Tempo mínimo configurável de 1 minuto; o padrão continua sendo 15 minutos.
+- Bolinha branca arrastável e barra com preenchimento no controle de tempo.
+- Transições de fade e botões que acompanham levemente o mouse.
+- Os efeitos respeitam a opção de reduzir animações do sistema.
+
+A limpeza verifica as abas a cada minuto. Com limite de 1 minuto, o fechamento
+normalmente ocorre entre 1 e 2 minutos de inatividade, com o navegador acordado.
+Abas favoritas, fixadas, selecionadas em cada janela e com áudio ficam protegidas.

@@ -1,11 +1,13 @@
 """Build a dependency-free, reproducible unpacked-extension ZIP."""
 from pathlib import Path
 import zipfile
+import json
 
 root = Path(__file__).resolve().parents[1]
-files = ['manifest.json', 'background.js', 'core.js', 'dashboard.html', 'dashboard.css', 'dashboard.js', 'README.md']
+files = ['manifest.json', 'background.js', 'core.js', 'dashboard.html', 'dashboard.css', 'dashboard.js', 'motion.js', 'README.md', 'INSTALAR-NO-OPERA.txt']
 files += [str(path.relative_to(root)) for path in sorted((root / 'icons').glob('*')) if path.is_file()]
-target = root / 'artifacts' / 'DuckCleans-1.0.0.zip'
+version = json.loads((root / 'manifest.json').read_text())['version']
+target = root / 'artifacts' / f'DuckCleans-{version}.zip'
 target.parent.mkdir(exist_ok=True)
 with zipfile.ZipFile(target, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
     for filename in files:

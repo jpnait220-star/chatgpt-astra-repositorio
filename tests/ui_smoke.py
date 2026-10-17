@@ -38,6 +38,7 @@ try:
   assert page.title()=='DuckCleans GUI'
   assert page.locator('.tab-row').count()==5
   page.get_by_role('button',name='Pausar limpeza').click()
+  assert page.locator('#pauseButton').evaluate('(el)=>el.getAnimations().length > 0')
   assert page.get_by_role('button',name='Retomar limpeza').is_visible()
   assert page.locator('#headerStatus').inner_text()=='Limpeza pausada'
   page.get_by_role('button',name='Retomar limpeza').click()
@@ -45,9 +46,38 @@ try:
   page.locator('[data-view="favorites"]').click()
   assert page.locator('.tab-row').count()==2
   page.locator('[data-view="settings"]').click()
+  assert page.locator('.content').evaluate('(el)=>el.getAnimations().length > 0')
+  # Mouse attraction is bounded, returns on leave, and does not move the slider.
+  preset=page.locator('[data-minutes="1"]')
+  box=preset.bounding_box()
+  page.mouse.move(box['x']+box['width']*.8,box['y']+box['height']*.55)
+  page.wait_for_function("parseFloat(document.querySelector('[data-minutes=\"1\"]').style.getPropertyValue('--magnet-x')) > 0")
+  assert abs(float(preset.evaluate("el=>el.style.getPropertyValue('--magnet-x').replace('px','')"))) <= 5
+  page.mouse.move(700,90)
+  page.wait_for_function("document.querySelector('[data-minutes=\"1\"]').style.getPropertyValue('--magnet-x') === ''")
+  # Exercise the actual native slider via keyboard and dragging its circular thumb.
+  slider=page.locator('#timeoutRange')
+  slider.focus()
+  slider.press('Home')
+  page.wait_for_function('__fixture.settings.minutes === 1')
+  assert slider.get_attribute('aria-valuetext')=='1 minuto'
+  assert page.locator('#heroMinutes').inner_text()=='1 minuto'
+  slider.press('ArrowRight')
+  page.wait_for_function('__fixture.settings.minutes === 2')
+  slider.press('Home')
+  page.wait_for_function('__fixture.settings.minutes === 1')
+  box=slider.bounding_box()
+  page.mouse.move(box['x']+14,box['y']+box['height']/2)
+  page.mouse.down()
+  page.mouse.move(box['x']+box['width']-14,box['y']+box['height']/2,steps=12)
+  page.mouse.up()
+  page.wait_for_function('__fixture.settings.minutes === 240')
+  assert slider.evaluate("el=>el.style.getPropertyValue('--range-progress')")=='100%'
+  page.locator('[data-minutes="1"]').click()
+  page.wait_for_function('__fixture.settings.minutes === 1')
   page.locator('[data-minutes="60"]').click()
   page.wait_for_function("document.querySelector('#timeoutDisplay').textContent === '60'")
-  page.locator('#customMinutes').fill('10')
+  page.locator('#customMinutes').fill('0')
   page.locator('#timeoutForm button').click()
   assert not page.locator('#customMinutes').evaluate('(el)=>el.checkValidity()')
   assert page.evaluate('__fixture.settings.minutes')==60
@@ -72,13 +102,21 @@ try:
   page.get_by_role('button',name='Retomar limpeza').click()
   page.locator('#toast').wait_for(state='hidden')
   artifacts=ROOT/'artifacts'; artifacts.mkdir(exist_ok=True)
+  page.wait_for_function('document.getAnimations().length === 0')
   page.screenshot(path=str(artifacts/'duckcleans-overview.png'),full_page=True)
   page.locator('[data-view="settings"]').click()
+  page.wait_for_function('document.getAnimations().length === 0')
   page.screenshot(path=str(artifacts/'duckcleans-settings.png'),full_page=True)
   page.set_viewport_size({'width':640,'height':1000})
   page.locator('[data-view="overview"]').click()
+  page.wait_for_function('document.getAnimations().length === 0')
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
   page.screenshot(path=str(artifacts/'duckcleans-compact.png'),full_page=True)
+  page.emulate_media(reduced_motion='reduce')
+  page.locator('[data-view="settings"]').click()
+  assert page.locator('.content').evaluate('(el)=>el.getAnimations().length')==0
+  assert page.locator('[data-view="settings"]').evaluate('(el)=>getComputedStyle(el).transform')=='none'
+  assert page.locator('[data-view="settings"]').evaluate('(el)=>el.getAnimations().length')==0
   assert not errors,errors
   browser.close()
   print('PASS: browser UI with simulated data: overview, favorites, pause/resume, settings, invalid timeout, search, activity empty state, safe titles, compact layout. Screenshots contain demonstration data.')

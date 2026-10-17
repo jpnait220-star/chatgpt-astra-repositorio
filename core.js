@@ -1,7 +1,7 @@
 export const DEFAULT_SETTINGS = Object.freeze({ minutes: 15, paused: false });
 export function normalizeSettings(value = {}) {
   const minutes = Number(value.minutes);
-  return { minutes: Number.isFinite(minutes) ? Math.max(15, Math.min(1440, Math.round(minutes))) : 15, paused: value.paused === true };
+  return { minutes: Number.isFinite(minutes) ? Math.max(1, Math.min(1440, Math.round(minutes))) : 15, paused: value.paused === true };
 }
 export function protection(tab, record, guiUrl) {
   if (tab.url?.startsWith(guiUrl)) return 'DuckCleans';
