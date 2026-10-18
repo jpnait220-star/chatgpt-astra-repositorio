@@ -6,9 +6,10 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 TOP = [
     "README.md",
+    "COMECE-AQUI.txt",
     "LEIA-ME.md",
     "CONCEITO.md",
     "THIRD-PARTY.md",
@@ -17,9 +18,8 @@ TOP = [
     "requirements-dev.txt",
     "pytest.ini",
     "run.pyw",
-    "Instalar.cmd",
-    "Iniciar DuckCapture.cmd",
-    "Diagnosticar.cmd",
+    "Abrir DuckCapture.py",
+    "Instalar.py",
 ]
 
 

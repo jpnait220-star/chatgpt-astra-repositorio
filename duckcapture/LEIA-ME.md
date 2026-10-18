@@ -1,4 +1,4 @@
-# DuckCapture · 0.1.0 alpha
+# DuckCapture · 0.1.1 alpha
 
 **Leve como um pato, rápido como um clique.** Um aplicativo desktop com replay de janela, editor, HUD e música, com interface em português e uma turma de nove mascotes.
 
@@ -8,11 +8,19 @@ Esta é uma primeira versão para **Windows 10 (versão 2004 ou mais recente) / 
 
 1. Instale **Python 3.12 de 64 bits**, com o Python Launcher. O [Python 3.12.10 para Windows](https://www.python.org/downloads/release/python-31210/) tem instalador de 64 bits. Não é preciso pagar, criar conta ou comprar certificado.
 2. Extraia **a pasta inteira** do ZIP para uma pasta permanente, por exemplo `Documentos\DuckCapture`. Não execute dentro do ZIP.
-3. Abra **Instalar.cmd** e aguarde. Ele cria um ambiente Python local, instala as dependências e baixa FFmpeg/ffprobe de Gyan, distribuidor indicado pelo projeto FFmpeg. O download do FFmpeg é verificado com o SHA-256 publicado pelo distribuidor.
-4. Quando terminar, abra **Iniciar DuckCapture.cmd**.
-5. Se não abrir, execute **Diagnosticar.cmd** para ver a mensagem de erro no console.
+3. Abra **Abrir DuckCapture.py** com o Python Launcher. Na primeira abertura, ele cria um ambiente Python local, instala as dependências e baixa FFmpeg/ffprobe de Gyan, distribuidor indicado pelo projeto FFmpeg. O download do FFmpeg é verificado com o SHA-256 publicado pelo distribuidor.
+4. Aguarde o aplicativo abrir. Nas próximas vezes, use o mesmo **Abrir DuckCapture.py**. O iniciador reaproveita as dependências já instaladas.
+5. Para apenas instalar, sem abrir o aplicativo, use **Instalar.py**. Mensagens de instalação ficam em `instalacao.log`; erros ao abrir a interface ficam em `inicializacao.log`, na pasta extraída.
 
-O DuckCapture é distribuído como código Python + iniciadores `.cmd`, sem instalador próprio `.exe`. Python e FFmpeg usam executáveis normais como dependências. Assinatura de código **não é uma exigência para criar ou usar gratuitamente um aplicativo Windows**; este formato foi escolhido para entregar o código aberto à inspeção e evitar uma etapa de empacotamento binário.
+Se o arquivo `.py` abrir em um editor, clique com o botão direito → **Abrir com → Python**. Outra opção é abrir o Terminal na pasta extraída e executar:
+
+```powershell
+py -3.12 "Abrir DuckCapture.py"
+```
+
+O ZIP 0.1.1 usa iniciadores Python e não inclui os `.cmd` antigos. Isso oferece uma alternativa quando o bloqueio do Windows se refere aos scripts de lote. **Não garante que o Controle de Aplicativo Inteligente aceitará todas as dependências**: ele também pode bloquear um executável ou DLL sem reputação/assinatura aceita. O iniciador não desativa nem modifica a proteção do Windows. Se houver outro bloqueio, o nome do arquivo indicado no aviso é necessário para identificar a causa.
+
+Python e FFmpeg usam executáveis normais como dependências. Não é necessário pagar por uma assinatura para criar um aplicativo; isso não significa que políticas de confiança do Windows aceitarão qualquer distribuição. Esta versão é código Python disponível para inspeção e não é uma distribuição assinada ou certificada pela Microsoft.
 
 A instalação inicial precisa de internet e baixa algumas centenas de MB de dependências. Depois, captura, editor e músicas locais funcionam offline. Mantenha espaço livre para o replay e os vídeos. A proposta de baixo consumo se refere ao funcionamento, não ao tamanho das dependências; ainda não foi medida no Windows.
 
@@ -53,14 +61,16 @@ Cole um link `https://open.spotify.com/playlist/...` para abrir a playlist no se
 
 ## Se algo não funcionar
 
+- **Controle de Aplicativo Inteligente:** use a pasta extraída do ZIP 0.1.1 e **Abrir DuckCapture.py**. Se o aviso continuar, registre o nome exato do arquivo bloqueado. Esta versão não altera configurações de segurança.
+
 - **Captura indisponível:** use Windows de 64 bits, com a janela restaurada. Aplicativos protegidos e alguns modos de tela cheia exclusiva podem bloquear a captura.
 - **A janela mudou de tamanho:** pare e inicie novamente. A resolução é definida ao começar a sessão.
 - **Travamento ou FPS insuficiente:** tente 30 FPS, Econômico e codificador Automático. O aplicativo procura NVIDIA, Intel ou AMD; se nenhum funcionar, utiliza CPU com libx264. Não é possível garantir baixo consumo em todos os computadores.
 - **Áudio não disponível:** confira a saída padrão do Windows ou desmarque áudio do sistema. Ao trocar de dispositivo, reinicie a captura.
 - **Atalho em uso:** escolha outro em Configurações e clique em Aplicar atalhos.
-- **Download do FFmpeg falhou:** baixe o pacote Essentials em [Gyan](https://www.gyan.dev/ffmpeg/builds/), extraia `ffmpeg.exe` e `ffprobe.exe` para a pasta `tools` ao lado de `run.pyw`, e execute Instalar.cmd novamente. Mantenha os arquivos da mesma distribuição.
+- **Download do FFmpeg falhou:** baixe o pacote Essentials em [Gyan](https://www.gyan.dev/ffmpeg/builds/), extraia `ffmpeg.exe` e `ffprobe.exe` para a pasta `tools` ao lado de `run.pyw`, e execute Instalar.py novamente. Mantenha os arquivos da mesma distribuição.
 - **Erro com texto/HUD:** use uma distribuição FFmpeg com filtro `subtitles` e libass, como Essentials. Uma instalação FFmpeg já existente no PATH precisa oferecer esses recursos.
-- **Fechou após um erro:** execute Diagnosticar.cmd. Em Configurações, **Abrir dados e logs** mostra `duckcapture.log` e, quando disponível, `last-encoder.log`.
+- **Fechou após um erro:** consulte `instalacao.log` e `inicializacao.log` na pasta extraída. Em Configurações, **Abrir dados e logs** mostra `duckcapture.log` e, quando disponível, `last-encoder.log`.
 - **Replay antigo ocupando disco após uma interrupção:** com a captura parada, use **Limpar replay temporário**. Isso preserva os clipes salvos.
 
 Configurações e temporários ficam em `%LOCALAPPDATA%\DuckCapture`. O replay usa segmentos de vídeo comprimido em disco, com retenção limitada ao tempo escolhido e uma pequena margem; o áudio fica em um buffer de memória. A interface reduz a atualização da prévia e só acompanha controles quando o HUD está ativado. As animações do vinil param com a música.

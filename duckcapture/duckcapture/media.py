@@ -60,7 +60,7 @@ class Media:
     def require(self):
         if not self.ffmpeg or not self.ffprobe:
             raise MediaError(
-                "FFmpeg não encontrado. Execute Instalar.cmd ou selecione a pasta com ffmpeg e ffprobe em Configurações."
+                "FFmpeg não encontrado. Execute Instalar.py ou selecione a pasta com ffmpeg e ffprobe em Configurações."
             )
 
     def run(self, args, timeout=600, cwd=None):

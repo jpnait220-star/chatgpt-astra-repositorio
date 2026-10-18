@@ -2,9 +2,11 @@
 
 Um aplicativo de clipes para Windows, com visual escuro, detalhes amarelos e uma turma de patinhos.
 
-**[Baixar DuckCapture 0.1.0 — ZIP](https://github.com/jpnait220-star/chatgpt-astra-repositorio/raw/refs/heads/asasa/downloads/DuckCapture-0.1.0.zip)**
+**[Baixar DuckCapture 0.1.1 — ZIP](https://github.com/jpnait220-star/chatgpt-astra-repositorio/raw/refs/heads/asasa/downloads/DuckCapture-0.1.1.zip)**
 
-Instale Python 3.12 de 64 bits, extraia a pasta, execute **Instalar.cmd** e depois **Iniciar DuckCapture.cmd**. Tudo é gratuito. [Instruções completas](LEIA-ME.md).
+Instale Python 3.12 de 64 bits, extraia a pasta e abra **Abrir DuckCapture.py**. Ele prepara as dependências na primeira execução. Tudo é gratuito. [Instruções completas](LEIA-ME.md).
+
+O ZIP 0.1.1 não inclui os iniciadores `.cmd`. Essa alternativa não garante a aprovação do Controle de Aplicativo Inteligente para outros arquivos ou dependências.
 
 ![Tela inicial do aplicativo](docs/inicio.png)
 

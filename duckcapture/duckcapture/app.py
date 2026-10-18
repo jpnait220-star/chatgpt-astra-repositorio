@@ -106,7 +106,7 @@ class MainWindow(QMainWindow):
         )
         nav.addSpacing(15)
         nav.addWidget(button("Conhecer a turma", self.show_mascots))
-        nav.addWidget(label("DUCKCAPTURE     0.1.0 · ALPHA", "tiny"))
+        nav.addWidget(label("DUCKCAPTURE     0.1.1 · ALPHA", "tiny"))
         row.addWidget(sidebar)
         row.addWidget(self.stack, 1)
         self.home = self.home_page()

@@ -1,10 +1,10 @@
-# Validação da versão 0.1.0
+# Validação da versão 0.1.1
 
 ## Executado no ambiente de desenvolvimento
 
 Linux, Python 3.12.14, PySide6 6.8.3, FFmpeg/ffprobe 7.1.5, codificador libx264. A interface Qt foi aberta em modo offscreen e inspecionada por screenshots reais. As imagens em `docs` são dessa execução, com biblioteca vazia e prévia de HUD ilustrativa.
 
-**11 testes passaram**, sem testes ignorados:
+**16 testes passaram**, sem testes ignorados:
 
 - Corte, união, velocidade, volume, texto, filtro e zoom em exportações MP4 reais, preservando o arquivo original.
 - Velocidade de 0,25×, entrada sem áudio, geração de faixa silenciosa e sticker.
@@ -16,13 +16,15 @@ Linux, Python 3.12.14, PySide6 6.8.3, FFmpeg/ffprobe 7.1.5, codificador libx264.
 - Interface das seis páginas, persistência de configurações, movimento do HUD, carregamento real de vídeo no Qt, divisão/desfazer e lista de música local.
 - Validação de limites de edição, atalhos e links de playlist.
 
+A versão 0.1.1 acrescenta cinco testes do iniciador: caminhos com espaços/acentos, registro de falhas de subprocessos, reutilização da instalação, interrupção quando a preparação falha, diagnóstico de encerramento precoce e rejeição de uma versão Python incompatível. As partes específicas do Windows usam simulações nesses testes.
+
 Também foram resolvidas as dependências para Python 3.12 / Windows x64 com pip em modo dry-run. Isso confirma a disponibilidade dos pacotes compatíveis; **não executa seus módulos nativos no Windows**.
 
 O código passou por compilação Python, verificação de nomes/importações e formatação Ruff. O ZIP contém código, imagens, scripts, documentação e testes; não contém um ambiente Python pré-instalado ou binários FFmpeg.
 
 ## Ainda não validado em Windows
 
-- Execução de Instalar.cmd / Iniciar DuckCapture.cmd e download real de FFmpeg pelo instalador.
+- Execução de Instalar.py / Abrir DuckCapture.py e aprovação pelo Controle de Aplicativo Inteligente e download real de FFmpeg pelo instalador.
 - Aquisição de quadros via Windows Graphics Capture em jogos e outros aplicativos.
 - Captura WASAPI, sincronização de áudio em uso prolongado, troca de dispositivo e saída de áudio física.
 - Atalhos globais reais, bandeja do sistema, redimensionamento, fechamento/minimização da janela e mudanças de monitor/DPI.
