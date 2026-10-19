@@ -207,3 +207,26 @@ def test_constraints_and_safe_hotkeys(media, source, tmp_path):
     with pytest.raises(ValueError):
         parse_hotkey("Alt+F99")
     assert "{" not in escape("{\\pos(0,0)}")
+
+
+def test_auto_encoder_checks_actual_size_quality_and_fps_before_fallback(monkeypatch):
+    from duckcapture.media import Media, MediaError
+
+    media = Media()
+    calls = []
+
+    def probe(args, **kwargs):
+        calls.append(args)
+        if args[args.index("-c:v") + 1] != "libx264":
+            raise MediaError("GPU incompatível com o perfil")
+
+    monkeypatch.setattr(media, "run", probe)
+    assert media.encoder("Automático", (1920, 1080), "Full", 60) == "libx264"
+    assert len(calls) == 4
+    assert all("color=s=1920x1080:r=60" in call for call in calls)
+    assert "16" in calls[-1] and "120" in calls[-1]
+    calls.clear()
+    assert media.encoder("Automático", (1920, 1080), "Full", 60) == "libx264"
+    assert not calls  # Identical configurations can reuse the successful probe.
+    assert media.encoder("Automático", (2560, 1440), "Full", 60) == "libx264"
+    assert len(calls) == 4

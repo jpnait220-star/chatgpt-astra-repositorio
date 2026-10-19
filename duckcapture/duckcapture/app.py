@@ -5,7 +5,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from PySide6.QtCore import Qt, QTimer, QUrl, QLockFile
+from PySide6.QtCore import Qt, QTimer, QUrl, QLockFile, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QIcon, QDesktopServices, QPixmap, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,9 +28,13 @@ from PySide6.QtWidgets import (
     QMenu,
     QKeySequenceEdit,
     QLabel,
+    QGraphicsOpacityEffect,
 )
-from .config import Settings, data_dir, DURATIONS, FPS, PROFILES, ROOT
-from .widgets import STYLE, Page, Tip, card, label, button, mascot
+from .config import Settings, data_dir, DURATIONS, FPS, PROFILES
+from .widgets import STYLE, Page, Tip, card, label, button, mascot, CHARACTERS
+from .visuals import MascotLabel, icon as vector_icon, motion_enabled
+from .gallery import GalleryPage, ClipViewer
+from . import __version__
 from .media import Media
 from .capture import CaptureEngine
 from .windows import IS_WINDOWS, list_windows, Hotkeys, InputSampler
@@ -43,6 +47,8 @@ class MainWindow(QMainWindow):
     def __init__(self, settings=None):
         super().__init__()
         self.settings = settings or Settings.load()
+        QApplication.instance().setProperty("duckMotion", self.settings.motion)
+        self.fade_overlay = None
         self.media = Media(self.settings.ffmpeg_dir)
         self.engine = CaptureEngine(self.media)
         self.setWindowTitle("DuckCapture")
@@ -69,44 +75,42 @@ class MainWindow(QMainWindow):
         nav.setContentsMargins(19, 27, 19, 23)
         nav.setSpacing(10)
         brand = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(mascot("Duck", 52))
+        icon = MascotLabel(mascot("Duck", 80), 44)
+        icon.setFixedSize(44, 44)
         brand.addWidget(icon)
         brand.addWidget(label("DuckCapture", "brand"))
         nav.addLayout(brand)
         nav.addWidget(label("SEU MOMENTO MERECE FICAR.", "tiny"))
         nav.addSpacing(31)
         self.stack = QStackedWidget()
-        self.nav = []
-        for index, (symbol, title) in enumerate(
-            [
-                ("◉", "Início"),
-                ("◫", "Capturar"),
-                ("✂", "Editor"),
-                ("▦", "HUD"),
-                ("♫", "Música"),
-                ("⚙", "Configurações"),
-            ]
-        ):
-            b = button(
-                f"{symbol}   {title}", lambda checked=False, i=index: self.navigate(i)
-            )
+        self.nav = {}
+        for index, symbol, title in [
+            (0, "home", "Início"),
+            (1, "capture", "Capturar"),
+            (6, "library", "Todos os clipes"),
+            (2, "editor", "Editor"),
+            (3, "hud", "HUD"),
+            (4, "music", "Música"),
+            (5, "settings", "Configurações"),
+        ]:
+            b = button(title, lambda checked=False, i=index: self.navigate(i))
+            b.setIcon(vector_icon(symbol))
             b.setObjectName("nav")
             b.setCheckable(True)
             nav.addWidget(b)
-            self.nav.append(b)
+            self.nav[index] = b
         nav.addStretch()
         nav.addWidget(label("LOCAL. PRIVADO. SEU.", "eyebrow"))
         nav.addWidget(
             label(
-                "Sem conta. Sem upload.\nSó você e seus melhores momentos.",
+                "Seus clipes ficam no PC.\nSpotify conecta ao serviço ao carregar o player.",
                 "muted",
                 True,
             )
         )
         nav.addSpacing(15)
         nav.addWidget(button("Conhecer a turma", self.show_mascots))
-        nav.addWidget(label("DUCKCAPTURE     0.1.1 · ALPHA", "tiny"))
+        nav.addWidget(label(f"DUCKCAPTURE     {__version__} · ALPHA", "tiny"))
         row.addWidget(sidebar)
         row.addWidget(self.stack, 1)
         self.home = self.home_page()
@@ -115,6 +119,14 @@ class MainWindow(QMainWindow):
         self.hud = HudEditor(self.settings, self.save_settings, self.notify)
         self.music = MusicPage(self.settings, self.save_settings, self.notify)
         self.preferences = self.settings_page()
+        self.gallery = GalleryPage(
+            self.media,
+            self.edit_path,
+            self.open_clips,
+            self.notify,
+            lambda: self.engine.active or self.engine.starting,
+        )
+
         for page in [
             self.home,
             self.capture,
@@ -122,6 +134,7 @@ class MainWindow(QMainWindow):
             self.hud,
             self.music,
             self.preferences,
+            self.gallery,
         ]:
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
@@ -197,9 +210,8 @@ class MainWindow(QMainWindow):
         actions.addWidget(button("Escolher janela", lambda: self.navigate(1)))
         text.addLayout(actions)
         row.addLayout(text, 3)
-        art = QLabel()
-        art.setPixmap(mascot("Duck", 260))
-        art.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        art = MascotLabel(mascot("Duck", 420), 190)
+        art.setMaximumWidth(300)
         row.addWidget(art, 2)
         page.body.addWidget(hero)
         stats = QHBoxLayout()
@@ -222,7 +234,7 @@ class MainWindow(QMainWindow):
         header = QHBoxLayout()
         header.addWidget(label("Seus últimos momentos", "subheading"))
         header.addStretch()
-        header.addWidget(button("Abrir pasta", self.open_clips))
+        header.addWidget(button("Todos os clipes", lambda: self.navigate(6), True))
         header.addWidget(
             button("Importar no editor", lambda: self.editor.import_video())
         )
@@ -250,6 +262,16 @@ class MainWindow(QMainWindow):
             "Escolha o que merece ficar.",
             "Selecione uma janela. O replay só começa quando você clicar em Iniciar captura.",
         )
+        self.capture_error = label("", "captureError", True)
+        self.capture_error.setTextFormat(Qt.TextFormat.PlainText)
+        self.capture_error.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        page.body.addWidget(self.capture_error)
+        self.capture_error.hide()
+        self.copy_error = button("Copiar diagnóstico", self.copy_capture_error)
+        page.body.addWidget(self.copy_error)
+        self.copy_error.hide()
         frame = card()
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(24, 22, 24, 22)
@@ -386,6 +408,10 @@ class MainWindow(QMainWindow):
         self.ffmpeg_label = label(self.media.ffmpeg or "Não encontrado", "tiny", True)
         layout.addWidget(self.ffmpeg_label, 7, 1)
         layout.addWidget(button("Selecionar pasta do FFmpeg", self.choose_ffmpeg), 8, 1)
+        self.motion_check = QCheckBox("Animações suaves e brilho acompanhando o mouse")
+        self.motion_check.setChecked(self.settings.motion)
+        self.motion_check.toggled.connect(self.toggle_motion)
+        layout.addWidget(self.motion_check, 9, 0, 1, 2)
         page.body.addWidget(frame)
         row = QHBoxLayout()
         row.addWidget(
@@ -463,11 +489,20 @@ class MainWindow(QMainWindow):
         try:
             self.inputs.reset()
             self.capture_settings()
+            self.capture_error.hide()
+            self.copy_error.hide()
+            self.preview.clear()
+            self.preview.setText("Preparando a janela e o codificador…")
+            self.navigate(1)
             self.engine.start(target, self.settings)
+            self.progress.setRange(0, 0)
+            self.engine_label.setText(
+                "Aguardando o primeiro quadro. O replay ainda não começou."
+            )
             self.status_label.setText("◌  PREPARANDO CAPTURA")
             self.set_capture_controls(True)
         except Exception as error:
-            self.notify(str(error))
+            self.show_capture_error(str(error))
 
     def set_capture_controls(self, running):
         for control in [
@@ -482,13 +517,18 @@ class MainWindow(QMainWindow):
         ]:
             control.setEnabled(not running)
         self.start_button.setEnabled(not running)
-        self.home_start.setEnabled(not running)
+        self.home_start.setText("Ver captura →" if running else "Iniciar captura →")
+        self.home_start.setEnabled(True)
+        self.stop_button.setText(
+            "Cancelar preparação" if self.engine.starting else "Parar captura"
+        )
         self.stop_button.setEnabled(running)
         self.clip_button.setEnabled(self.engine.active)
         self.print_button.setEnabled(self.engine.active)
 
     def stop_capture(self):
         self.engine.stop()
+        self.stop_button.setEnabled(False)
         self.input_timer.stop()
         self.status_label.setText("◌  FINALIZANDO CAPTURA")
 
@@ -511,16 +551,37 @@ class MainWindow(QMainWindow):
             except queue.Empty:
                 break
             if kind == "started":
-                self.status_label.setText("●  REPLAY ATIVO")
-                self.engine_label.setText(message)
+                self.status_label.setText(
+                    "●  REPLAY ATIVO"
+                    + (" · SEM ÁUDIO" if self.engine.audio_warning else "")
+                )
+                self.engine_label.setText(
+                    message
+                    + f" · Salve com {self.settings.clip_key} ou Salvar últimos segundos."
+                )
+                self.progress.setRange(0, self.engine.settings.duration)
                 self.set_capture_controls(True)
                 self.input_timer.start()
                 self.tray.setToolTip("DuckCapture — gravando a janela selecionada")
             elif kind == "stopped":
-                self.status_label.setText("○  CAPTURA PARADA")
+                self.status_label.setText(
+                    "FALHA NA CAPTURA" if self.engine.error else "○  CAPTURA PARADA"
+                )
+                self.progress.setRange(0, self.settings.duration)
+                self.progress.setValue(0)
+                if not self.engine.error:
+                    self.engine_label.setText(message)
                 self.set_capture_controls(False)
                 self.input_timer.stop()
                 self.tray.setToolTip("DuckCapture — captura parada")
+            elif kind == "preparing":
+                self.engine_label.setText(message)
+            elif kind == "capture_error":
+                self.show_capture_error(message)
+            elif kind == "warning":
+                self.show_capture_error(message, warning=True)
+                if self.engine.active:
+                    self.status_label.setText("●  REPLAY ATIVO · SEM ÁUDIO")
             elif kind == "saving":
                 self.clip_button.setEnabled(False)
                 self.notify(message)
@@ -578,14 +639,73 @@ class MainWindow(QMainWindow):
         self.music_title = title
 
     def navigate(self, index):
+        previous = self.stack.currentIndex()
+        if self.fade_overlay:
+            self.fade_animation.stop()
+            self.fade_overlay.deleteLater()
+            self.fade_overlay = None
+        # Fade a static page snapshot, never attach opacity effects to native
+        # video/web views. No animation or extra rendering while idle.
+        snapshot = (
+            self.stack.grab()
+            if (
+                self.isVisible()
+                and motion_enabled()
+                and previous != index
+                and previous not in (2, 4)
+                and index not in (2, 4)
+            )
+            else None
+        )
         self.stack.setCurrentIndex(index)
         self.stack.currentWidget().verticalScrollBar().setValue(0)
         self.stack.currentWidget().horizontalScrollBar().setValue(0)
-        for i, button_ in enumerate(self.nav):
+        for i, button_ in self.nav.items():
             button_.setChecked(i == index)
-        if index != 2:
-            self.editor.player.pause() if hasattr(self, "editor") else None
+        if snapshot:
+            overlay = QLabel(self.stack)
+            overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            overlay.setPixmap(snapshot)
+            overlay.setGeometry(self.stack.rect())
+            effect = QGraphicsOpacityEffect(overlay)
+            overlay.setGraphicsEffect(effect)
+            self.fade_animation = QPropertyAnimation(effect, b"opacity", overlay)
+            self.fade_animation.setDuration(190)
+            self.fade_animation.setStartValue(1.0)
+            self.fade_animation.setEndValue(0.0)
+            self.fade_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+            self.fade_animation.finished.connect(self.finish_fade)
+            self.fade_overlay = overlay
+            overlay.show()
+            overlay.raise_()
+            self.fade_animation.start()
+        if index != 2 and hasattr(self, "editor"):
+            self.editor.player.pause()
         self.save_settings()
+
+    def finish_fade(self):
+        if self.fade_overlay:
+            self.fade_overlay.deleteLater()
+            self.fade_overlay = None
+
+    def show_capture_error(self, message, warning=False):
+        self.capture_error.setText(
+            ("AVISO DE ÁUDIO\n" if warning else "NÃO FOI POSSÍVEL MANTER A CAPTURA\n")
+            + message
+        )
+        self.capture_error.show()
+        self.copy_error.show()
+        if not warning:
+            self.status_label.setText("FALHA NA CAPTURA")
+            self.engine_label.setText("Confira o diagnóstico acima e tente novamente.")
+            self.progress.setRange(0, self.settings.duration)
+            self.progress.setValue(0)
+        self.notify(message)
+
+    def copy_capture_error(self):
+        text = f"DuckCapture {__version__}\n{self.capture_error.text()}\nCodificador: {self.settings.encoder} | {self.settings.fps} FPS | {self.settings.quality}"
+        QApplication.clipboard().setText(text)
+        self.notify("Diagnóstico copiado. Você pode colar a mensagem para pedir ajuda.")
 
     def notify(self, text):
         self.last_toast = text
@@ -614,13 +734,15 @@ class MainWindow(QMainWindow):
         if not force and snapshot == self.file_snapshot:
             return
         self.file_snapshot = snapshot
+        self.gallery.refresh(snapshot)
         self.library.clear()
-        for path, size, mtime in snapshot[:100]:
+        for path, size, mtime in snapshot[:12]:
             p = Path(path)
             item = QListWidgetItem(
-                f"{'▧' if p.suffix == '.png' else '▷'}  {p.name}\n     {size / 1024**2:.1f} MB  ·  {time.strftime('%d/%m · %H:%M', time.localtime(mtime))}"
+                f"{p.name}\n{size / 1024**2:.1f} MB  ·  {time.strftime('%d/%m · %H:%M', time.localtime(mtime))}"
             )
             item.setData(Qt.ItemDataRole.UserRole, path)
+            item.setIcon(vector_icon("image" if p.suffix.lower() == ".png" else "play"))
             self.library.addItem(item)
         if not snapshot:
             item = QListWidgetItem(
@@ -641,13 +763,16 @@ class MainWindow(QMainWindow):
     def open_item(self, *_):
         path = self.selected_path()
         if path:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+            ClipViewer(path, self).exec()
 
     def edit_item(self):
         path = self.selected_path()
         if not path or Path(path).suffix == ".png":
             self.notify("Selecione um vídeo da biblioteca para editar.")
             return
+        self.edit_path(path)
+
+    def edit_path(self, path):
         self.editor.load(path)
         self.navigate(2)
 
@@ -682,6 +807,7 @@ class MainWindow(QMainWindow):
             self.media = candidate
             self.engine.media = candidate
             self.editor.media = candidate
+            self.gallery.media = candidate
             self.ffmpeg_label.setText(candidate.ffmpeg)
             self.save_settings()
 
@@ -716,6 +842,14 @@ class MainWindow(QMainWindow):
             self.settings.clip_key, self.settings.screenshot_key = old
             self.notify(str(error))
 
+    def toggle_motion(self, value):
+        self.settings.motion = value
+        QApplication.instance().setProperty("duckMotion", value)
+        if not value:
+            self.music.vinyl.timer.stop()
+            self.finish_fade()
+        self.save_settings()
+
     def toggle_tips(self, value):
         self.settings.tips = value
         self.apply_tips()
@@ -730,23 +864,20 @@ class MainWindow(QMainWindow):
 
         dialog = QDialog(self)
         dialog.setWindowTitle("A turma DuckCapture")
-        dialog.resize(1120, 410)
+        dialog.resize(650, 650)
         layout = QVBoxLayout(dialog)
         layout.addWidget(label("Uma turma. Muitos bons momentos.", "heading"))
-        art = QLabel()
-        art.setPixmap(
-            QPixmap(str(ROOT / "assets/mascots.png")).scaledToWidth(
-                1080, Qt.TransformationMode.SmoothTransformation
-            )
-        )
-        layout.addWidget(art)
-        layout.addWidget(
-            label(
-                "Duck · EditDuck · KeyDuck · ClickDuck · MusicDuck · ProfDuck · SettingDuck · SpeedDuck · GuardDuck",
-                "muted",
-                True,
-            )
-        )
+        grid = QGridLayout()
+        for i, name in enumerate(CHARACTERS):
+            tile = QVBoxLayout()
+            art = MascotLabel(mascot(name, 220), 130)
+            art.setMaximumHeight(145)
+            tile.addWidget(art)
+            title = label(name, "tipName")
+            title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            tile.addWidget(title)
+            grid.addLayout(tile, i // 3, i % 3)
+        layout.addLayout(grid)
         layout.addWidget(button("Fechar", dialog.accept, True))
         dialog.exec()
 
@@ -809,6 +940,10 @@ class MainWindow(QMainWindow):
         self.timer.stop()
         self.input_timer.stop()
         self.music.player.stop()
+        self.music.spotify_panel.close_player()
+        self.music.watch.stop()
+        self.library_timer.stop()
+        self.gallery.timer.stop()
         self.editor.player.stop()
         self.engine.shutdown()
         self.hotkeys.clear()
@@ -820,6 +955,7 @@ class MainWindow(QMainWindow):
 def main():
     QApplication.setApplicationName("DuckCapture")
     QApplication.setOrganizationName("DuckCapture")
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     lock = QLockFile(str(data_dir() / "application.lock"))

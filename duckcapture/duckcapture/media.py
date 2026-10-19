@@ -55,7 +55,7 @@ class Media:
             if (base / ("ffprobe" + suffix)).exists()
             else shutil.which("ffprobe")
         )
-        self._encoder = None
+        self._encoders = {}
 
     def require(self):
         if not self.ffmpeg or not self.ffprobe:
@@ -122,28 +122,39 @@ class Media:
             any(s["codec_type"] == "audio" for s in doc["streams"]),
         )
 
-    def encoder(self, requested="Automático"):
+    def encoder(
+        self,
+        requested="Automático",
+        size=(128, 128),
+        quality="Equilibrado",
+        fps=30,
+        cancelled=None,
+        progress=None,
+    ):
         self.require()
+        key = (size, quality, fps)
         if requested != "Automático":
             choices = [requested]
-        elif self._encoder:
-            return self._encoder
+        elif key in self._encoders:
+            return self._encoders[key]
         else:
             choices = ["h264_nvenc", "h264_qsv", "h264_amf", "libx264"]
+        errors = []
         for encoder in choices:
+            if cancelled and cancelled.is_set():
+                raise InterruptedError("Preparação cancelada.")
+            if progress:
+                progress(f"Verificando {encoder} em {size[0]}×{size[1]}…")
             try:
                 self.run(
                     [
                         "-f",
                         "lavfi",
                         "-i",
-                        "color=s=128x128:r=30",
+                        f"color=s={size[0]}x{size[1]}:r={fps}",
                         "-frames:v",
                         "1",
-                        "-c:v",
-                        encoder,
-                        "-pix_fmt",
-                        "yuv420p",
+                        *self.encoding(encoder, quality, fps),
                         "-f",
                         "null",
                         "-",
@@ -151,12 +162,13 @@ class Media:
                     timeout=15,
                 )
                 if requested == "Automático":
-                    self._encoder = encoder
+                    self._encoders[key] = encoder
                 return encoder
-            except (MediaError, subprocess.TimeoutExpired):
-                pass
+            except (MediaError, subprocess.TimeoutExpired) as error:
+                errors.append(f"{encoder}: {error}")
         raise MediaError(
-            "O codificador escolhido não funciona nesta máquina. Selecione Automático ou libx264."
+            "O codificador escolhido não funciona nesta configuração. Selecione Automático ou libx264.\n"
+            + "\n".join(errors)[-1800:]
         )
 
     @staticmethod

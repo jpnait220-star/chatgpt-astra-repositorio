@@ -1,4 +1,4 @@
-﻿DuckCapture 0.1.1 — como abrir
+﻿DuckCapture 0.2.0 — como abrir
 
 1. Instale Python 3.12 de 64 bits, incluindo o Python Launcher:
    https://www.python.org/downloads/release/python-31210/
@@ -21,3 +21,17 @@ pelo Controle de Aplicativo Inteligente.
 
 Erros: consulte instalacao.log e inicializacao.log na pasta extraída.
 Mais detalhes: LEIA-ME.md.
+
+JÁ TEM A VERSÃO ANTERIOR?
+Feche o DuckCapture, copie o conteúdo da nova pasta DuckCapture sobre a
+pasta instalada e aceite substituir os arquivos. Preserve .venv, tools
+e seus clipes. Depois abra Abrir DuckCapture.py.
+
+CAPTURA
+Aguarde REPLAY ATIVO e o contador aumentando. F8 salva o clipe.
+Se voltar ao zero, use Copiar diagnóstico no painel Capturar.
+Todos os clipes ficam no novo botão do menu.
+
+SPOTIFY
+Música → Spotify → cole a playlist → Carregar player.
+Conta gratuita pode ficar limitada a prévias de 30 segundos.

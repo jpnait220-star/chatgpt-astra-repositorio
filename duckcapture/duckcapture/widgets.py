@@ -6,10 +6,10 @@ from PySide6.QtWidgets import (
     QFrame,
     QVBoxLayout,
     QHBoxLayout,
-    QPushButton,
     QWidget,
 )
 from .config import ROOT
+from .visuals import GlowButton, GlowFrame, MascotLabel
 
 CHARACTERS = {
     "Duck": 0,
@@ -32,20 +32,27 @@ def mascot(name="Duck", height=180):
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
-    sheet = QPixmap(str(ROOT / "assets/mascots.png"))
-    if sheet.isNull():
-        return sheet
-    index = CHARACTERS.get(name, 0)
-    tile = sheet.width() / 9
-    sprite = sheet.copy(
-        QRect(
-            round(index * tile),
-            round(sheet.height() * 0.22),
-            round(tile),
-            round(sheet.height() * 0.55),
+    grid = QPixmap(str(ROOT / "assets/mascots-grid.png"))
+    if not grid.isNull():
+        index = CHARACTERS.get(name, 0)
+        column = index % 3
+        row = index // 3
+        left = round(column * grid.width() / 3)
+        right = round((column + 1) * grid.width() / 3)
+        # The generated atlas has asymmetric row gutters; keep every foot,
+        # headphone and accessory inside its own tile.
+        rows = (0, 440 / 1254, 850 / 1254, 1)
+        top = round(rows[row] * grid.height())
+        bottom = round(rows[row + 1] * grid.height())
+        return grid.copy(QRect(left, top, right - left, bottom - top)).scaled(
+            height,
+            height,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
         )
+    return QPixmap(str(ROOT / "assets/duck.png")).scaledToHeight(
+        height, Qt.TransformationMode.SmoothTransformation
     )
-    return sprite.scaledToHeight(height, Qt.TransformationMode.SmoothTransformation)
 
 
 def label(text, role="body", wrap=False):
@@ -56,7 +63,7 @@ def label(text, role="body", wrap=False):
 
 
 def button(text, callback=None, primary=False):
-    item = QPushButton(text)
+    item = GlowButton(text)
     item.setObjectName("primary" if primary else "button")
     item.setCursor(Qt.CursorShape.PointingHandCursor)
     if callback:
@@ -65,7 +72,7 @@ def button(text, callback=None, primary=False):
 
 
 def card():
-    frame = QFrame()
+    frame = GlowFrame()
     frame.setObjectName("card")
     return frame
 
@@ -76,8 +83,8 @@ class Tip(QFrame):
         self.setObjectName("tip")
         row = QHBoxLayout(self)
         row.setContentsMargins(14, 6, 16, 6)
-        art = QLabel()
-        art.setPixmap(mascot(mascot_name, 76))
+        art = MascotLabel(mascot(mascot_name, 100), 76)
+        art.setFixedSize(76, 76)
         row.addWidget(art)
         col = QVBoxLayout()
         col.addWidget(label(mascot_name, "tipName"))
@@ -97,20 +104,19 @@ class Page(QWidget):
 
 STYLE = """
 * { font-family: "Segoe UI", "DejaVu Sans"; font-size: 13px; color: #eeeeef; }
-QMainWindow, QWidget#shell { background: #0c0e12; }
+QMainWindow, QWidget#shell { background: #090a0d; }
 QWidget { background: transparent; }
-QFrame#sidebar { background: #101216; border-right: 1px solid #272930; }
-QFrame#card { background: #15181e; border: 1px solid #2a2e36; border-radius: 14px; }
-QFrame#hero { background: #1b1c1b; border: 1px solid #45402b; border-radius: 16px; }
+QDialog { background: #101115; }
+QFrame#sidebar { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #14151a,stop:1 #0c0d11); border-right: 1px solid #30313a; }
 QFrame#tip { background: #1b1c17; border: 1px solid #3b3929; border-radius: 12px; }
 QLabel#brand { color: #faf7ed; font-size: 18px; font-weight: 700; }
-QLabel#heading { font-size: 30px; font-weight: 700; color: #f4f4f4; }
-QLabel#heroTitle { font-size: 33px; font-weight: 700; color: #faf7ed; }
+QLabel#heading { font-size: 29px; font-weight: 700; color: #f4f4f4; }
+QLabel#heroTitle { font-size: 38px; font-weight: 700; color: #faf7ed; }
 QLabel#subheading { font-size: 17px; font-weight: 600; }
-QLabel#eyebrow { color: #ecd27b; font-size: 10px; font-weight: 600; }
+QLabel#eyebrow { color: #ddd3b2; font-size: 10px; font-weight: 600; }
 QLabel#subtitle, QLabel#muted { color: #979ba5; font-size: 12px; }
 QLabel#tiny { color: #707784; font-size: 10px; }
-QLabel#value { font-size: 25px; font-weight: 600; }
+QLabel#value { font-size: 27px; font-weight: 600; }
 QLabel#tipName { color: #e7cf7d; font-size: 11px; font-weight: 600; }
 QPushButton { background: #20242b; border: 1px solid #363b46; border-radius: 8px; padding: 10px 15px; }
 QPushButton:hover { background: #2a303a; border-color: #555d6d; }
@@ -136,10 +142,17 @@ QCheckBox { spacing: 8px; }
 QCheckBox::indicator { width: 16px; height: 16px; background: #242a34; border: 1px solid #535d6d; border-radius: 4px; }
 QCheckBox::indicator:checked { background: #e0c360; border-color: #ffeea4; }
 QScrollArea { border: none; }
+QTabWidget::pane { border: none; }
+QTabBar::tab { background:#14151a; color:#999da8; border:1px solid #30323c; border-radius:8px; padding:12px 28px; margin-right:8px; }
+QTabBar::tab:selected { background:#29271f; color:#f6e5b0; border-color:#655b3a; }
+QTabBar::tab:hover { color:#ffffff; border-color:#626571; }
 QScrollBar:vertical { background: transparent; width: 8px; }
 QScrollBar::handle:vertical { background: #3b424f; border-radius: 4px; min-height: 30px; }
 QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical { height: 0; }
 QToolTip { background: #252b34; color: #fff; border: 1px solid #515c6c; padding: 7px; }
+QProgressBar { border:1px solid #383a43; border-radius:7px; background:#101116; min-height:25px; text-align:center; }
+QProgressBar::chunk { background:#b3a46c; border-radius:6px; }
+QLabel#captureError { background:#2b181c; color:#ffb6bb; border:1px solid #674047; padding:14px; border-radius:10px; }
 QStatusBar { background: #101319; color: #8994a5; }
 QMessageBox { background: #151920; }
 QMenu { background: #181d25; border: 1px solid #3c4553; }

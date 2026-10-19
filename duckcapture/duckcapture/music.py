@@ -1,10 +1,8 @@
 from __future__ import annotations
 import random
-import re
 from pathlib import Path
-from urllib.parse import urlparse
 from PySide6.QtCore import Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QPainter, QColor, QPixmap, QPainterPath, QDesktopServices
+from PySide6.QtGui import QPainter, QColor, QPixmap, QPainterPath
 from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -14,9 +12,12 @@ from PySide6.QtWidgets import (
     QSlider,
     QLineEdit,
     QCheckBox,
+    QTabWidget,
 )
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from .widgets import Page, Tip, card, label, button
+from .spotify import SpotifyPanel, embed_url
+from .visuals import motion_enabled
 
 
 class Vinyl(QWidget):
@@ -62,7 +63,8 @@ class MusicPage(Page):
 
     def __init__(self, settings, save, notify):
         super().__init__(
-            "Sua trilha sonora.", "Músicas locais, um disco girando e zero upload."
+            "Sua trilha sonora.",
+            "Suas músicas locais e o player oficial do Spotify, aqui no aplicativo.",
         )
         self.settings = settings
         self.save = save
@@ -75,6 +77,18 @@ class MusicPage(Page):
         self.audio = QAudioOutput(self)
         self.player.setAudioOutput(self.audio)
         self.audio.setVolume(0.5)
+        self.tabs = QTabWidget()
+        local_page = QWidget()
+        local_body = QVBoxLayout(local_page)
+        local_body.setContentsMargins(0, 18, 0, 0)
+        local_body.setSpacing(18)
+        spotify_page = QWidget()
+        spotify_body = QVBoxLayout(spotify_page)
+        spotify_body.setContentsMargins(0, 18, 0, 0)
+        spotify_body.setSpacing(18)
+        self.tabs.addTab(local_page, "Músicas locais")
+        self.tabs.addTab(spotify_page, "Spotify")
+        self.body.addWidget(self.tabs, 1)
         frame = card()
         row = QHBoxLayout(frame)
         row.setContentsMargins(22, 20, 22, 20)
@@ -107,29 +121,35 @@ class MusicPage(Page):
         options.addWidget(volume)
         info.addLayout(options)
         row.addLayout(info, 1)
-        self.body.addWidget(frame)
+        local_body.addWidget(frame)
         folderrow = QHBoxLayout()
         self.folder = label(settings.music_dir, "muted", True)
         folderrow.addWidget(self.folder, 1)
         folderrow.addWidget(button("Escolher pasta", self.choose_folder))
         folderrow.addWidget(button("Atualizar", self.scan))
-        self.body.addLayout(folderrow)
+        local_body.addLayout(folderrow)
         self.list = QListWidget()
+        self.list.setMinimumHeight(180)
         self.list.itemDoubleClicked.connect(lambda item: self.play(self.list.row(item)))
-        self.body.addWidget(self.list, 1)
+        local_body.addWidget(self.list, 1)
+        spotify_body.addWidget(label("Sua playlist, por perto.", "subheading"))
+        spotify_body.addWidget(
+            label(
+                "Cole o link da playlist e use os controles oficiais para ouvir aqui.",
+                "muted",
+                True,
+            )
+        )
         spotify = QHBoxLayout()
         self.spotify = QLineEdit(settings.spotify)
         self.spotify.setPlaceholderText("https://open.spotify.com/playlist/…")
         spotify.addWidget(self.spotify, 1)
-        spotify.addWidget(button("Abrir no Spotify", self.open_spotify))
-        self.body.addLayout(spotify)
-        self.body.addWidget(
-            label(
-                "Spotify abre no serviço oficial. Esta versão não importa nem baixa as faixas da playlist.",
-                "tiny",
-                True,
-            )
-        )
+        spotify.addWidget(button("Carregar player", self.open_spotify, True))
+        spotify_body.addLayout(spotify)
+        self.spotify_panel = SpotifyPanel()
+        self.spotify_panel.opened.connect(self.player.pause)
+        spotify_body.addWidget(self.spotify_panel)
+        spotify_body.addStretch()
         self.tip = Tip(
             "MusicDuck",
             "Coloque MP3, WAV, FLAC, OGG ou M4A na sua pasta. O áudio do sistema também pode incluir a música nos clipes.",
@@ -183,6 +203,7 @@ class MusicPage(Page):
     def play(self, index):
         if not 0 <= index < len(self.paths):
             return
+        self.spotify_panel.close_player()
         self.index = index
         path = self.paths[index]
         title = path.stem
@@ -217,6 +238,7 @@ class MusicPage(Page):
         elif self.index < 0:
             self.play(0)
         else:
+            self.spotify_panel.close_player()
             self.player.play()
 
     def next(self):
@@ -242,7 +264,8 @@ class MusicPage(Page):
         playing = state == QMediaPlayer.PlaybackState.PlayingState
         self.play_button.setText("Pausar" if playing else "Reproduzir")
         if playing:
-            self.vinyl.timer.start()
+            if motion_enabled():
+                self.vinyl.timer.start()
             self.trackChanged.emit(self.current_title)
         else:
             self.vinyl.timer.stop()
@@ -260,14 +283,11 @@ class MusicPage(Page):
 
     def open_spotify(self):
         url = self.spotify.text().strip()
-        parsed = urlparse(url)
-        if (
-            parsed.scheme != "https"
-            or parsed.netloc != "open.spotify.com"
-            or not re.fullmatch(r"/playlist/[A-Za-z0-9]+/?", parsed.path)
-        ):
-            self.notify("Use o link HTTPS de uma playlist em open.spotify.com.")
+        try:
+            embed_url(url)
+            self.spotify_panel.load(url)
+        except Exception as error:
+            self.notify(str(error))
             return
         self.settings.spotify = url
         self.save()
-        QDesktopServices.openUrl(QUrl(url))

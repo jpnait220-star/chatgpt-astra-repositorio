@@ -21,8 +21,9 @@ from .media import Media, MediaError, CREATE_FLAGS
 
 
 class CaptureEngine:
-    def __init__(self, media: Media):
+    def __init__(self, media: Media, source_factory=None):
         self.media = media
+        self.source_factory = source_factory
         self.events = queue.Queue()
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="duck-export")
         self.active = False
@@ -41,6 +42,7 @@ class CaptureEngine:
         self.pinning = False
         self.error = None
         self.source = None
+        self.audio_warning = ""
         self.thread = None
 
     @property
@@ -56,12 +58,13 @@ class CaptureEngine:
             and self.thread.is_alive()
         ):
             raise RuntimeError("A captura já está em andamento.")
-        if os.name != "nt":
+        if os.name != "nt" and self.source_factory is None:
             raise RuntimeError(
                 "A captura de janelas está disponível no Windows 10/11. Editor, HUD e música também podem ser abertos nesta máquina."
             )
         self.starting = True
         self.error = None
+        self.audio_warning = ""
         self.settings = copy.deepcopy(settings)
         self.hwnd = hwnd
         if self.session and self.session.exists():
@@ -71,6 +74,7 @@ class CaptureEngine:
         self.frames = 0
         self.samples.clear()
         self.audio = None
+        self.session = None
         self.thread = threading.Thread(
             target=self._start, daemon=True, name="duck-capture"
         )
@@ -80,10 +84,14 @@ class CaptureEngine:
         process = None
         log = None
         try:
-            from windows_capture import WindowsCapture
+            self.media.require()
+            factory = self.source_factory
+            if factory is None:
+                from windows_capture import WindowsCapture
 
-            self.encoder = self.media.encoder(self.settings.encoder)
-            source = WindowsCapture(
+                factory = WindowsCapture
+            self.events.put(("preparing", "Conectando à janela selecionada…"))
+            source = factory(
                 window_hwnd=self.hwnd,
                 cursor_capture=self.settings.cursor,
                 # Leave optional Windows 11 session properties at their system
@@ -115,19 +123,26 @@ class CaptureEngine:
             @source.event
             def on_closed():
                 if not self.done.is_set():
-                    self.events.put(
-                        ("error", "A janela selecionada foi fechada. A captura parou.")
-                    )
+                    self.error = "A janela selecionada foi fechada. A captura parou."
+                    self.events.put(("capture_error", self.error))
                 self.done.set()
 
             self.control = source.start_free_threaded()
-            if not arrived.wait(10):
-                raise RuntimeError(
-                    "Nenhum quadro recebido. Restaure a janela e use modo janela/sem bordas no jogo."
-                )
-            if self.settings.system_audio:
-                self.audio = AudioRing()
-                self.audio.start()
+            deadline = time.monotonic() + 10
+            while not arrived.wait(0.05):
+                if self.done.is_set():
+                    raise InterruptedError()
+                if self.control.is_finished():
+                    self.control.wait()  # Propagate the native Windows error.
+                    raise RuntimeError(
+                        "O Windows encerrou a captura antes do primeiro quadro."
+                    )
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(
+                        "Nenhum quadro recebido. Restaure a janela e use modo janela/sem bordas no jogo."
+                    )
+            if self.done.is_set():
+                raise InterruptedError()
             buffer_root = data_dir() / "buffer"
             buffer_root.mkdir(exist_ok=True)
             self.session = Path(tempfile.mkdtemp(prefix="replay-", dir=buffer_root))
@@ -139,14 +154,44 @@ class CaptureEngine:
                 "Alta qualidade": 2560,
                 "Full": width,
             }[self.settings.quality]
-            out_width = min(width, maximum) // 2 * 2
-            out_height = round(height * out_width / width) // 2 * 2
+            out_width = max(2, min(width, maximum) // 2 * 2)
+            out_height = max(2, round(height * out_width / width) // 2 * 2)
             self.output_size = (out_width, out_height)
+            self.encoder = self.media.encoder(
+                self.settings.encoder,
+                self.output_size,
+                self.settings.quality,
+                self.settings.fps,
+                self.done,
+                lambda message: self.events.put(("preparing", message)),
+            )
+            if self.done.is_set():
+                raise InterruptedError()
+            if self.settings.system_audio:
+                self.events.put(("preparing", "Preparando áudio do sistema…"))
+                self.audio = AudioRing()
+                try:
+                    self.audio.start()
+                except Exception as error:
+                    self.audio.stop()
+                    self.audio = None
+                    self.audio_warning = (
+                        "Gravando SEM ÁUDIO: "
+                        + str(error)
+                        + " Confira a saída de som do Windows e reinicie a captura para tentar novamente."
+                    )
+                    logging.exception("Áudio indisponível; mantendo vídeo")
+                    self.events.put(("warning", self.audio_warning))
+            if self.done.is_set():
+                raise InterruptedError()
+            self.events.put(("preparing", "Iniciando gravação do replay…"))
             args = [
                 self.media.ffmpeg,
                 "-hide_banner",
                 "-loglevel",
                 "error",
+                "-filter_threads",
+                "2",
                 "-y",
                 "-f",
                 "rawvideo",
@@ -189,14 +234,6 @@ class CaptureEngine:
                 creationflags=CREATE_FLAGS,
             )
             self.epoch = time.monotonic()
-            self.active = True
-            self.starting = False
-            self.events.put(
-                (
-                    "started",
-                    f"{self.encoder} · {out_width}×{out_height} · {self.settings.fps} FPS",
-                )
-            )
             while not self.done.is_set():
                 target = self.epoch + self.frames / self.settings.fps
                 remaining = target - time.monotonic()
@@ -204,6 +241,11 @@ class CaptureEngine:
                     self.done.wait(remaining)
                 if self.done.is_set():
                     break
+                if self.control.is_finished():
+                    self.control.wait()
+                    raise RuntimeError(
+                        "O Windows encerrou a captura da janela. Restaure a janela e tente novamente."
+                    )
                 if time.monotonic() - target > 1.5:
                     raise RuntimeError(
                         "O computador não está acompanhando este FPS. Reduza o FPS/qualidade ou escolha um codificador da GPU."
@@ -217,15 +259,31 @@ class CaptureEngine:
                 process.stdin.write(pixels.tobytes())
                 self.frames += 1
                 if self.audio and self.audio.error:
-                    raise RuntimeError(
-                        "O áudio do sistema parou. Verifique seu dispositivo de saída."
+                    self.audio_warning = (
+                        "O áudio do sistema parou: "
+                        + str(self.audio.error)
+                        + ". O vídeo continua; reinicie a captura após conferir a saída de som."
                     )
+                    self.audio.stop()
+                    self.audio = None
+                    self.events.put(("warning", self.audio_warning))
                 if self.frames % self.settings.fps == 0:
                     self._prune()
                 if process.poll() is not None:
                     raise RuntimeError(
                         "O codificador parou. Veja encoder.log na pasta de dados."
                     )
+                if not self.active and self.frames >= 5:
+                    self.active = True
+                    self.starting = False
+                    self.events.put(
+                        (
+                            "started",
+                            f"{self.encoder} · {out_width}×{out_height} · {self.settings.fps} FPS",
+                        )
+                    )
+        except InterruptedError:
+            pass
         except Exception as error:
             self.error = str(error)
             logging.exception("Falha na captura")
@@ -240,7 +298,18 @@ class CaptureEngine:
                         (data_dir() / "last-encoder.log").write_bytes(stream.read())
                 except OSError:
                     pass
-            self.events.put(("error", str(error)))
+            if isinstance(error, (BrokenPipeError, OSError)) and process is not None:
+                try:
+                    detail = (self.session / "encoder.log").read_text(
+                        encoding="utf-8", errors="replace"
+                    )[-2000:]
+                except OSError:
+                    detail = ""
+                self.error = (
+                    "O codificador não conseguiu iniciar ou continuar a gravação. Tente Automático/libx264 e 30 FPS.\n"
+                    + (detail or str(error))
+                )
+            self.events.put(("capture_error", self.error))
         finally:
             self.done.set()
             self.starting = False
@@ -474,6 +543,7 @@ class CaptureEngine:
                     duration=duration,
                     fps=settings.fps,
                     quality=settings.quality,
+                    audio=audio is not None,
                     hud=settings.hud if settings.hud_enabled else [],
                     inputs=samples,
                 ),
@@ -498,5 +568,9 @@ class CaptureEngine:
         if self.thread:
             self.thread.join(timeout=20)
         self.pool.shutdown(wait=True)
-        if self.session and self.session.exists():
+        if (
+            self.session
+            and self.session.exists()
+            and not (self.thread and self.thread.is_alive())
+        ):
             shutil.rmtree(self.session, ignore_errors=True)

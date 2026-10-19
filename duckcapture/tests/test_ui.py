@@ -3,12 +3,15 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtMultimedia import QMediaPlayer
 from duckcapture.config import Settings
 from duckcapture.app import MainWindow
 from duckcapture.hud_editor import HudItem
 
+if not QApplication.instance():
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 APP = QApplication.instance() or QApplication([])
 
 
@@ -23,10 +26,10 @@ def test_application_navigation_hud_persistence_and_no_fake_capture(
     window.resize(1360, 930)
     window.show()
     APP.processEvents()
-    assert window.stack.count() == 6
+    assert window.stack.count() == 7
     assert not window.engine.active
     assert window.library.count() == 1 and window.library.item(0).data(256) is None
-    for i in range(6):
+    for i in range(7):
         window.navigate(i)
         APP.processEvents()
     window.hud.kind.setCurrentIndex(window.hud.kind.findData("timer"))
@@ -47,13 +50,13 @@ def test_application_navigation_hud_persistence_and_no_fake_capture(
     out = Path(__file__).resolve().parents[1] / "artifacts"
     out.mkdir(exist_ok=True)
     window.navigate(0)
-    APP.processEvents()
+    QTest.qWait(250)
     window.grab().save(str(out / "duckcapture-inicio.png"))
     window.navigate(3)
-    APP.processEvents()
+    QTest.qWait(250)
     window.grab().save(str(out / "duckcapture-hud.png"))
     window.navigate(2)
-    APP.processEvents()
+    QTest.qWait(250)
     window.grab().save(str(out / "duckcapture-editor.png"))
     window.close()
     APP.processEvents()
@@ -126,3 +129,109 @@ def test_editor_actions_and_music_folder(tmp_path, monkeypatch):
     assert window.settings.spotify == "" and "open.spotify.com" in window.last_toast
     window.close()
     APP.processEvents()
+
+
+def test_gallery_has_all_clips_and_searches_beyond_old_limit(tmp_path, monkeypatch):
+    monkeypatch.setenv("DUCKCAPTURE_DATA", str(tmp_path / "data"))
+    clips = tmp_path / "clips"
+    clips.mkdir()
+    # Listing fixture only; these files are never presented as playable clips.
+    for i in range(125):
+        (clips / f"Momento-{i:03d}.mp4").touch()
+    (clips / "Print.png").touch()
+    window = MainWindow(
+        Settings(clips_dir=str(clips), music_dir=str(tmp_path / "music"))
+    )
+    try:
+        assert window.gallery.list.count() == 126
+        window.gallery.search.setText("Momento-124")
+        visible = [
+            item for item in window.gallery.items.values() if not item.isHidden()
+        ]
+        assert len(visible) == 1 and "124" in visible[0].text()
+        window.gallery.search.clear()
+        window.gallery.kind.setCurrentIndex(2)
+        assert sum(not item.isHidden() for item in window.gallery.items.values()) == 1
+        window.navigate(6)
+        assert window.nav[6].isChecked()
+        assert sum(button.isChecked() for button in window.nav.values()) == 1
+    finally:
+        window.close()
+        APP.processEvents()
+
+
+def test_capture_failure_stays_visible_after_stopped_and_can_be_copied(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DUCKCAPTURE_DATA", str(tmp_path / "data"))
+    window = MainWindow(
+        Settings(clips_dir=str(tmp_path / "clips"), music_dir=str(tmp_path / "music"))
+    )
+    try:
+        window.engine.error = "Nenhum quadro recebido."
+        window.engine.events.put(("capture_error", window.engine.error))
+        window.engine.events.put(("stopped", "Captura parada."))
+        window.tick()
+        assert "FALHA" in window.status_label.text()
+        assert not window.capture_error.isHidden()
+        assert "Nenhum quadro" in window.capture_error.text()
+        assert window.start_button.isEnabled() and not window.clip_button.isEnabled()
+        assert window.progress.value() == 0 and window.progress.maximum() > 0
+        window.copy_capture_error()
+        assert "Nenhum quadro recebido" in APP.clipboard().text()
+        window.toggle_motion(False)
+        assert Settings.load().motion is False and APP.property("duckMotion") is False
+    finally:
+        window.close()
+        APP.processEvents()
+
+
+def test_gallery_generates_thumbnail_and_opens_real_video(tmp_path, monkeypatch):
+    from duckcapture.gallery import ClipViewer
+    from duckcapture.media import Media
+
+    monkeypatch.setenv("DUCKCAPTURE_DATA", str(tmp_path / "data"))
+    clips = tmp_path / "clips"
+    clips.mkdir()
+    media = Media()
+    path = clips / "teste.mp4"
+    media.run(
+        [
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=160x90:r=30",
+            "-t",
+            "1",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "2",
+            str(path),
+        ]
+    )
+    window = MainWindow(
+        Settings(clips_dir=str(clips), music_dir=str(tmp_path / "music"))
+    )
+    window.show()
+    try:
+        window.navigate(6)
+        for _ in range(150):
+            if window.gallery.thumbnails:
+                break
+            QTest.qWait(20)
+        assert window.gallery.thumbnails
+        assert any((tmp_path / "data/thumbnails").glob("*.png"))
+        viewer = ClipViewer(str(path), window)
+        viewer.show()
+        for _ in range(100):
+            if viewer.player.hasVideo():
+                break
+            QTest.qWait(20)
+        assert viewer.player.hasVideo()
+        viewer.accept()
+        assert viewer.player.playbackState() == QMediaPlayer.PlaybackState.StoppedState
+    finally:
+        window.close()
+        APP.processEvents()

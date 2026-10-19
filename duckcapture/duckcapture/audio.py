@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import threading
 import time
 import wave
@@ -29,7 +30,24 @@ class AudioRing:
             raise RuntimeError("Áudio do sistema indisponível: " + str(self.error))
 
     def _run(self):
+        com = None
         try:
+            # COM belongs to the calling thread. SoundCard's module-level
+            # initialization only covers its first import, not later captures.
+            if os.name == "nt":
+                import ctypes
+
+                candidate = ctypes.WinDLL("ole32")
+                candidate.CoInitializeEx.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+                candidate.CoInitializeEx.restype = ctypes.c_long
+                candidate.CoUninitialize.argtypes = []
+                candidate.CoUninitialize.restype = None
+                result = candidate.CoInitializeEx(None, 0)
+                if result not in (0, 1):
+                    raise OSError(
+                        f"Não foi possível preparar o áudio COM: 0x{result & 0xFFFFFFFF:08X}"
+                    )
+                com = candidate
             import soundcard as sc
 
             speaker = sc.default_speaker()
@@ -39,7 +57,6 @@ class AudioRing:
             with microphone.recorder(
                 samplerate=self.rate, channels=2, blocksize=2048
             ) as recorder:
-                self.ready.set()
                 while not self.done.is_set():
                     data = recorder.record(numframes=960)
                     now = time.monotonic()
@@ -49,9 +66,13 @@ class AudioRing:
                         self.chunks.append((now - duration, pcm))
                         while self.chunks and self.chunks[0][0] < now - self.seconds:
                             self.chunks.popleft()
+                    self.ready.set()
         except Exception as error:
             self.error = error
             self.ready.set()
+        finally:
+            if com is not None:
+                com.CoUninitialize()
 
     def write(self, path, start, end):
         count = max(1, round((end - start) * self.rate))
