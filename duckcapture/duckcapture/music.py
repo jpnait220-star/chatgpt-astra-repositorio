@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from .widgets import Page, Tip, card, label, button
-from .spotify import SpotifyPanel, embed_url
+from .spotify import SpotifyPanel
 from .visuals import motion_enabled
 
 
@@ -132,19 +132,28 @@ class MusicPage(Page):
         self.list.setMinimumHeight(180)
         self.list.itemDoubleClicked.connect(lambda item: self.play(self.list.row(item)))
         local_body.addWidget(self.list, 1)
-        spotify_body.addWidget(label("Sua playlist, por perto.", "subheading"))
+        spotify_body.addWidget(label("Sua música, por perto.", "subheading"))
         spotify_body.addWidget(
             label(
-                "Cole o link da playlist e use os controles oficiais para ouvir aqui.",
+                "Cole um link de música, álbum ou playlist. Os controles oficiais abrem aqui.",
                 "muted",
                 True,
             )
         )
         spotify = QHBoxLayout()
         self.spotify = QLineEdit(settings.spotify)
-        self.spotify.setPlaceholderText("https://open.spotify.com/playlist/…")
+        self.spotify.setPlaceholderText("Cole o link de música, álbum ou playlist…")
+        self.spotify.returnPressed.connect(self.open_spotify)
         spotify.addWidget(self.spotify, 1)
-        spotify.addWidget(button("Carregar player", self.open_spotify, True))
+        from PySide6.QtWidgets import QApplication
+
+        spotify.addWidget(
+            button(
+                "Colar link",
+                lambda: self.spotify.setText(QApplication.clipboard().text().strip()),
+            )
+        )
+        spotify.addWidget(button("Ouvir no app", self.open_spotify, True))
         spotify_body.addLayout(spotify)
         self.spotify_panel = SpotifyPanel()
         self.spotify_panel.opened.connect(self.player.pause)
@@ -284,7 +293,6 @@ class MusicPage(Page):
     def open_spotify(self):
         url = self.spotify.text().strip()
         try:
-            embed_url(url)
             self.spotify_panel.load(url)
         except Exception as error:
             self.notify(str(error))

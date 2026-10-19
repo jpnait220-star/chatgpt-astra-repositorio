@@ -32,6 +32,11 @@ class AudioRing:
     def _run(self):
         com = None
         try:
+            # SoundCard initializes COM on its first import. Import it before
+            # our per-worker initialization: its 0.4.6 HRESULT checker rejects
+            # S_FALSE (already initialized) as "Error 0x100000001".
+            import soundcard as sc
+
             # COM belongs to the calling thread. SoundCard's module-level
             # initialization only covers its first import, not later captures.
             if os.name == "nt":
@@ -48,8 +53,6 @@ class AudioRing:
                         f"Não foi possível preparar o áudio COM: 0x{result & 0xFFFFFFFF:08X}"
                     )
                 com = candidate
-            import soundcard as sc
-
             speaker = sc.default_speaker()
             if speaker is None:
                 raise RuntimeError("Nenhuma saída de áudio padrão.")

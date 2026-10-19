@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
 )
 from .widgets import Page, Tip, label, button
 from .hud import NAMES, preset
+from .visuals import ExpandButton
+from PySide6.QtWidgets import QButtonGroup
 
 NAMES["image"] = "Imagem / sticker"
 
@@ -173,6 +175,41 @@ class HudEditor(Page):
         top.addWidget(button("Aplicar preset", self.apply_preset))
         top.addWidget(button("Salvar preset", self.save_preset))
         self.body.addLayout(top)
+        self.kind = QComboBox()
+        self.kind.hide()
+        self.tool_group = QButtonGroup(self)
+        self.tool_group.setExclusive(True)
+        tools = QHBoxLayout()
+        tools.setSpacing(7)
+        self.hud_tools = {}
+        symbols = {
+            "keyboard": "keyboard",
+            "mouse": "mouse",
+            "clicks": "mouse",
+            "cps": "activity",
+            "fps": "activity",
+            "timer": "timer",
+            "music": "music",
+            "title": "text",
+            "image": "image",
+        }
+        for key, title in NAMES.items():
+            self.kind.addItem(title, key)
+            control = ExpandButton(title, symbols.get(key, "hud"), 205)
+            control.clicked.connect(
+                lambda checked=False, k=key: self.kind.setCurrentIndex(
+                    self.kind.findData(k)
+                )
+            )
+            self.tool_group.addButton(control)
+            self.hud_tools[key] = control
+            tools.addWidget(control)
+        self.kind.currentIndexChanged.connect(
+            lambda _: self.hud_tools[self.kind.currentData()].setChecked(True)
+        )
+        self.hud_tools[self.kind.currentData()].setChecked(True)
+        tools.addStretch()
+        self.body.addLayout(tools)
         self.scene = QGraphicsScene(0, 0, 960, 540, self)
         self.scene.setBackgroundBrush(QColor("#10151d"))
         self.view = QGraphicsView(self.scene)
@@ -186,10 +223,6 @@ class HudEditor(Page):
         self.body.addWidget(self.view, 1)
         self.scene.selectionChanged.connect(self.selected)
         row = QHBoxLayout()
-        self.kind = QComboBox()
-        for key, title in NAMES.items():
-            self.kind.addItem(title, key)
-        row.addWidget(self.kind)
         row.addWidget(button("+ Adicionar", self.add))
         row.addWidget(button("Remover", self.remove))
         row.addStretch()

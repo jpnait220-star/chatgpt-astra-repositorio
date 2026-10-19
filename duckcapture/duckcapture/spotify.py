@@ -9,19 +9,21 @@ from .widgets import label, button
 
 def embed_url(value):
     value = value.strip()
-    if value.startswith("spotify:playlist:"):
-        value = "https://open.spotify.com/playlist/" + value.removeprefix(
-            "spotify:playlist:"
-        )
+    uri = re.fullmatch(
+        r"spotify:(playlist|track|album|artist|episode|show):([A-Za-z0-9]{22})", value
+    )
+    if uri:
+        value = f"https://open.spotify.com/{uri[1]}/{uri[2]}"
     parsed = urlparse(value)
     match = re.fullmatch(
-        r"/(?:intl-[a-z]{2}/)?(?:embed/)?playlist/([A-Za-z0-9]{22})/?", parsed.path
+        r"/(?:intl-[a-z]{2}/)?(?:embed/)?(playlist|track|album|artist|episode|show)/([A-Za-z0-9]{22})/?",
+        parsed.path,
     )
     if parsed.scheme != "https" or parsed.netloc != "open.spotify.com" or not match:
         raise ValueError(
-            "Use o link HTTPS de uma playlist em open.spotify.com (Compartilhar → Copiar link)."
+            "Use um link HTTPS de música, álbum ou playlist em open.spotify.com (Compartilhar → Copiar link)."
         )
-    return f"https://open.spotify.com/embed/playlist/{match[1]}?theme=0"
+    return f"https://open.spotify.com/embed/{match[1]}/{match[2]}?theme=0"
 
 
 class SpotifyPanel(QWidget):
@@ -32,10 +34,12 @@ class SpotifyPanel(QWidget):
         self.view = None
         self.profile = None
         self.url = ""
+        self.resolve_reply = None
+        self.network = None
         self.layout_ = QVBoxLayout(self)
         self.layout_.setContentsMargins(0, 0, 0, 0)
         self.message = label(
-            "Spotify dentro do DuckCapture. Cole uma playlist e clique em Carregar player.",
+            "Spotify dentro do DuckCapture. Cole um link de música, álbum ou playlist e clique em Ouvir no app.",
             "muted",
             True,
         )
@@ -58,6 +62,14 @@ class SpotifyPanel(QWidget):
         self.close_button.hide()
 
     def load(self, value):
+        parsed = urlparse(value.strip())
+        if (
+            parsed.scheme == "https"
+            and parsed.netloc == "spotify.link"
+            and re.fullmatch(r"/[A-Za-z0-9_-]+/?", parsed.path)
+        ):
+            self.resolve_short(QUrl(value.strip()))
+            return
         self.url = embed_url(value)
         if self.view is None:
             # Lazy import avoids a Chromium process while only clipping or
@@ -111,12 +123,65 @@ class SpotifyPanel(QWidget):
             self.view.loadFinished.connect(self.loaded)
             self.layout_.insertWidget(1, self.view)
         self.message.setText(
-            "Carregando player oficial… Depois clique em reproduzir na playlist."
+            "Carregando player oficial… Depois clique em reproduzir nos controles abaixo."
         )
         self.reload_button.show()
         self.close_button.show()
         self.opened.emit()
         self.view.setUrl(QUrl(self.url))
+
+    def resolve_short(self, url, hops=0):
+        from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
+
+        if hops >= 5:
+            self.message.setText(
+                "Esse link redirecionou muitas vezes. Copie o endereço completo de open.spotify.com."
+            )
+            return
+        if self.resolve_reply:
+            old, self.resolve_reply = self.resolve_reply, None
+            old.abort()
+        if self.network is None:
+            self.network = QNetworkAccessManager(self)
+        self.message.setText("Abrindo o link compartilhado do Spotify…")
+        request = QNetworkRequest(url)
+        request.setTransferTimeout(8000)
+        request.setAttribute(
+            QNetworkRequest.Attribute.RedirectPolicyAttribute,
+            QNetworkRequest.RedirectPolicy.ManualRedirectPolicy,
+        )
+        reply = self.network.head(request)
+        self.resolve_reply = reply
+
+        def finished():
+            reply.deleteLater()
+            if self.resolve_reply is not reply:
+                return
+            self.resolve_reply = None
+            location = reply.attribute(
+                QNetworkRequest.Attribute.RedirectionTargetAttribute
+            )
+            if location:
+                target = url.resolved(location)
+                try:
+                    canonical = embed_url(target.toString())
+                except ValueError:
+                    if (
+                        target.scheme() == "https"
+                        and target.host() == "spotify.link"
+                        and not target.userName()
+                        and not target.port() > 0
+                    ):
+                        self.resolve_short(target, hops + 1)
+                        return
+                else:
+                    self.load(canonical)
+                    return
+            self.message.setText(
+                "Não foi possível abrir o link curto. Confira a conexão ou copie o endereço completo de open.spotify.com."
+            )
+
+        reply.finished.connect(finished)
 
     def loaded(self, ok):
         self.message.setText(
@@ -130,6 +195,9 @@ class SpotifyPanel(QWidget):
             self.load(self.url)
 
     def close_player(self):
+        if self.resolve_reply:
+            reply, self.resolve_reply = self.resolve_reply, None
+            reply.abort()
         if self.view:
             view, profile = self.view, self.profile
             self.view = self.profile = None

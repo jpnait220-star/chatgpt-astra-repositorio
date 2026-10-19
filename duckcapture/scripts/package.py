@@ -6,7 +6,7 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 TOP = [
     "README.md",
     "COMECE-AQUI.txt",
@@ -32,7 +32,7 @@ def package(output):
             for p in (ROOT / folder).rglob("*")
             if p.is_file()
             and not p.is_symlink()
-            and p.suffix in (".py", ".png", ".md")
+            and p.suffix in (".py", ".png", ".md", ".wav")
             and "__pycache__" not in p.parts
         )
     archive = output / f"DuckCapture-{VERSION}.zip"

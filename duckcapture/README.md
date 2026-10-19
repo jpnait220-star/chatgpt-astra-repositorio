@@ -2,13 +2,13 @@
 
 Um aplicativo de clipes para Windows, com visual escuro, detalhes amarelos e uma turma de patinhos.
 
-**[Baixar DuckCapture 0.2.0 — ZIP](https://github.com/jpnait220-star/chatgpt-astra-repositorio/raw/refs/heads/asasa/downloads/DuckCapture-0.2.0.zip)**
+**[Baixar DuckCapture 0.2.1 — ZIP](https://github.com/jpnait220-star/chatgpt-astra-repositorio/raw/refs/heads/asasa/downloads/DuckCapture-0.2.1.zip)**
 
 Instale Python 3.12 de 64 bits, extraia a pasta e abra **Abrir DuckCapture.py**. Ele prepara as dependências na primeira execução. Tudo é gratuito. [Instruções completas](LEIA-ME.md).
 
 **Já instalou?** Feche o aplicativo e copie o conteúdo da nova pasta `DuckCapture` sobre a antiga, substituindo os arquivos do pacote e preservando `.venv`, `tools` e seus clipes. Abra `Abrir DuckCapture.py`.
 
-O ZIP 0.2.0 não inclui os iniciadores `.cmd`. Essa alternativa não garante a aprovação do Controle de Aplicativo Inteligente para outros arquivos ou dependências.
+O ZIP 0.2.1 não inclui os iniciadores `.cmd`. Essa alternativa não garante a aprovação do Controle de Aplicativo Inteligente para outros arquivos ou dependências.
 
 ![Tela inicial do aplicativo](docs/inicio.png)
 
@@ -16,9 +16,12 @@ O ZIP 0.2.0 não inclui os iniciadores `.cmd`. Essa alternativa não garante a a
 - Perfis Econômico, Equilibrado, Alta qualidade e Full; seleção de FPS e codificador.
 - Editor com trechos, cortes, divisão, união, velocidade, volume, texto, sticker, filtros, zoom e exportação MP4.
 - Editor de HUD com elementos arrastáveis, teclas, mouse, cliques, texto, imagens, música e presets.
-- Tocador de músicas locais com vinil animado e aba Spotify com player oficial incorporado. Em contas gratuitas, a reprodução pode se limitar a prévias.
+- Tocador de músicas locais com vinil animado e aba Spotify com player oficial incorporado, com links de músicas, álbuns, playlists e links curtos `spotify.link`. Em contas gratuitas, a reprodução pode se limitar a prévias.
 - **Todos os clipes**: galeria sem o antigo limite de 100 arquivos, busca, filtros, miniaturas e reprodução interna.
-- Menu com ícones vetoriais, brilho ao mover o mouse, botões magnéticos sutis e transições; efeitos podem ser desativados.
+- Menu com ícones vetoriais, brilho ao mover o mouse, ícones que expandem ao selecionar e transições suaves, sem efeito slime; efeitos podem ser desativados.
+- Seleção de janelas com prévias ao vivo pelo compositor do Windows e busca por nome.
+- Sons diferentes ao salvar clipe ou print, com opção para silenciar.
+- A gravação adapta o tamanho da janela e mantém o último quadro e o áudio durante a minimização.
 - Captura com etapas de preparação, erro persistente e botão para copiar o diagnóstico. Falha de áudio mantém o vídeo com aviso explícito.
 - Arquivos locais e dicas opcionais de nove mascotes.
 

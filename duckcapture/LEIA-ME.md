@@ -1,4 +1,4 @@
-# DuckCapture · 0.2.0 alpha
+# DuckCapture · 0.2.1 alpha
 
 **Leve como um pato, rápido como um clique.** Um aplicativo desktop com replay de janela, editor, HUD e música, com interface em português e uma turma de nove mascotes.
 
@@ -18,7 +18,7 @@ Se o arquivo `.py` abrir em um editor, clique com o botão direito → **Abrir c
 py -3.12 "Abrir DuckCapture.py"
 ```
 
-O ZIP 0.2.0 usa iniciadores Python e não inclui os `.cmd` antigos. Isso oferece uma alternativa quando o bloqueio do Windows se refere aos scripts de lote. **Não garante que o Controle de Aplicativo Inteligente aceitará todas as dependências**: ele também pode bloquear um executável ou DLL sem reputação/assinatura aceita. O iniciador não desativa nem modifica a proteção do Windows. Se houver outro bloqueio, o nome do arquivo indicado no aviso é necessário para identificar a causa.
+O ZIP 0.2.1 usa iniciadores Python e não inclui os `.cmd` antigos. Isso oferece uma alternativa quando o bloqueio do Windows se refere aos scripts de lote. **Não garante que o Controle de Aplicativo Inteligente aceitará todas as dependências**: ele também pode bloquear um executável ou DLL sem reputação/assinatura aceita. O iniciador não desativa nem modifica a proteção do Windows. Se houver outro bloqueio, o nome do arquivo indicado no aviso é necessário para identificar a causa.
 
 Python e FFmpeg usam executáveis normais como dependências. Não é necessário pagar por uma assinatura para criar um aplicativo; isso não significa que políticas de confiança do Windows aceitarão qualquer distribuição. Esta versão é código Python disponível para inspeção e não é uma distribuição assinada ou certificada pela Microsoft.
 
@@ -37,13 +37,13 @@ Abra **Abrir DuckCapture.py**. Se o iniciador continuar sem abrir uma janela, ab
 ## Primeiro clipe
 
 1. Abra o jogo ou aplicativo. Para jogos, prefira **janela sem bordas**.
-2. No DuckCapture, entre em **Capturar**, atualize as janelas e selecione a desejada.
+2. No DuckCapture, entre em **Capturar → Escolher janela**. Veja as prévias, busque pelo nome e clique na imagem ou no botão da janela desejada. As prévias nativas funcionam no Windows; janelas protegidas ou minimizadas podem aparecer sem imagem.
 3. Comece com **Equilibrado / 60 FPS**, ou **Econômico / 30 FPS** em um computador mais simples.
 4. Escolha o replay: **15, 30, 60, 90 ou 120 segundos** e clique em **Iniciar captura**.
 5. Aguarde **REPLAY ATIVO** e confira o contador aumentando. Durante a preparação, o painel informa a etapa atual; o teste dos codificadores pode demorar alguns segundos. Jogue normalmente. **F8** salva os últimos segundos; **F9** tira um print da janela. Ambos podem ser alterados em Configurações.
 6. Abra **Todos os clipes**, no menu ou no botão da página Início, para ver todos os vídeos e prints. Há busca por nome, filtro por tipo, miniaturas e reprodução com dois cliques. A página Início mostra os 12 mais recentes. Os arquivos ficam em `Vídeos\DuckCapture` por padrão. A pasta pode ser alterada.
 
-Antes de o buffer encher, o clipe terá apenas o tempo já capturado. Salvar pode levar alguns segundos: o aplicativo termina o segmento atual e exporta somente até o instante do atalho. Há uma exportação de replay por vez. O botão **Parar captura** descarta o replay que não foi salvo; vídeos já salvos permanecem.
+Antes de o buffer encher, o clipe terá apenas o tempo já capturado. Salvar pode levar alguns segundos: o aplicativo congela os segmentos necessários e exporta somente até o instante do atalho. Ele confere o vídeo antes de confirmar o salvamento. Um som curto confirma o clipe salvo; outro som confirma o print. Desative **Som ao salvar clipes e prints** em Configurações se preferir silêncio. Há uma exportação de replay por vez. O botão **Parar captura** descarta o replay que não foi salvo; vídeos já salvos permanecem.
 
 **Full** mantém a resolução da janela, arredondada para dimensões pares, e usa compressão de alta qualidade. Não é sem perdas e não preserva HDR. Econômico limita a largura a 1280, Equilibrado a 1920 e Alta qualidade a 2560 pixels, preservando a proporção. As opções de FPS são taxas desejadas de saída; a janela e o hardware podem entregar menos quadros diferentes.
 
@@ -67,7 +67,7 @@ Coloque MP3, WAV, FLAC, OGG, M4A ou AAC em `Música\DuckCapture Music`, ou escol
 
 O elemento Música do HUD exibe o título da faixa local. O áudio do sistema, quando ativado, inclui o que toca na saída padrão do Windows, inclusive outras aplicações. Não há captura de microfone ou isolamento de áudio por aplicativo nesta versão.
 
-Na aba **Spotify**, cole um link `https://open.spotify.com/playlist/...` e clique em **Carregar player**. A playlist abre dentro do DuckCapture, no player oficial incorporado. Clique em reproduzir nos controles da playlist. O tocador local é pausado ao carregar o Spotify. Ao voltar a reproduzir um arquivo local, o player Spotify é fechado para evitar duas músicas ao mesmo tempo.
+Na aba **Spotify**, use **Colar link** ou cole um endereço de música, álbum, artista, playlist, episódio ou programa. Pressione Enter ou clique em **Ouvir no app**. São aceitos links `https://open.spotify.com/...`, URIs `spotify:track:...` e links curtos `https://spotify.link/...`. Links curtos dependem de uma resposta do serviço para serem resolvidos. O conteúdo abre dentro do DuckCapture, no player oficial incorporado. Clique em reproduzir nos controles abaixo. O tocador local é pausado ao carregar o Spotify. Ao voltar a reproduzir um arquivo local, o player Spotify é fechado para evitar duas músicas ao mesmo tempo.
 
 **Conta gratuita:** o player pode oferecer apenas prévias de 30 segundos; não há garantia de faixas completas. Esta versão usa o embed oficial, não o Web Playback SDK (que exige Premium para reprodução completa), e não baixa músicas nem remove limitações do serviço. Músicas locais tocam completas. Links que tentam abrir outras janelas mostram um aviso no próprio aplicativo.
 
@@ -75,12 +75,15 @@ O player usa internet apenas quando carregado e pode usar mais memória que o to
 
 ## Se algo não funcionar
 
-- **Controle de Aplicativo Inteligente:** use a pasta extraída do ZIP 0.2.0 e **Abrir DuckCapture.py**. Se o aviso continuar, registre o nome exato do arquivo bloqueado. Esta versão não altera configurações de segurança.
+- **Controle de Aplicativo Inteligente:** use a pasta extraída do ZIP 0.2.1 e **Abrir DuckCapture.py**. Se o aviso continuar, registre o nome exato do arquivo bloqueado. Esta versão não altera configurações de segurança.
 
 - **Iniciar volta ao zero:** o painel mostra o diagnóstico e mantém a mensagem mesmo depois de parar. Use **Copiar diagnóstico**. Tente 30 FPS / Econômico / Automático com a janela restaurada. O aplicativo verifica os codificadores na resolução e no perfil que serão usados; se o modo automático não encontrar GPU compatível, tenta libx264.
 - **Captura indisponível:** use Windows de 64 bits, com a janela restaurada. Aplicativos protegidos e alguns modos de tela cheia exclusiva podem bloquear a captura.
-- **A janela mudou de tamanho:** pare e inicie novamente. A resolução é definida ao começar a sessão.
+- **Mover ou redimensionar:** a sessão continua. O vídeo é ajustado à resolução inicial, preservando proporções e usando faixas pretas quando necessário.
+- **Minimizar:** a sessão e o áudio continuam; quando o Windows não fornece imagens, o último quadro fica congelado até restaurar. Conteúdo que o aplicativo deixa de desenhar minimizado não pode ser gravado em movimento. Inicie a captura com a janela restaurada.
+- **A janela foi fechada:** a captura termina; os clipes salvos permanecem.
 - **Travamento ou FPS insuficiente:** tente 30 FPS, Econômico e codificador Automático. O aplicativo procura NVIDIA, Intel ou AMD; se nenhum funcionar, utiliza CPU com libx264. Não é possível garantir baixo consumo em todos os computadores.
+- **Erro `0x100000001`:** a versão 0.2.1 corrige a ordem de inicialização COM usada pelo SoundCard. Feche o aplicativo por completo antes de atualizar e testar novamente.
 - **Áudio não disponível:** o vídeo continua e o painel avisa **SEM ÁUDIO**. Confira a saída padrão do Windows e reinicie a captura para tentar o áudio novamente. Se o áudio parar durante uma sessão, os próximos clipes serão salvos sem faixa de áudio; clipes já salvos permanecem intactos.
 - **Atalho em uso:** escolha outro em Configurações e clique em Aplicar atalhos.
 - **Download do FFmpeg falhou:** baixe o pacote Essentials em [Gyan](https://www.gyan.dev/ffmpeg/builds/), extraia `ffmpeg.exe` e `ffprobe.exe` para a pasta `tools` ao lado de `run.pyw`, e execute Instalar.py novamente. Mantenha os arquivos da mesma distribuição.
@@ -88,7 +91,7 @@ O player usa internet apenas quando carregado e pode usar mais memória que o to
 - **Fechou após um erro:** consulte `instalacao.log` e `inicializacao.log` na pasta extraída. Em Configurações, **Abrir dados e logs** mostra `duckcapture.log` e, quando disponível, `last-encoder.log`.
 - **Replay antigo ocupando disco após uma interrupção:** com a captura parada, use **Limpar replay temporário**. Isso preserva os clipes salvos.
 
-Configurações e temporários ficam em `%LOCALAPPDATA%\DuckCapture`. O replay usa segmentos de vídeo comprimido em disco, com retenção limitada ao tempo escolhido e uma pequena margem; o áudio fica em um buffer de memória. A interface reduz a atualização da prévia e só acompanha controles quando o HUD está ativado. As animações do vinil param com a música. Em Configurações, desmarque **Animações suaves e brilho acompanhando o mouse** para reduzir movimento. As miniaturas de vídeo são geradas uma por vez, para arquivos visíveis na galeria; novas tarefas de miniatura aguardam enquanto a captura está ativa.
+Configurações e temporários ficam em `%LOCALAPPDATA%\DuckCapture`. O replay usa segmentos de vídeo comprimido em disco, com retenção limitada ao tempo escolhido e uma pequena margem; o áudio fica em um buffer de memória. A interface reduz a atualização da prévia e só acompanha controles quando o HUD está ativado. As animações do vinil param com a música. Em Configurações, desmarque **Animações suaves, expansão dos ícones e brilho** para reduzir movimento. As miniaturas de vídeo são geradas uma por vez, para arquivos visíveis na galeria; novas tarefas de miniatura aguardam enquanto a captura está ativa.
 
 ## Desenvolvimento e verificação
 

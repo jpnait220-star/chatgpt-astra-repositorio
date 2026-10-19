@@ -10,7 +10,6 @@ from PySide6.QtGui import QIcon, QDesktopServices, QPixmap, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QWidget,
     QFrame,
     QHBoxLayout,
     QVBoxLayout,
@@ -32,7 +31,15 @@ from PySide6.QtWidgets import (
 )
 from .config import Settings, data_dir, DURATIONS, FPS, PROFILES
 from .widgets import STYLE, Page, Tip, card, label, button, mascot, CHARACTERS
-from .visuals import MascotLabel, icon as vector_icon, motion_enabled
+from .visuals import (
+    MascotLabel,
+    icon as vector_icon,
+    motion_enabled,
+    ExpandButton,
+    StudioBackground,
+)
+from .window_picker import WindowPicker, WindowCombo
+from .sounds import CaptureSounds
 from .gallery import GalleryPage, ClipViewer
 from . import __version__
 from .media import Media
@@ -51,6 +58,7 @@ class MainWindow(QMainWindow):
         self.fade_overlay = None
         self.media = Media(self.settings.ffmpeg_dir)
         self.engine = CaptureEngine(self.media)
+        self.sounds = CaptureSounds(self, self.settings)
         self.setWindowTitle("DuckCapture")
         screen = QApplication.primaryScreen().availableGeometry()
         self.setMinimumSize(1000, 640)
@@ -62,7 +70,7 @@ class MainWindow(QMainWindow):
         self.inputs = InputSampler()
         self.hud_sampling = False
         self.last_toast = ""
-        shell = QWidget()
+        shell = StudioBackground()
         shell.setObjectName("shell")
         self.setCentralWidget(shell)
         row = QHBoxLayout(shell)
@@ -81,7 +89,8 @@ class MainWindow(QMainWindow):
         brand.addWidget(label("DuckCapture", "brand"))
         nav.addLayout(brand)
         nav.addWidget(label("SEU MOMENTO MERECE FICAR.", "tiny"))
-        nav.addSpacing(31)
+        nav.addSpacing(19)
+        nav.addWidget(label("SEU ESTÚDIO", "tiny"))
         self.stack = QStackedWidget()
         self.nav = {}
         for index, symbol, title in [
@@ -93,11 +102,11 @@ class MainWindow(QMainWindow):
             (4, "music", "Música"),
             (5, "settings", "Configurações"),
         ]:
-            b = button(title, lambda checked=False, i=index: self.navigate(i))
-            b.setIcon(vector_icon(symbol))
+            b = ExpandButton(title, symbol, 196)
+            b.clicked.connect(lambda checked=False, i=index: self.navigate(i))
             b.setObjectName("nav")
             b.setCheckable(True)
-            nav.addWidget(b)
+            nav.addWidget(b, 0, Qt.AlignmentFlag.AlignLeft)
             self.nav[index] = b
         nav.addStretch()
         nav.addWidget(label("LOCAL. PRIVADO. SEU.", "eyebrow"))
@@ -278,10 +287,11 @@ class MainWindow(QMainWindow):
         row = QHBoxLayout()
         row.addWidget(label("JANELA SELECIONADA", "eyebrow"))
         row.addStretch()
-        self.refresh_button = button("Atualizar janelas", self.refresh_windows)
+        self.refresh_button = button("Escolher janela", self.choose_window, True)
         row.addWidget(self.refresh_button)
         layout.addLayout(row)
-        self.windows = QComboBox()
+        self.windows = WindowCombo()
+        self.windows.chooseRequested.connect(self.choose_window)
         self.windows.setMinimumHeight(45)
         layout.addWidget(self.windows)
         grid = QGridLayout()
@@ -323,7 +333,7 @@ class MainWindow(QMainWindow):
         self.cursor.setChecked(self.settings.cursor)
         layout.addWidget(self.cursor)
         self.capture_note = label(
-            "Windows Graphics Capture · melhor resultado com jogos em janela sem bordas. Janelas minimizadas ou conteúdo protegido podem não fornecer quadros.",
+            "Windows Graphics Capture · melhor resultado com jogos em janela sem bordas. Ao minimizar, o replay mantém o último quadro e o áudio até restaurar a janela.",
             "tiny",
             True,
         )
@@ -352,6 +362,13 @@ class MainWindow(QMainWindow):
         page.body.addWidget(self.progress)
         self.engine_label = label("Nenhuma janela sendo capturada.", "muted", True)
         page.body.addWidget(self.engine_label)
+        self.source_note = label("", "muted", True)
+        self.source_note.hide()
+        page.body.addWidget(self.source_note)
+        self.action_note = label(
+            "F8 salva o replay · F9 tira um print", "eyebrow", True
+        )
+        page.body.addWidget(self.action_note)
         self.preview = QLabel("A prévia aparece aqui após iniciar.")
         self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview.setMinimumHeight(200)
@@ -408,10 +425,14 @@ class MainWindow(QMainWindow):
         self.ffmpeg_label = label(self.media.ffmpeg or "Não encontrado", "tiny", True)
         layout.addWidget(self.ffmpeg_label, 7, 1)
         layout.addWidget(button("Selecionar pasta do FFmpeg", self.choose_ffmpeg), 8, 1)
-        self.motion_check = QCheckBox("Animações suaves e brilho acompanhando o mouse")
+        self.motion_check = QCheckBox("Animações suaves, expansão dos ícones e brilho")
         self.motion_check.setChecked(self.settings.motion)
         self.motion_check.toggled.connect(self.toggle_motion)
         layout.addWidget(self.motion_check, 9, 0, 1, 2)
+        self.sound_check = QCheckBox("Som ao salvar clipes e prints")
+        self.sound_check.setChecked(self.settings.notification_sounds)
+        self.sound_check.toggled.connect(self.toggle_sounds)
+        layout.addWidget(self.sound_check, 10, 0, 1, 2)
         page.body.addWidget(frame)
         row = QHBoxLayout()
         row.addWidget(
@@ -475,6 +496,19 @@ class MainWindow(QMainWindow):
         if index >= 0:
             self.windows.setCurrentIndex(index)
 
+    def choose_window(self):
+        if self.engine.active or self.engine.starting:
+            return
+        picker = WindowPicker(self)
+        if picker.exec() and picker.selected:
+            hwnd, title = picker.selected
+            self.refresh_windows()
+            index = self.windows.findData(hwnd)
+            if index < 0:
+                self.windows.addItem(title, hwnd)
+                index = self.windows.count() - 1
+            self.windows.setCurrentIndex(index)
+
     def start_capture(self):
         if self.engine.active or self.engine.starting:
             self.navigate(1)
@@ -491,6 +525,7 @@ class MainWindow(QMainWindow):
             self.capture_settings()
             self.capture_error.hide()
             self.copy_error.hide()
+            self.source_note.hide()
             self.preview.clear()
             self.preview.setText("Preparando a janela e o codificador…")
             self.navigate(1)
@@ -582,14 +617,23 @@ class MainWindow(QMainWindow):
                 self.show_capture_error(message, warning=True)
                 if self.engine.active:
                     self.status_label.setText("●  REPLAY ATIVO · SEM ÁUDIO")
+            elif kind == "source_status":
+                self.source_note.setText(message)
+                self.source_note.setVisible(bool(message))
+            elif kind == "resized":
+                self.notify(message)
             elif kind == "saving":
+                self.action_note.setText(message)
                 self.clip_button.setEnabled(False)
                 self.notify(message)
             elif kind == "saved":
+                self.sounds.saved(message)
+                self.action_note.setText("SALVO · " + Path(message).name)
                 self.refresh_library(True)
                 self.notify("Salvo: " + Path(message).name)
                 self.clip_button.setEnabled(self.engine.active)
             elif kind == "error":
+                self.action_note.setText(message)
                 self.notify(message)
                 self.clip_button.setEnabled(self.engine.active)
         if self.engine.active:
@@ -841,6 +885,10 @@ class MainWindow(QMainWindow):
         except ValueError as error:
             self.settings.clip_key, self.settings.screenshot_key = old
             self.notify(str(error))
+
+    def toggle_sounds(self, value):
+        self.settings.notification_sounds = value
+        self.save_settings()
 
     def toggle_motion(self, value):
         self.settings.motion = value

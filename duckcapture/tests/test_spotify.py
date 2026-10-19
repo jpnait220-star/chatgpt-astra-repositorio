@@ -82,3 +82,69 @@ def test_embedded_player_lifecycle_without_external_browser(monkeypatch):
     app.processEvents()
     assert panel.view is None and panel.profile is None
     panel.close()
+
+
+@pytest.mark.parametrize("kind", ["track", "album", "artist", "episode", "show"])
+def test_track_album_and_other_official_links(kind):
+    identifier = "37i9dQZF1DXcBWIGoYBM5M"
+    assert (
+        embed_url(f"https://open.spotify.com/intl-pt/{kind}/{identifier}?si=abc")
+        == f"https://open.spotify.com/embed/{kind}/{identifier}?theme=0"
+    )
+    assert (
+        embed_url(f"spotify:{kind}:{identifier}")
+        == f"https://open.spotify.com/embed/{kind}/{identifier}?theme=0"
+    )
+
+
+def test_short_link_resolves_only_official_redirects(monkeypatch):
+    from PySide6.QtCore import QObject, Signal, QUrl
+    from PySide6.QtNetwork import QNetworkRequest
+    from PySide6.QtWidgets import QApplication
+    from duckcapture.spotify import SpotifyPanel
+
+    app = QApplication.instance() or QApplication([])
+
+    class Reply(QObject):
+        finished = Signal()
+
+        def __init__(self, target):
+            super().__init__()
+            self.target = target
+
+        def attribute(self, key):
+            assert key == QNetworkRequest.Attribute.RedirectionTargetAttribute
+            return QUrl(self.target)
+
+        def abort(self):
+            self.finished.emit()
+
+    class Network:
+        def __init__(self, target):
+            self.target = target
+            self.requests = []
+
+        def head(self, request):
+            self.requests.append(request.url().toString())
+            self.reply = Reply(self.target)
+            return self.reply
+
+    panel = SpotifyPanel()
+    loaded = []
+    monkeypatch.setattr(panel, "load", loaded.append)
+    panel.network = Network(
+        "https://open.spotify.com/track/37i9dQZF1DXcBWIGoYBM5M?si=x"
+    )
+    panel.resolve_short(QUrl("https://spotify.link/abc"))
+    panel.network.reply.finished.emit()
+    assert loaded == [
+        "https://open.spotify.com/embed/track/37i9dQZF1DXcBWIGoYBM5M?theme=0"
+    ]
+    loaded.clear()
+    panel.network = Network("http://127.0.0.1/private")
+    panel.resolve_short(QUrl("https://spotify.link/abc"))
+    panel.network.reply.finished.emit()
+    assert not loaded and len(panel.network.requests) == 1
+    panel.close_player()
+    panel.close()
+    app.processEvents()

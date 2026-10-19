@@ -23,7 +23,7 @@ from PySide6.QtGui import (
     QFontMetrics,
 )
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QApplication, QPushButton, QFrame, QLabel
+from PySide6.QtWidgets import QApplication, QPushButton, QFrame, QLabel, QWidget
 
 
 PATHS = {
@@ -36,6 +36,11 @@ PATHS = {
     "library": '<rect x="4" y="6" width="17" height="15" rx="3"/><path d="M17 3H5a3 3 0 0 0-3 3v10m8-6 6 4-6 4z"/>',
     "folder": '<path d="M3 7V5h7l2 3h9v12H3z"/>',
     "play": '<path d="m8 5 12 7-12 7z"/>',
+    "keyboard": '<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M5 9h2m3 0h2m3 0h2m-12 4h2m3 0h2m3 0h2M7 16h10"/>',
+    "mouse": '<rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 2v8M6 10h12"/>',
+    "timer": '<circle cx="12" cy="13" r="8"/><path d="M9 2h6m-3 3v-3m0 7v5l3 2"/>',
+    "text": '<path d="M4 4h16M12 4v16M8 20h8M4 4v4m16-4v4"/>',
+    "activity": '<path d="M2 12h5l3-8 4 16 3-8h5"/>',
     "image": '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/>',
 }
 
@@ -178,23 +183,6 @@ class GlowButton(QPushButton):
             painter.drawLine(
                 QPointF(2, rect.center().y() - 7), QPointF(2, rect.center().y() + 7)
             )
-        dx = (
-            (self.pointer.x() - self.width() / 2)
-            / max(1, self.width() / 2)
-            * 2.4
-            * self.hover
-            if motion_enabled()
-            else 0
-        )
-        dy = (
-            (self.pointer.y() - self.height() / 2)
-            / max(1, self.height() / 2)
-            * 1.4
-            * self.hover
-            if motion_enabled()
-            else 0
-        )
-        painter.translate(dx, dy + (0.7 if self.isDown() else 0))
         content = rect.adjusted(15, 0, -15, 0)
         painter.setPen(
             QColor(
@@ -249,7 +237,7 @@ class GlowFrame(QFrame):
         path = QPainterPath()
         path.addRoundedRect(rect, 16, 16)
         gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
-        gradient.setColorAt(0, QColor("#1b1c21"))
+        gradient.setColorAt(0, QColor("#0b0c10"))
         gradient.setColorAt(1, QColor("#111216"))
         p.fillPath(path, gradient)
         p.save()
@@ -277,7 +265,7 @@ class GlowFrame(QFrame):
             light.setColorAt(1, QColor(255, 255, 255, 0))
             p.fillRect(rect, light)
         p.restore()
-        p.setPen(QPen(QColor("#383a43"), 1))
+        p.setPen(QPen(QColor("#2b2d35"), 1))
         p.drawPath(path)
 
 
@@ -304,3 +292,109 @@ class MascotLabel(QLabel):
         p.drawPixmap(
             (self.width() - pix.width()) // 2, (self.height() - pix.height()) // 2, pix
         )
+
+
+class ExpandButton(GlowButton):
+    """A fixed icon becomes a filled labeled pill when selected; no magnet motion."""
+
+    def __init__(self, text, symbol, expanded_width=190):
+        super().__init__(text)
+        self.setObjectName("nav")
+        self.setIcon(icon(symbol))
+        self.setCheckable(True)
+        self.setToolTip(text)
+        self.setAccessibleName(text)
+        self.expanded_width = expanded_width
+        self.reveal = 0.0
+        self.setFixedWidth(50)
+        self.expand_animation = QVariantAnimation(self)
+        self.expand_animation.setDuration(210)
+        self.expand_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.expand_animation.valueChanged.connect(self.reveal_changed)
+        self.toggled.connect(self.expand)
+
+    def sizeHint(self):
+        return QSize(round(50 + (self.expanded_width - 50) * self.reveal), 44)
+
+    def minimumSizeHint(self):
+        return QSize(50, 44)
+
+    def reveal_changed(self, value):
+        self.reveal = float(value)
+        self.setFixedWidth(round(50 + (self.expanded_width - 50) * self.reveal))
+        self.update()
+
+    def expand(self, selected):
+        self.expand_animation.stop()
+        target = 1.0 if selected else 0.0
+        if not motion_enabled() or not self.isVisible():
+            self.reveal_changed(target)
+            return
+        self.expand_animation.setStartValue(self.reveal)
+        self.expand_animation.setEndValue(target)
+        self.expand_animation.start()
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect = QRectF(self.rect()).adjusted(1.5, 2, -1.5, -2)
+        path = QPainterPath()
+        path.addRoundedRect(rect, 11, 11)
+        p.fillPath(path, QColor("#0c0d10"))
+        p.save()
+        p.setClipPath(path)
+        fill = QLinearGradient(rect.topLeft(), rect.bottomRight())
+        fill.setColorAt(0, QColor(230, 212, 145, round(42 * self.reveal)))
+        fill.setColorAt(1, QColor(230, 212, 145, round(14 * self.reveal)))
+        p.fillRect(rect, fill)
+        if self.hover:
+            p.fillRect(rect, QColor(255, 255, 255, round(9 * self.hover)))
+        if self.press:
+            p.fillRect(rect, QColor(255, 255, 255, round(30 * self.press)))
+        p.restore()
+        p.setPen(
+            QPen(
+                QColor(
+                    "#706445"
+                    if self.isChecked()
+                    else "#383a43"
+                    if self.hover
+                    else "#202127"
+                ),
+                1,
+            )
+        )
+        p.drawPath(path)
+        self.icon().paint(p, 15, round(rect.center().y() - 10), 20, 20)
+        if self.reveal > 0.15:
+            p.save()
+            p.setOpacity(self.reveal)
+            p.setPen(QColor("#f6e6b2" if self.isChecked() else "#afb2bc"))
+            text_rect = rect.adjusted(45, 0, -12, 0)
+            p.drawText(
+                text_rect,
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                self.fontMetrics().elidedText(
+                    self.text(),
+                    Qt.TextElideMode.ElideRight,
+                    max(1, round(text_rect.width())),
+                ),
+            )
+            p.restore()
+        if self.hasFocus():
+            p.setPen(QPen(QColor("#aa9c71"), 1, Qt.PenStyle.DotLine))
+            p.drawRoundedRect(rect.adjusted(3, 3, -3, -3), 8, 8)
+
+
+class StudioBackground(QWidget):
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.fillRect(self.rect(), QColor("#050608"))
+        glow = QRadialGradient(QPointF(self.width() * 0.8, 0), self.width() * 0.55)
+        glow.setColorAt(0, QColor(103, 106, 123, 15))
+        glow.setColorAt(1, QColor(103, 106, 123, 0))
+        p.fillRect(self.rect(), glow)
+        p.setPen(QPen(QColor(180, 185, 205, 12), 1))
+        for x in range(260, self.width(), 34):
+            for y in range(20, self.height(), 34):
+                p.drawPoint(x, y)

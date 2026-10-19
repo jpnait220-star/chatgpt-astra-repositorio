@@ -301,7 +301,7 @@ def test_runtime_encoder_error_contains_ffmpeg_diagnostic(tmp_path, monkeypatch)
         def encoder(self, *args, **kwargs):
             return "libx264"
 
-        def encoding(self, *args):
+        def encoding(self, *args, **kwargs):
             return ["-c:v", "encoder_does_not_exist"]
 
     monkeypatch.setenv("DUCKCAPTURE_DATA", str(tmp_path / "data"))
@@ -373,3 +373,207 @@ def test_audio_com_is_balanced_for_repeated_workers_and_record_failure(monkeypat
         assert bool(ring.chunks) != failure
     assert calls == ["initialize", "release"] * 3
     assert dll.CoUninitialize.restype is None
+
+
+def test_soundcard_first_import_precedes_com_and_second_worker_is_initialized(
+    monkeypatch,
+):
+    import builtins
+    import ctypes
+    from types import SimpleNamespace
+    from duckcapture import audio
+
+    real_import = builtins.__import__
+    calls = []
+    loaded = [False]
+    initialized = [False]
+    current = [None]
+
+    class Function:
+        def __init__(self, name):
+            self.name = name
+
+        def __call__(self, *args):
+            calls.append(self.name)
+            if self.name == "initialize":
+                result = 1 if initialized[0] else 0
+                initialized[0] = True
+                return result
+            initialized[0] = False
+
+    dll = SimpleNamespace(
+        CoInitializeEx=Function("initialize"), CoUninitialize=Function("release")
+    )
+    monkeypatch.setattr(ctypes, "WinDLL", lambda _: dll, raising=False)
+    monkeypatch.setattr(audio, "os", SimpleNamespace(name="nt"))
+
+    class Recorder:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def record(self, **kwargs):
+            current[0].done.set()
+            return np.full((960, 2), 0.25)
+
+    sc = SimpleNamespace(
+        default_speaker=lambda: SimpleNamespace(id="USB"),
+        get_microphone=lambda **kwargs: SimpleNamespace(
+            recorder=lambda **kw: Recorder()
+        ),
+    )
+
+    def importing(name, *args, **kwargs):
+        if name == "soundcard":
+            if not loaded[0]:
+                # Exact SoundCard 0.4.6 behavior on a duplicated COM init.
+                if initialized[0]:
+                    raise RuntimeError("Error 0x100000001")
+                calls.append("soundcard_first_import")
+                initialized[0] = loaded[0] = True
+            return sc
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", importing)
+    for _ in range(2):
+        ring = AudioRing()
+        current[0] = ring
+        ring._run()
+        assert ring.error is None and len(ring.chunks) == 1
+    assert calls == [
+        "soundcard_first_import",
+        "initialize",
+        "release",
+        "initialize",
+        "release",
+    ]
+
+
+def test_replay_saves_with_locked_csv_and_after_resize(tmp_path, monkeypatch):
+    import time
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("DUCKCAPTURE_DATA", str(tmp_path / "data"))
+    real_open = Path.open
+
+    def opening(path, *args, **kwargs):
+        if path.name == "segments.csv":
+            raise PermissionError("lista em uso")
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", opening)
+    engine = CaptureEngine(Media(), source_factory=SyntheticWindow)
+    settings = Settings(
+        fps=30, system_audio=False, encoder="libx264", clips_dir=str(tmp_path / "clips")
+    )
+    try:
+        engine.start(123, settings)
+        wait_for(lambda: engine.active and engine.elapsed > 0.7, engine)
+        # A new aspect ratio is letterboxed into the original recording size.
+        pixels = np.tile(np.array([[[0, 180, 0, 255]]], dtype=np.uint8), (120, 120, 1))
+        engine.source.handlers["on_frame_arrived"](
+            SimpleNamespace(frame_buffer=pixels), engine.control
+        )
+        time.sleep(0.15)
+        end = engine.elapsed
+        path = engine.save_clip().result(timeout=14)
+        info = engine.media.probe(path)
+        assert (info.width, info.height) == (160, 90)
+        assert abs(info.duration - end) < 0.15
+        assert engine.active and engine.error is None
+        assert any(kind == "resized" for kind, _ in engine.events.queue)
+    finally:
+        engine.shutdown()
+
+
+def test_frozen_mkv_without_csv_or_final_duration_is_exported(tmp_path, monkeypatch):
+    monkeypatch.setenv("DUCKCAPTURE_DATA", str(tmp_path / "data"))
+    engine = CaptureEngine(Media())
+    engine.settings = Settings(
+        fps=30, system_audio=False, clips_dir=str(tmp_path / "clips")
+    )
+    engine.session = tmp_path / "buffer"
+    engine.session.mkdir()
+    engine.encoder = "libx264"
+    engine.output_size = (160, 90)
+    engine.pending = 1
+    target = engine.session / "frame-000000000.mkv"
+    engine.media.run(
+        [
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=green:s=160x90:r=30",
+            "-t",
+            "3",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "2",
+            "-live",
+            "1",
+            str(target),
+        ]
+    )
+    try:
+        output = engine._save_clip(
+            0.3, 2.1, [], engine.settings, engine.session, 0, None
+        )
+        info = engine.media.probe(output)
+        assert abs(info.duration - 1.8) < 0.1
+    finally:
+        engine.shutdown()
+
+
+def test_minimize_restore_and_source_reconnect_preserve_writer(tmp_path, monkeypatch):
+    import time
+
+    monkeypatch.setenv("DUCKCAPTURE_DATA", str(tmp_path / "data"))
+    minimized = [False]
+    exists = [True]
+    sources = []
+
+    def factory(**kwargs):
+        source = SyntheticWindow(**kwargs)
+        sources.append(source)
+        return source
+
+    engine = CaptureEngine(
+        Media(),
+        source_factory=factory,
+        window_exists_fn=lambda _: exists[0],
+        window_minimized_fn=lambda _: minimized[0],
+    )
+    try:
+        engine.start(
+            123,
+            Settings(
+                fps=30,
+                encoder="libx264",
+                system_audio=False,
+                clips_dir=str(tmp_path / "clips"),
+            ),
+        )
+        wait_for(lambda: engine.active, engine)
+        session = engine.session
+        minimized[0] = True
+        sources[0].stopped = True
+        sources[0].handlers["on_closed"]()
+        before = engine.elapsed
+        time.sleep(0.4)
+        assert engine.active and engine.elapsed > before + 0.2
+        assert "minimizada" in engine.state_message
+        minimized[0] = False
+        wait_for(lambda: len(sources) == 2 and engine.received.is_set(), engine)
+        assert engine.session == session and engine.error is None
+        path = engine.save_clip().result(timeout=12)
+        assert engine.media.probe(path).duration > 0.5
+        exists[0] = False
+        engine.thread.join(timeout=3)
+        assert engine.error and "fechada" in engine.error
+    finally:
+        engine.shutdown()

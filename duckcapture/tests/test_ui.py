@@ -235,3 +235,77 @@ def test_gallery_generates_thumbnail_and_opens_real_video(tmp_path, monkeypatch)
     finally:
         window.close()
         APP.processEvents()
+
+
+def test_visual_picker_selects_window_and_releases_thumbnails():
+    from duckcapture.window_picker import WindowPicker
+
+    previews = []
+
+    class Thumbnail:
+        def __init__(self, destination, source):
+            self.source = source
+            self.closed = False
+            previews.append(self)
+
+        def update(self, *args):
+            pass
+
+        def close(self):
+            self.closed = True
+
+    picker = WindowPicker(
+        windows=[(i, f"Janela {i}") for i in range(8)], thumbnail_factory=Thumbnail
+    )
+    picker.show()
+    APP.processEvents()
+    assert len(picker.previews) == 6
+    picker.turn(1)
+    assert all(p.closed for p in previews[:6])
+    assert len(picker.previews) == 2
+    picker.choose(7, "Janela 7")
+    assert picker.selected == (7, "Janela 7")
+    assert all(p.closed for p in previews)
+    APP.processEvents()
+
+
+def test_saved_sounds_and_icon_expansion(tmp_path, monkeypatch):
+    from duckcapture import sounds
+    from duckcapture.visuals import ExpandButton
+
+    calls = []
+
+    class Effect:
+        def __init__(self, parent):
+            pass
+
+        def setVolume(self, value):
+            assert 0 < value < 0.5
+
+        def setSource(self, url):
+            self.name = Path(url.toLocalFile()).name
+            assert Path(url.toLocalFile()).is_file()
+
+        def stop(self):
+            pass
+
+        def play(self):
+            calls.append(self.name)
+
+    monkeypatch.setattr(sounds, "QSoundEffect", Effect)
+    settings = Settings()
+    player = sounds.CaptureSounds(None, settings)
+    player.saved("Clipe.mp4")
+    player.saved("Print.png")
+    settings.notification_sounds = False
+    player.saved("silenciado.mp4")
+    assert calls == ["clip.wav", "print.wav"]
+    APP.setProperty("duckMotion", True)
+    control = ExpandButton("HUD", "hud", 160)
+    control.show()
+    QTest.qWait(20)
+    assert control.width() == 50 and not control.icon().isNull()
+    QTest.mouseClick(control, Qt.MouseButton.LeftButton)
+    QTest.qWait(250)
+    assert control.isChecked() and control.width() == 160
+    control.close()

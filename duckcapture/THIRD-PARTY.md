@@ -20,3 +20,5 @@ As dependências são obtidas pelos instaladores originais de Python/pip. Este Z
 Consulte os textos de licença distribuídos com cada dependência e suas dependências transitivas. O instalador de FFmpeg também registra a origem e o checksum em `tools/SOURCE.txt`.
 
 Os mascotes foram gerados para este projeto. DuckCapture não é associado a Medal, Discord, Spotify, Minecraft ou fabricantes de GPU. Links do Spotify são abertos no serviço oficial; esta versão não utiliza credenciais ou API do Spotify.
+
+Os sons `clip.wav` e `print.wav` são tons originais sintetizados para o DuckCapture, sem amostras de músicas ou bibliotecas externas.

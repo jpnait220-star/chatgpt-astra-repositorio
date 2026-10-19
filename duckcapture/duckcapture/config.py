@@ -41,6 +41,7 @@ class Settings:
     cursor: bool = True
     tips: bool = True
     motion: bool = True
+    notification_sounds: bool = True
     clips_dir: str = str(Path.home() / "Videos" / "DuckCapture")
     music_dir: str = str(Path.home() / "Music" / "DuckCapture Music")
     spotify: str = ""

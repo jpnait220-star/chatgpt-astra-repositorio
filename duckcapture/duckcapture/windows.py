@@ -21,6 +21,8 @@ if IS_WINDOWS:
     user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
     user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
     user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.IsWindow.argtypes = [wintypes.HWND]
+    user32.IsIconic.argtypes = [wintypes.HWND]
     user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
     user32.GetWindowThreadProcessId.argtypes = [
         wintypes.HWND,
@@ -28,6 +30,14 @@ if IS_WINDOWS:
     ]
     user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
     user32.GetAsyncKeyState.restype = ctypes.c_short
+
+
+def window_exists(hwnd):
+    return bool(IS_WINDOWS and user32.IsWindow(hwnd))
+
+
+def window_minimized(hwnd):
+    return bool(IS_WINDOWS and user32.IsIconic(hwnd))
 
 
 def list_windows():

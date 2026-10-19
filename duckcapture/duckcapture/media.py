@@ -130,9 +130,10 @@ class Media:
         fps=30,
         cancelled=None,
         progress=None,
+        realtime=False,
     ):
         self.require()
-        key = (size, quality, fps)
+        key = (size, quality, fps, realtime)
         if requested != "Automático":
             choices = [requested]
         elif key in self._encoders:
@@ -154,7 +155,7 @@ class Media:
                         f"color=s={size[0]}x{size[1]}:r={fps}",
                         "-frames:v",
                         "1",
-                        *self.encoding(encoder, quality, fps),
+                        *self.encoding(encoder, quality, fps, realtime=realtime),
                         "-f",
                         "null",
                         "-",
@@ -172,7 +173,7 @@ class Media:
         )
 
     @staticmethod
-    def encoding(encoder, quality="Equilibrado", fps=60):
+    def encoding(encoder, quality="Equilibrado", fps=60, realtime=False):
         level = {"Econômico": 29, "Equilibrado": 24, "Alta qualidade": 19, "Full": 16}[
             quality
         ]
@@ -222,7 +223,54 @@ class Media:
                 "-threads",
                 "2",
             ]
+        if realtime:
+            if encoder == "h264_nvenc":
+                args += [
+                    "-forced-idr",
+                    "1",
+                    "-tune",
+                    "ull",
+                    "-zerolatency",
+                    "1",
+                    "-delay",
+                    "0",
+                    "-rc-lookahead",
+                    "0",
+                ]
+            elif encoder == "h264_qsv":
+                args += ["-async_depth", "1", "-look_ahead", "0", "-forced_idr", "1"]
+            elif encoder == "h264_amf":
+                args += ["-usage", "lowlatency"]
+            elif encoder == "libx264":
+                args += ["-tune", "zerolatency"]
         return args + ["-pix_fmt", "yuv420p", "-g", str(fps * 2), "-bf", "0"]
+
+    def decoded_duration(self, path, fps):
+        """Measure a frozen MKV prefix even when its duration/cues are unwritten."""
+        self.require()
+        result = subprocess.run(
+            [
+                self.ffprobe,
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-count_frames",
+                "-show_entries",
+                "stream=nb_read_frames",
+                "-of",
+                "json",
+                str(path),
+            ],
+            capture_output=True,
+            timeout=15,
+            creationflags=CREATE_FLAGS,
+        )
+        try:
+            frames = int(json.loads(result.stdout)["streams"][0]["nb_read_frames"])
+        except (ValueError, KeyError, IndexError):
+            raise MediaError("O segmento ainda não contém quadros de vídeo legíveis.")
+        return frames / fps
 
     def thumbnail(self, path, target):
         self.run(
