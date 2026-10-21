@@ -48,6 +48,8 @@ jobs:
               import traceback
               report = Path('installer_saida/verificacao-windows.json')
               detail = traceback.format_exc() + ('\n'+report.read_text() if report.exists() else '')
+              if build.LOG.exists():
+                  detail += '\n' + build.LOG.read_text(encoding='utf-8')[-5000:]
               print('::error title=Compilação Windows::' + detail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
               raise
       - name: Empacotar código-fonte e checksums

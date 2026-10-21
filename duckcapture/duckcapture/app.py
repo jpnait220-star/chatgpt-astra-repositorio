@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 )
 from .config import Settings, data_dir, DURATIONS, FPS, PROFILES, ROOT
 from .widgets import STYLE, Page, Tip, card, label, button, mascot, CHARACTERS, BackdropCard
-from .theme import PRESETS, theme_style
+from .theme import PRESETS, theme_style, current_palette
 from .visuals import (
     MascotLabel,
     icon as vector_icon,
@@ -304,6 +304,10 @@ class MainWindow(QMainWindow):
         if update:
             self.update()
             for element in self.findChildren(QFrame) + self.findChildren(QPushButton):
+                symbol = element.property("duckVectorIcon")
+                if symbol:
+                    tint = current_palette()['dark_text'] if element.objectName() == 'primary' else '#cbd4e6'
+                    element.setIcon(vector_icon(symbol, tint))
                 element.update()
             self.save_settings()
 

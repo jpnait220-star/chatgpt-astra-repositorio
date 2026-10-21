@@ -35,11 +35,15 @@ LOG = ROOT / "erro-build.log"
 
 
 def run(command, *, cwd=ROOT):
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8', errors='replace')
+    child_env = dict(os.environ, PYTHONUTF8='1', PYTHONIOENCODING='utf-8')
     print("\n+ " + " ".join(str(arg) for arg in command), flush=True)
     with LOG.open("a", encoding="utf-8") as log:
         log.write("\n+ " + " ".join(str(arg) for arg in command) + "\n")
         with subprocess.Popen(
-            [str(a) for a in command], cwd=cwd,
+            [str(a) for a in command], cwd=cwd, env=child_env,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", errors="replace",
         ) as process:

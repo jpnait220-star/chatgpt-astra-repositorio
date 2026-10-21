@@ -181,11 +181,11 @@ class GlowButton(QPushButton):
         selected = self.isChecked()
         rect = QRectF(self.rect()).adjusted(1.5, 2, -1.5, -2)
         path = QPainterPath()
-        path.addRoundedRect(rect, 10, 10)
+        path.addRoundedRect(rect, 15, 15)
         gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
         if primary:
-            gradient.setColorAt(0, QColor(colors["bright"] if enabled else "#3a3830"))
-            gradient.setColorAt(1, QColor(colors["accent"] if enabled else "#292822"))
+            gradient.setColorAt(0, QColor(colors["bright"] if enabled else "#313641"))
+            gradient.setColorAt(1, QColor(colors["accent"] if enabled else "#232832"))
         else:
             gradient.setColorAt(
                 0,
@@ -228,7 +228,7 @@ class GlowButton(QPushButton):
         content = rect.adjusted(15, 0, -15, 0)
         painter.setPen(
             QColor(
-                "#201d14"
+                colors["dark_text"]
                 if primary and enabled
                 else "#f6f6f9"
                 if enabled
@@ -253,7 +253,7 @@ class GlowButton(QPushButton):
             text,
         )
         if self.hasFocus():
-            painter.setPen(QPen(QColor("#eee2ad"), 1, Qt.PenStyle.DotLine))
+            painter.setPen(QPen(QColor(colors["accent"]), 1, Qt.PenStyle.DotLine))
             painter.drawRoundedRect(rect.adjusted(3, 3, -3, -3), 8, 8)
 
 

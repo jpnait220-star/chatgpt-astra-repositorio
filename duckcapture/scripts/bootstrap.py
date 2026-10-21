@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -28,6 +29,10 @@ def validate_runtime():
 
 def run_checked(arguments, root):
     """Use explicit argument lists and preserve console output in a local log."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8', errors='replace')
+    child_env = dict(os.environ, PYTHONUTF8='1', PYTHONIOENCODING='utf-8')
     command = [str(part) for part in arguments]
     with (root / "instalacao.log").open("a", encoding="utf-8") as log:
         log.write("\nExecutando: " + repr(command) + "\n")
@@ -35,6 +40,7 @@ def run_checked(arguments, root):
         with subprocess.Popen(
             command,
             cwd=root,
+            env=child_env,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

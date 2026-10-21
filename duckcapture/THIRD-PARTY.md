@@ -26,3 +26,5 @@ Os sons `clip.wav` e `print.wav` são tons originais sintetizados para o DuckCap
 - **Manrope**, por Mikhail Sharanda e colaboradores: [Google Fonts](https://github.com/google/fonts/tree/main/ofl/manrope), SIL Open Font License 1.1. Licença incluída em `duckcapture/assets/fonts/OFL-Manrope.txt`. As instâncias estáticas Regular, SemiBold, Bold e ExtraBold foram obtidas da fonte variável com fontTools 4.60.1 para compatibilidade consistente com Qt/Windows.
 - **Python/WinRT** 3.2.1: https://github.com/pywinrt/pywinrt — MIT. Usado para controlar exclusivamente a sessão de mídia do aplicativo Spotify para Windows, sem senha ou token Spotify no DuckCapture.
 - O novo `clip.wav` é sintetizado por `scripts/create_sounds.py`, com semente fixa e sem amostras externas.
+
+O gerador 0.5.0 baixa FFmpeg Essentials **9.0.2** pelo espelho oficial `GyanD/codexffmpeg` no GitHub e verifica SHA-256 `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba`.

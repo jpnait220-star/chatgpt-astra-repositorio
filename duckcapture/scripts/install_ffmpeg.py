@@ -9,7 +9,9 @@ import urllib.request
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+URL = "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip"
+# SHA-256 from the publisher's GitHub release asset digest; pin both bytes and version.
+EXPECTED_SHA256 = "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba"
 
 
 def install(require_local=False):
@@ -26,8 +28,7 @@ def install(require_local=False):
         print("FFmpeg e ffprobe já estão no PATH.")
         return
     print("Baixando FFmpeg Essentials (Gyan). O arquivo pode ter mais de 100 MB.")
-    with urllib.request.urlopen(URL + ".sha256", timeout=30) as response:
-        expected = response.read().decode().strip().split()[0].lower()
+    expected = EXPECTED_SHA256
     if len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
         raise RuntimeError("Checksum oficial inválido. Instalação interrompida.")
     with tempfile.TemporaryDirectory(prefix="duck-ffmpeg-") as work:

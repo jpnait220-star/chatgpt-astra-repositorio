@@ -77,6 +77,7 @@ def button(text, callback=None, primary=False):
             break
     item = GlowButton(clean)
     if symbol:
+        item.setProperty("duckVectorIcon", symbol)
         item.setIcon(icon(symbol, current_palette()['dark_text'] if primary else '#cbd4e6'))
     item.setObjectName("primary" if primary else "button")
     item.setCursor(Qt.CursorShape.PointingHandCursor)
