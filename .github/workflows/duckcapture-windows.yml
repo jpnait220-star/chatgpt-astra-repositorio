@@ -1,0 +1,73 @@
+name: DuckCapture Windows
+on:
+  push:
+    branches: [duckcapture-0.5.0]
+    paths: ['duckcapture/**', '.github/workflows/duckcapture-windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: duckcapture-windows-050
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: duckcapture
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+          cache: pip
+          cache-dependency-path: |
+            duckcapture/requirements.txt
+            duckcapture/requirements-build.txt
+      - name: Dependências
+        run: python -m pip install -r requirements.txt -r requirements-build.txt
+      - name: Compilar e verificar o aplicativo Windows
+        shell: python
+        run: |
+          import json, subprocess, sys
+          from pathlib import Path
+          from scripts import build_windows as build
+          build.PY = Path(sys.executable)
+          build.LOG.write_text('DuckCapture 0.5.0 / GitHub Windows build\n', encoding='utf-8')
+          source, stage = build.make_windows_exe()
+          report = (build.ROOT / 'installer_saida' / 'verificacao-windows.json').resolve()
+          subprocess.run([str(source / 'DuckCapture.exe'), '--check-installation', str(report)], timeout=90, check=True)
+          print(report.read_text())
+          assert json.loads(report.read_text())['ok']
+          build.compile_installer(build.ensure_iscc(automatic=False), source)
+      - name: Empacotar código-fonte e checksums
+        shell: python
+        run: |
+          import hashlib
+          from pathlib import Path
+          from scripts.package import package
+          package(Path('installer_saida'))
+          exe = Path('installer_saida/DuckCapture-Setup-0.5.0.exe')
+          exe.with_suffix('.exe.sha256').write_text(hashlib.sha256(exe.read_bytes()).hexdigest()+'  '+exe.name+'\n')
+      - name: Publicar downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release view DuckCapture-v0.5.0 *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create DuckCapture-v0.5.0 --target $env:GITHUB_SHA --title "DuckCapture 0.5.0" --prerelease --notes-file ATUALIZACAO-0.5.0.md
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release upload DuckCapture-v0.5.0 installer_saida/DuckCapture-Setup-0.5.0.exe installer_saida/DuckCapture-Setup-0.5.0.exe.sha256 installer_saida/DuckCapture-0.5.0.zip installer_saida/DuckCapture-0.5.0.zip.sha256 --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckcapture-windows-build
+          path: |
+            duckcapture/installer_saida/*
+            duckcapture/erro-build.log
+          retention-days: 14

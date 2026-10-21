@@ -1,0 +1,24 @@
+DUCKCAPTURE 0.4.6 — FILA DE CLIPES + SOM NO F8 + SALVAMENTO MAIS LEVE
+
+NOVIDADES
+- Ao apertar F8 (ou a tecla configurada), o DuckCapture toca o som de clipe imediatamente, assim que o pedido é aceito. Não precisa esperar terminar o arquivo MP4.
+- O botão "Salvar últimos segundos" usa o mesmo som.
+- É possível pedir até 6 clipes de replay sem bloquear novos pedidos. Os clipes são exportados em ordem, um por vez, para não atrapalhar o FPS do jogo.
+- Cada pedido guarda seu momento de captura e um nome de arquivo próprio. Se apertar F8 duas vezes, aparecem dois arquivos, mesmo que os conteúdos sejam parecidos.
+- Os segmentos ainda necessários para a fila não são apagados enquanto aguardam sua vez.
+- Na mesma unidade NTFS, os trechos de vídeo já finalizados são reaproveitados por links de arquivo, evitando cópias enormes. Caso o sistema não permita, o DuckCapture continua usando cópias normais.
+- Removido o texto "Fonte XX FPS" da barra superior; permanece apenas "Capturando".
+- O som pode ser ativado/desativado nas configurações. O som do print toca ao terminar de salvar o print.
+
+ATENÇÃO
+- O programa preserva o modo atual de gravação de vídeo. Não prometemos exportação instantânea: vídeos com HUD e cortes continuam exigindo processamento FFmpeg.
+- A fila é limitada a 6 solicitações para evitar uso ilimitado de disco. Não feche o app antes da fila terminar.
+- ZIP contém o código e o gerador de instalador, não um executável Windows pronto.
+- Gere o .exe em Windows 10/11 com CRIAR-INSTALADOR.bat, sem modo administrador.
+- O instalador ainda não é assinado digitalmente; mantenha as proteções do Windows.
+- Os testes locais cobrem o motor e a exportação, mas a reprodução do efeito de som, o atalho global F8 e a GUI devem ser confirmados no Windows.
+
+COMO TESTAR
+1. Inicie o DuckCapture, selecione seu jogo e aguarde o replay ativo.
+2. Aperte F8 duas vezes enquanto joga. Deverá ouvir o efeito a cada pedido e ver duas solicitações na fila.
+3. Aguarde o fim do salvamento. Verifique dois arquivos na biblioteca e a ausência de "Fonte XX FPS" no topo.

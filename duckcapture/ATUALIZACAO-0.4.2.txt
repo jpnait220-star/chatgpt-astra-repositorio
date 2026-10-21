@@ -1,0 +1,25 @@
+DUCKCAPTURE 0.4.2 — DARK / HUD / SPOTIFY
+
+MELHORIAS
+- Mascote personalizado novamente no card "Replay instantâneo", mantendo logo pequeno junto ao nome DuckCapture.
+- Fundo quase preto e detalhes brancos, menos destaque azulado.
+- Preset Minecraft: painel de HUDs prontos com controles de ativar/desativar:
+  teclado, mouse, CPS, FPS, música, cronômetro, cliques e texto.
+- HUDs prontos não precisam de arquivo externo. "Música" utiliza o título capturado pelo player local;
+  a integração com o título da faixa no Spotify é limitada pelo navegador/site.
+- Seletor de janelas: reduzida a quantidade de prévias simultâneas, removida
+  atualização desnecessária a cada 250ms; atualiza posições ao rolar e redimensionar.
+- Spotify: área da página maior para rolagem interna, visual de disco consistente
+  com o player local, link para abrir no navegador padrão se a plataforma não aceitar o embutido.
+- Spotify: perfil web local persistente no próprio PC, para guardar login/cookies
+  após o usuário entrar com a sua própria conta (sujeito às regras do Spotify).
+- Numeração do gerador: 0.4.2.
+
+AVISOS IMPORTANTES
+- Não existe conta coletiva "DuckCapture" que autorize música Spotify para todos.
+  Cada usuário deverá acessar o Spotify com sua própria conta autorizada.
+- O Spotify pode bloquear reprodução, login ou alguns recursos em navegadores embutidos.
+  Não é possível garantir acesso a faixas completas dentro do app.
+- Esta distribuição contém código-fonte e gerador de instalador sem assinatura.
+- Captura nativa, Spotify e empacotamento Windows não puderam ser testados neste Linux.
+  Teste em Windows com o DuckCapture anterior fechado no Gerenciador de Tarefas.

@@ -3,7 +3,13 @@ import ctypes
 import os
 from collections import deque
 from ctypes import wintypes
-from PySide6.QtCore import QAbstractNativeEventFilter
+try:
+    from PySide6.QtCore import QAbstractNativeEventFilter
+except ModuleNotFoundError:
+    # Hotkeys are only attached to a Qt application on Windows. Let the
+    # platform-independent replay engine run its offline tests without Qt.
+    class QAbstractNativeEventFilter:
+        pass
 
 KEYS = {
     "W": 0x57,

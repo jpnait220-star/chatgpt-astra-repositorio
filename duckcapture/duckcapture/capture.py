@@ -16,13 +16,19 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from PIL import Image
 from .audio import AudioRing
+from .frame_pacer import SourceFramePacer, FrameWaiter
 from .config import Settings, atomic_json, data_dir
-from .hud import write_hud
+from .hud import write_hud, copy_fonts
 from .windows import window_exists, window_minimized
+from .fullscreen import process_id, is_target_foreground, monitor_for_fullscreen, replacement_window
 from .media import Media, MediaError, CREATE_FLAGS
 
 
 class CaptureEngine:
+    # One FFmpeg export at a time keeps GPU/CPU usage stable during gameplay.
+    # Extra F8 presses wait here instead of being rejected.
+    MAX_PENDING_CLIPS = 6
+
     def __init__(
         self,
         media: Media,
@@ -43,6 +49,7 @@ class CaptureEngine:
         self.active = False
         self.starting = False
         self.latest = None
+        self.frame_queue = deque(maxlen=4)  # Small jitter buffer to avoid duplicated frames.
         self.lock = threading.RLock()
         self.done = threading.Event()
         self.samples = deque()
@@ -53,6 +60,7 @@ class CaptureEngine:
         self.session = None
         self.encoder = ""
         self.pending = 0
+        self._snapshots_pending = 0
         self.pinning = False
         self.error = None
         self.source = None
@@ -70,6 +78,17 @@ class CaptureEngine:
         self.restart_thread = None
         self.fitted_source = None
         self.fitted_frame = None
+        self.source_fps = 0.0
+        self.output_fps = 0.0
+        self.last_frame_at = 0.0
+        self._late_warning_at = 0.0
+        self._last_encoded_source = None
+        self._last_encoded_size = None
+        self._last_encoded_bytes = None
+        self.capture_mode = "window"
+        self.monitor_index = None
+        self.target_pid = None
+        self._last_mode_check = 0.0
 
     @property
     def elapsed(self):
@@ -99,10 +118,15 @@ class CaptureEngine:
         self.audio_warning = ""
         self.settings = copy.deepcopy(settings)
         self.hwnd = hwnd
+        self.target_pid = process_id(hwnd)
+        self.capture_mode = "window"
+        self.monitor_index = None
+        self._last_mode_check = 0.0
         if self.session and self.session.exists():
             shutil.rmtree(self.session, ignore_errors=True)
         self.done.clear()
         self.latest = None
+        self.frame_queue.clear()
         self.frames = 0
         self.samples.clear()
         self.audio = None
@@ -112,6 +136,13 @@ class CaptureEngine:
         self.fitted_source = self.fitted_frame = None
         self.state_message = ""
         self.source_retries = 0
+        self.source_fps = 0.0
+        self.output_fps = 0.0
+        self.last_frame_at = 0.0
+        self._late_warning_at = 0.0
+        self._last_encoded_source = None
+        self._last_encoded_size = None
+        self._last_encoded_bytes = None
         self.thread = threading.Thread(
             target=self._start, daemon=True, name="duck-capture"
         )
@@ -120,9 +151,17 @@ class CaptureEngine:
     def _start(self):
         process = None
         log = None
+        waiter = FrameWaiter()
         try:
             self.media.require()
+            try:
+                import cv2
+                cv2.setNumThreads(1 if self.settings.performance_mode else 2)
+            except ImportError:
+                pass
             self.events.put(("preparing", "Conectando à janela selecionada…"))
+            # F11 may already be active when recording starts.
+            self._detect_fullscreen(force=True)
             self._open_source()
             deadline = time.monotonic() + 10
             while not self.received.wait(0.05):
@@ -144,12 +183,15 @@ class CaptureEngine:
             self.session = Path(tempfile.mkdtemp(prefix="replay-", dir=buffer_root))
             height, width = self.latest.shape[:2]
             self.size = (width, height)
-            maximum = {
-                "Econômico": 1280,
-                "Equilibrado": 1920,
-                "Alta qualidade": 2560,
-                "Full": width,
-            }[self.settings.quality]
+            # Encode a smaller frame when light mode is enabled. This also
+            # reduces the huge BGRA stream transferred into FFmpeg every frame.
+            resolution_limits = {"720p": 1280, "1080p": 1920, "1440p": 2560, "4K": 3840, "Origem": width}
+            quality_limits = (
+                {"Econômico": 960, "Equilibrado": 1280, "Alta qualidade": 1920, "Full": width}
+                if self.settings.performance_mode else
+                {"Econômico": 1280, "Equilibrado": 1920, "Alta qualidade": 2560, "Full": width}
+            )
+            maximum = min(width, quality_limits[self.settings.quality], resolution_limits.get(getattr(self.settings, "resolution", "1080p"), width))
             out_width = max(2, min(width, maximum) // 2 * 2)
             out_height = max(2, round(height * out_width / width) // 2 * 2)
             self.output_size = (out_width, out_height)
@@ -161,10 +203,11 @@ class CaptureEngine:
                 self.done,
                 lambda message: self.events.put(("preparing", message)),
                 realtime=True,
+                bitrate_mbps=getattr(self.settings, "bitrate_mbps", 0),
             )
             if self.done.is_set():
                 raise InterruptedError()
-            if self.settings.system_audio:
+            if self.settings.system_audio and getattr(self.settings, "audio_mode", "Som do PC (jogo, Discord, navegador)") != "Sem áudio":
                 self.events.put(("preparing", "Preparando áudio do sistema…"))
                 self.audio = AudioRing()
                 try:
@@ -195,19 +238,18 @@ class CaptureEngine:
                 "-pix_fmt",
                 "bgra",
                 "-s",
-                f"{width}x{height}",
+                f"{out_width}x{out_height}",
                 "-r",
                 str(self.settings.fps),
                 "-i",
                 "pipe:0",
                 "-an",
-                "-vf",
-                f"scale={out_width}:{out_height}",
                 *self.media.encoding(
                     self.encoder,
                     self.settings.quality,
                     self.settings.fps,
                     realtime=True,
+                    bitrate_mbps=getattr(self.settings, "bitrate_mbps", 0),
                 ),
                 "-force_key_frames",
                 "expr:gte(t,n_forced*2)",
@@ -240,23 +282,44 @@ class CaptureEngine:
                 creationflags=CREATE_FLAGS,
             )
             self.epoch = time.monotonic()
+            rate_started, rate_frames = self.epoch, 0
+            with self.lock:
+                self.frame_queue.clear()  # Drop frames captured while the encoder/audio were being prepared.
             while not self.done.is_set():
                 target = self.epoch + self.frames / self.settings.fps
                 remaining = target - time.monotonic()
                 if remaining > 0:
-                    self.done.wait(remaining)
+                    waiter.wait(remaining, self.done)
                 if self.done.is_set():
                     break
                 self._maintain_source()
-                if time.monotonic() - target > 1.5:
+                delay = time.monotonic() - target
+                # A short stall while the game loads should not kill the replay.
+                # Keep attempting to catch up with the timeline; report prolonged
+                # overload so the user can select 30 FPS or Econômico.
+                if delay > 0.75 and time.monotonic() - self._late_warning_at > 12:
+                    self._late_warning_at = time.monotonic()
+                    self.events.put(("performance_warning",
+                        "Captura sobrecarregada. Experimente 30 FPS e qualidade Econômico; "
+                        "a gravação vai tentar se recuperar."))
+                if delay > 6:
                     raise RuntimeError(
-                        "O computador não está acompanhando este FPS. Reduza o FPS/qualidade ou escolha um codificador da GPU."
+                        "A gravação ficou mais de 6 s atrasada. Reduza o FPS/qualidade, "
+                        "ative o Modo leve e selecione o codificador da GPU."
                     )
                 with self.lock:
-                    pixels = self.latest
-                pixels = self._fit_frame(pixels, width, height)
-                process.stdin.write(pixels.tobytes())
+                    pixels = self.frame_queue.popleft() if self.frame_queue else self.latest
+                if pixels is None:
+                    continue
+                process.stdin.write(
+                    self._frame_payload(pixels, width, height, out_width, out_height)
+                )
                 self.frames += 1
+                rate_frames += 1
+                now = time.monotonic()
+                if now - rate_started >= 1:
+                    self.output_fps = rate_frames / (now - rate_started)
+                    rate_started, rate_frames = now, 0
                 if self.audio and self.audio.error:
                     self.audio_warning = (
                         "O áudio do sistema parou: "
@@ -310,6 +373,7 @@ class CaptureEngine:
                 )
             self.events.put(("capture_error", self.error))
         finally:
+            waiter.close()
             self.done.set()
             self.starting = False
             self.active = False
@@ -340,6 +404,24 @@ class CaptureEngine:
                 )
             )
 
+    def _frame_payload(self, source, width, height, out_width, out_height):
+        """Reuse the encoded-input bytes while the capture source is unchanged.
+
+        FFmpeg still receives every expected frame, preserving replay timing.
+        This cuts redundant CPU work when the game briefly repeats a frame.
+        """
+        if (source is self._last_encoded_source and self._last_encoded_bytes is not None
+                and self._last_encoded_size == (out_width, out_height)):
+            return self._last_encoded_bytes
+        # Fit straight to the encoded dimensions, including after F11/resizing.
+        # Scaling to the old window size and then again to the output wastes a
+        # full resize and several large frame copies on every frame.
+        pixels = self._fit_frame(source, out_width, out_height)
+        self._last_encoded_size = (out_width, out_height)
+        self._last_encoded_bytes = memoryview(np.ascontiguousarray(pixels)).cast("B")
+        self._last_encoded_source = source
+        return self._last_encoded_bytes
+
     def _open_source(self):
         self.source_generation += 1
         generation = self.source_generation
@@ -354,8 +436,11 @@ class CaptureEngine:
             from windows_capture import WindowsCapture
 
             factory = WindowsCapture
+        target = ({"monitor_index": self.monitor_index}
+                  if self.capture_mode == "monitor" else {"window_hwnd": self.hwnd})
+        source_mode = self.capture_mode
         source = factory(
-            window_hwnd=self.hwnd,
+            **target,
             cursor_capture=self.settings.cursor,
             draw_border=None,
             minimum_update_interval=None,
@@ -363,26 +448,50 @@ class CaptureEngine:
         self.source = source
         self.source_closed.clear()
         self.received.clear()
-        last_copy = 0.0
+        pacer = SourceFramePacer(self.settings.fps)
+        count = 0
+        interval_start = time.monotonic()
 
         @source.event
         def on_frame_arrived(frame, capture_control):
-            nonlocal last_copy
+            nonlocal count, interval_start
             if self.done.is_set() or generation != self.source_generation:
                 capture_control.stop()
                 return
             now = time.monotonic()
-            if now - last_copy < 0.5 / self.settings.fps:
+            # A fixed gap from the last accepted callback aliases 75-110 Hz
+            # sources into ~38-55 unique FPS at a 60 FPS target. Keep a
+            # phase-locked deadline instead, so accepted frames average the
+            # requested FPS while still copying at most one frame per callback.
+            # WGC timestamps are 100 ns ticks. Callback scheduling jitter must
+            # not be mistaken for a slow/fast game and discard useful frames.
+            timestamp = getattr(frame, 'timespan', None)
+            source_time = timestamp / 10_000_000 if isinstance(timestamp, (int, float)) and timestamp > 0 else now
+            if not pacer.allow(source_time):
                 return
-            last_copy = now
-            if self.is_minimized(self.hwnd):
+            if source_mode == "monitor":
+                # Monitor capture contains everything visible. Never retain
+                # frames when the game is not the foreground application.
+                if not is_target_foreground(self.hwnd, self.target_pid):
+                    return
+            elif self.is_minimized(self.hwnd):
                 return
             pixels = frame.frame_buffer.copy()
             if pixels.shape[0] < 2 or pixels.shape[1] < 2:
                 return
             with self.lock:
                 self.latest = pixels
+                self.frame_queue.append(pixels)
             self.received.set()
+            self.last_frame_at = now
+            count += 1
+            interval = now - interval_start
+            if interval >= 1.25:
+                self.source_fps = count / interval
+                logging.debug("Replay source: %.1f unique frames/s (goal %s)",
+                              self.source_fps, self.settings.fps)
+                interval_start = now
+                count = 0
 
         @source.event
         def on_closed():
@@ -401,28 +510,62 @@ class CaptureEngine:
             self.state_message = message
             self.events.put(("source_status", message))
 
+    def _detect_fullscreen(self, *, force=False):
+        """Switch the active WGC source when F11 changes how the game renders."""
+        now = time.monotonic()
+        if not force and now - self._last_mode_check < 0.35:
+            return False
+        self._last_mode_check = now
+        enabled = getattr(self.settings, "fullscreen_compatibility", True)
+        monitor = monitor_for_fullscreen(self.hwnd, self.target_pid) if enabled else None
+        desired = "monitor" if monitor is not None else "window"
+        if desired == self.capture_mode and (desired != "monitor" or monitor == self.monitor_index):
+            return False
+        self.capture_mode = desired
+        self.monitor_index = monitor
+        # Old pixels belong to a different window or resolution. Restart the
+        # frame buffer smoothly without discarding the last already encoded frame.
+        with self.lock:
+            self.frame_queue.clear()
+        if desired == "monitor":
+            self._source_status(
+                "F11 detectado: capturando o monitor do jogo. "
+                "Ao sair do jogo, o DuckCapture não registra outras janelas."
+            )
+        else:
+            self._source_status("Voltando à captura da janela do jogo…")
+        return True
+
     def _maintain_source(self):
         if not self.is_window(self.hwnd):
-            raise RuntimeError(
-                "A janela selecionada foi fechada. Os clipes salvos foram preservados."
-            )
-        if self.is_minimized(self.hwnd):
+            new_hwnd = replacement_window(self.hwnd, self.target_pid)
+            if not new_hwnd:
+                raise RuntimeError(
+                    "A janela selecionada foi fechada. Os clipes salvos foram preservados."
+                )
+            self.hwnd = new_hwnd
+            with self.lock:
+                self.frame_queue.clear()
+            self.source_closed.set()
+        if self.restart_thread and self.restart_thread.is_alive():
+            return
+        switched = self._detect_fullscreen()
+        if self.is_minimized(self.hwnd) and self.capture_mode != "monitor":
             self._source_status(
                 "Janela minimizada: mantendo o último quadro e o áudio. A imagem retorna ao restaurar."
             )
             return
-        if self.restart_thread and self.restart_thread.is_alive():
-            return
         finished = (
-            self.source_closed.is_set()
-            or self.control is None
-            or self.control.is_finished()
+            switched or self.source_closed.is_set()
+            or self.control is None or self.control.is_finished()
+            or (self.last_frame_at and time.monotonic() - self.last_frame_at > 2.5)
         )
         if finished:
-            self._source_status(
-                "Reconectando à janela; o replay mantém o último quadro e o áudio…"
-            )
-            if time.monotonic() - self.last_source_attempt >= 1.0:
+            if not switched:
+                self._source_status(
+                    "Reconectando à janela; o replay mantém o último quadro e o áudio…"
+                )
+            if switched or time.monotonic() - self.last_source_attempt >= 1.0:
                 self.source_retries += 1
 
                 def reconnect():
@@ -438,17 +581,28 @@ class CaptureEngine:
                 self.restart_thread.start()
                 if self.source_retries >= 10:
                     raise RuntimeError(
-                        "A janela deixou de fornecer imagens após várias tentativas. Restaure a janela e reinicie a captura."
+                        "O jogo deixou de fornecer imagens após várias tentativas. "
+                        "Use modo janela sem bordas nas opções do Minecraft."
                     )
         elif self.received.is_set():
             self.source_retries = 0
-            self._source_status("")
+            if self.capture_mode == "window":
+                self._source_status("")
+
+    @staticmethod
+    def _resize_channels(pixels, size):
+        # BGRA capture bytes are independent channels, not premultiplied RGBA.
+        # Pillow's default RGBA resize zeroes RGB for transparent source pixels.
+        return np.stack([
+            np.asarray(Image.fromarray(pixels[:, :, channel]).resize(size, Image.Resampling.BILINEAR))
+            for channel in range(pixels.shape[2])
+        ], axis=2)
 
     def _fit_frame(self, pixels, width, height):
         h, w = pixels.shape[:2]
         if (w, h) == (width, height):
             return pixels
-        if pixels is self.fitted_source:
+        if pixels is self.fitted_source and self.fitted_frame.shape[:2] == (height, width):
             return self.fitted_frame
         if self.source_size != (w, h):
             self.source_size = (w, h)
@@ -466,13 +620,14 @@ class CaptureEngine:
             resized = cv2.resize(
                 pixels,
                 (nw, nh),
-                interpolation=cv2.INTER_AREA if ratio < 1 else cv2.INTER_LINEAR,
+                interpolation=(cv2.INTER_AREA if ratio < 1 and not getattr(getattr(self, "settings", None), "performance_mode", True) else cv2.INTER_LINEAR),
             )
         except ImportError:
             # Same per-channel interpolation in the portable test environment.
-            resized = np.asarray(
-                Image.fromarray(pixels).resize((nw, nh), Image.Resampling.BILINEAR)
-            )
+            resized = self._resize_channels(pixels, (nw, nh))
+        if (nw, nh) == (width, height):
+            self.fitted_source, self.fitted_frame = pixels, resized
+            return resized
         result = np.zeros((height, width, 4), dtype=np.uint8)
         result[:, :, 3] = 255
         x, y = (width - nw) // 2, (height - nh) // 2
@@ -515,6 +670,22 @@ class CaptureEngine:
         return sorted(found.values(), key=lambda segment: segment[1])
 
     @staticmethod
+    def _snapshot_segment(source, target, *, allow_link=True):
+        """Re-use completed video data instead of copying hundreds of MB.
+
+        NTFS hard links work only on the same volume. Some drives, folder
+        permissions, or filesystems forbid links; in that case use the
+        previous byte-for-byte copy path. Never link a live, growing tail.
+        """
+        if allow_link:
+            try:
+                os.link(source, target)
+                return
+            except OSError:
+                pass
+        CaptureEngine._freeze_file(source, target)
+
+    @staticmethod
     def _freeze_file(source, target):
         # Copy a finite prefix, even if FFmpeg continues appending to this MKV.
         with source.open("rb") as reader, target.open("wb") as writer:
@@ -527,61 +698,74 @@ class CaptureEngine:
                 remaining -= len(block)
 
     def _freeze_replay(self, start, end, temp):
-        deadline = time.monotonic() + 4
+        """Prefer completed segments; decode the active tail only as a fallback.
+
+        Previously this tried ffprobe -count_frames on an unfinished MKV while
+        the encoder was still writing. Waiting for the next 2-second segment
+        boundary avoids most stalls and still preserves the requested replay.
+        """
+        deadline = time.monotonic() + 6
+        segments = []
         while time.monotonic() < deadline:
             segments = self._segments()
             if segments and segments[-1][2] >= end - 0.02:
                 break
             if self.writer_finished.is_set():
                 break
-            time.sleep(0.06)
-        selected = [s for s in self._segments() if s[2] > start and s[1] < end]
+            time.sleep(0.10)
+
+        selected = [s for s in segments if s[2] > start and s[1] < end]
+        # The newest file may still be growing. Copy it instead of linking;
+        # older, completed segments can be linked in O(1) on NTFS.
+        newest = max(self.session.glob("frame-*.mkv"), default=None)
         for i, (source, _, _) in enumerate(selected):
-            self._freeze_file(source, temp / f"part{i}.mkv")
+            safe_to_link = source != newest or self.writer_finished.is_set()
+            self._snapshot_segment(
+                source, temp / f"part{i}.mkv", allow_link=safe_to_link
+            )
+
+        # If the encoder hasn't closed its last segment, use only a frozen
+        # on-disk snapshot. Failure to probe it must never leak TimeoutExpired.
         if not selected or selected[-1][2] < end - 0.05:
-            # A live MKV is readable without its final cues. Freeze it first,
-            # then count actual decodable frames; never guess that it is complete.
             candidates = sorted(self.session.glob("frame-*.mkv"))
             tail = candidates[-1] if candidates else None
             if tail and all(s[0] != tail for s in selected):
                 index = int(tail.stem.split("-")[-1])
                 tail_start = index * 2.0
                 target = temp / f"part{len(selected)}.mkv"
-                until = time.monotonic() + 5
+                # A short deadline bounds the whole tail recovery operation.
+                until = time.monotonic() + 6
                 while time.monotonic() < until:
                     try:
                         self._freeze_file(tail, target)
-                        duration = self.media.decoded_duration(
-                            target, self.settings.fps
-                        )
+                        duration = self.media.decoded_duration(target, self.settings.fps)
                         if tail_start + duration >= end - 0.05:
                             selected.append((tail, tail_start, tail_start + duration))
                             break
                     except (OSError, MediaError):
-                        logging.debug(
-                            "Aguardando quadros do último segmento", exc_info=True
-                        )
+                        logging.debug("O último trecho ainda não está pronto", exc_info=True)
                     if self.writer_finished.is_set():
                         break
-                    time.sleep(0.25)
+                    time.sleep(0.20)
+
         if not selected or selected[0][1] > start + 0.1 or selected[-1][2] < end - 0.1:
-            logging.error(
-                "Replay incompleto: pedido %.3f–%.3f, segmentos %s",
-                start,
-                end,
-                selected,
-            )
+            logging.error("Replay incompleto: pedido %.3f–%.3f, segmentos %s", start, end, selected)
             raise MediaError(
-                "O codificador ainda não entregou todos os quadros do replay. Tente 30 FPS / Econômico / Automático; o diagnóstico foi salvo em duckcapture.log."
+                "O último trecho do replay ainda não ficou pronto. "
+                "Aguarde alguns segundos e tente salvar de novo; "
+                "se continuar, use 30 FPS e o modo leve."
             )
         for left, right in zip(selected, selected[1:]):
             if right[1] - left[2] > 0.1:
-                raise MediaError(
-                    "O replay contém um intervalo sem vídeo. Reinicie a captura; seus clipes anteriores foram preservados."
-                )
+                raise MediaError("O replay contém um intervalo sem vídeo. Reinicie a captura.")
         return selected
 
     def _prune(self):
+        # Check disk space even when a queued clip temporarily pins the ring.
+        if self.session and shutil.disk_usage(self.session).free < 512 * 1024**2:
+            raise RuntimeError(
+                "Menos de 512 MB livres no disco. Libere espaço antes de capturar."
+            )
         with self.lock:
             if self.pinning:
                 return
@@ -596,10 +780,6 @@ class CaptureEngine:
                 and self.samples[0]["t"] < self.elapsed - self.settings.duration - 8
             ):
                 self.samples.popleft()
-        if self.session and shutil.disk_usage(self.session).free < 512 * 1024**2:
-            raise RuntimeError(
-                "Menos de 512 MB livres no disco. Libere espaço antes de capturar."
-            )
 
     def sample(self, value):
         if self.active:
@@ -625,12 +805,15 @@ class CaptureEngine:
                 raise RuntimeError(
                     "Inicie a captura e aguarde pelo menos um segundo para preencher o buffer."
                 )
-            if self.pending:
+            if self.pending >= self.MAX_PENDING_CLIPS:
                 raise RuntimeError(
-                    "O clipe anterior ainda está sendo salvo. Aguarde a exportação."
+                    f"Fila cheia ({self.MAX_PENDING_CLIPS} clipes). "
+                    "Espere um clipe terminar de salvar e tente novamente."
                 )
             self.pending += 1
+            self._snapshots_pending += 1
             self.pinning = True
+            queue_position = self.pending
             end = self.elapsed
             start = max(0, end - self.settings.duration)
             samples = [
@@ -647,20 +830,28 @@ class CaptureEngine:
             if hud_settings is not None:
                 settings.hud_enabled = hud_settings.hud_enabled
                 settings.hud = copy.deepcopy(hud_settings.hud)
-        self.events.put(("saving", f"Salvando {end - start:.1f}s…"))
+        self.events.put((
+            "queued",
+            f"Clipe registrado! {queue_position} "
+            + ("clipe na fila." if queue_position == 1 else "clipes na fila."),
+        ))
         return self.pool.submit(
             self._save_clip, start, end, samples, settings, session, epoch, audio
         )
 
     def _save_clip(self, start, end, samples, settings, session, epoch, audio):
         temp = None
+        snapshot_released = False
         try:
+            self.events.put(("saving", f"Exportando clipe de {end - start:.1f}s…"))
             temp = Path(
                 tempfile.mkdtemp(prefix="duck-clip-", dir=settings.clip_folder())
             )
             selected = self._freeze_replay(start, end, temp)
             with self.lock:
-                self.pinning = False
+                self._snapshots_pending = max(0, self._snapshots_pending - 1)
+                self.pinning = self._snapshots_pending > 0
+                snapshot_released = True
             (temp / "input.txt").write_text(
                 "".join(
                     f"file 'part{i}.mkv'\nduration {right - left:.9f}\n"
@@ -697,7 +888,8 @@ class CaptureEngine:
                     duration,
                     settings.fps,
                 )
-                filters.append("subtitles=hud.ass")
+                copy_fonts(temp)
+                filters.append("subtitles=hud.ass:fontsdir=fonts")
             images = (
                 [item for item in settings.hud if item.get("kind") == "image"]
                 if settings.hud_enabled
@@ -736,7 +928,7 @@ class CaptureEngine:
             else:
                 args += ["-an"]
             args += [
-                *self.media.encoding(self.encoder, settings.quality, settings.fps),
+                *self.media.encoding(self.encoder, settings.quality, settings.fps, bitrate_mbps=getattr(settings, "bitrate_mbps", 0)),
                 "-t",
                 str(duration),
                 "-movflags",
@@ -777,8 +969,12 @@ class CaptureEngine:
             if temp:
                 shutil.rmtree(temp, ignore_errors=True)
             with self.lock:
-                self.pending -= 1
-                self.pinning = False
+                if not snapshot_released:
+                    self._snapshots_pending = max(0, self._snapshots_pending - 1)
+                self.pending = max(0, self.pending - 1)
+                self.pinning = self._snapshots_pending > 0
+                remaining = self.pending
+            self.events.put(("queue_update", remaining))
 
     def stop(self):
         self.done.set()

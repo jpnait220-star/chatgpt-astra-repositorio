@@ -2,7 +2,7 @@
 
 import ctypes
 import os
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal, QPoint
 from PySide6.QtWidgets import (
     QDialog,
     QWidget,
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QComboBox,
     QSizePolicy,
+    QScrollArea,
 )
 from .widgets import label, button, card
 from .windows import list_windows, window_minimized
@@ -85,6 +86,13 @@ class DwmThumbnail:
         props.opacity, props.visible, props.client_only = 255, 1, 0
         self.api.DwmUpdateThumbnailProperties(self.handle, ctypes.byref(props))
 
+    def hide(self):
+        if self.handle.value:
+            props = ThumbnailProperties()
+            props.flags = 8  # DWM_TNP_VISIBLE
+            props.visible = 0
+            self.api.DwmUpdateThumbnailProperties(self.handle, ctypes.byref(props))
+
     def close(self):
         if self.handle.value:
             self.api.DwmUnregisterThumbnail(self.handle)
@@ -131,7 +139,12 @@ class WindowPicker(QDialog):
         self.grid = QGridLayout(self.grid_widget)
         self.grid.setContentsMargins(0, 0, 0, 0)
         self.grid.setSpacing(14)
-        layout.addWidget(self.grid_widget, 1)
+        self.scroller = QScrollArea()
+        self.scroller.setWidgetResizable(True)
+        self.scroller.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroller.setStyleSheet("QScrollArea { background: transparent; border: none; border-radius: 15px; }")
+        self.scroller.setWidget(self.grid_widget)
+        layout.addWidget(self.scroller, 1)
         self.empty = label(
             "Nenhuma janela disponível. Abra ou restaure o aplicativo que deseja capturar.",
             "muted",
@@ -149,8 +162,10 @@ class WindowPicker(QDialog):
         footer.addWidget(button("Cancelar", self.reject))
         layout.addLayout(footer)
         self.timer = QTimer(self)
-        self.timer.setInterval(250)
+        self.timer.setSingleShot(True)
+        self.timer.setInterval(45)
         self.timer.timeout.connect(self.update_previews)
+        self.scroller.verticalScrollBar().valueChanged.connect(self.schedule_preview)
         self.finished.connect(self.cleanup)
         self.render()
 
@@ -230,14 +245,34 @@ class WindowPicker(QDialog):
                 preview.setToolTip(str(error))
                 thumbnail = None
             self.previews.append((preview, thumbnail))
+        self.scroller.verticalScrollBar().setValue(0)
+        self.schedule_preview()
+
+    def schedule_preview(self, *_):
         self.timer.start()
-        QTimer.singleShot(0, self.update_previews)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.schedule_preview()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "timer"):
+            self.schedule_preview()
 
     def update_previews(self):
         if self.isVisible():
+            visible = self.scroller.viewport().rect()
+            viewport = self.scroller.viewport()
             for widget, preview in self.previews:
-                if preview:
+                if not preview:
+                    continue
+                position = widget.mapTo(viewport, QPoint(0, 0))
+                bounds = widget.rect().translated(position)
+                if visible.intersects(bounds):
                     preview.update(widget, self)
+                else:
+                    preview.hide()
 
     def choose(self, hwnd, title):
         self.selected = (hwnd, title)

@@ -2,6 +2,7 @@
 
 import hashlib
 import time
+import logging
 from pathlib import Path
 from PySide6.QtCore import (
     Qt,
@@ -29,6 +30,7 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from .config import data_dir
 from .widgets import Page, label, button
 from .visuals import icon
+from .fold_hover import add_fold_hover
 
 
 class ThumbnailSignals(QObject):
@@ -45,7 +47,8 @@ class Thumbnail(QRunnable):
         try:
             self.media.thumbnail(self.source, self.target)
             result = str(self.target)
-        except Exception:
+        except Exception as error:
+            logging.warning("Miniatura indisponível para %s: %s", self.source, error)
             result = ""
         self.signals.ready.emit(self.source, result)
 
@@ -118,6 +121,7 @@ class GalleryPage(Page):
         self.items = {}
         self.thumbnails = {}
         self.attempted = set()
+        self.failed_at = {}
         self.task = None
         self.pool = QThreadPool(self)
         self.pool.setMaxThreadCount(1)
@@ -145,6 +149,7 @@ class GalleryPage(Page):
         self.list.setWordWrap(True)
         self.list.setUniformItemSizes(True)
         self.list.itemDoubleClicked.connect(self.open_selected)
+        add_fold_hover(self.list, item_view=self.list)
         self.body.addWidget(self.list, 1)
         self.empty = label(
             "Nenhum clipe ainda. Inicie a captura e use Salvar últimos segundos.",
@@ -165,6 +170,9 @@ class GalleryPage(Page):
     def refresh(self, snapshot):
         selected = self.selected()
         self.snapshot = snapshot
+        current_keys = {(path, mtime) for path, _, mtime in snapshot}
+        self.attempted.intersection_update(current_keys)
+        self.failed_at = {key: value for key, value in self.failed_at.items() if key in current_keys}
         self.list.clear()
         self.items.clear()
         for path, size, mtime in snapshot:
@@ -238,7 +246,8 @@ class GalleryPage(Page):
             key = (path, mtime)
             item = self.items[path]
             if (
-                key in self.attempted
+                (key in self.attempted and key not in self.failed_at)
+                or (key in self.failed_at and time.monotonic() - self.failed_at[key] < 30)
                 or item.isHidden()
                 or not viewport.intersects(self.list.visualItemRect(item))
             ):
@@ -266,6 +275,11 @@ class GalleryPage(Page):
 
     def thumbnail_ready(self, path, target, key):
         self.task = None
+        if not target:
+            self.failed_at[key] = time.monotonic()
+            # Do not retry while the current capture is busy.
+            return
+        self.failed_at.pop(key, None)
         if target:
             pixmap = QPixmap(target)
             if not pixmap.isNull():

@@ -1,0 +1,12 @@
+DUCKCAPTURE 0.4.3 — HOTFIX CLIPES E CAPAS
+
+- Ao salvar, aguarda o fechamento de segmentos antes de tentar ler o último.
+- FFprobe conta pacotes comprimidos em vez de decodificar cada quadro.
+- Timeouts de FFprobe têm tratamento seguro: não mostram traceback de comando na interface.
+- Miniaturas de clipes são geradas mesmo com a captura ativa, mas uma por vez.
+- Capas são extraídas de um quadro após o início, com escrita atômica.
+- Versão do instalador atualizada para 0.4.3.
+
+Testes de gravação com janela real e performance GPU precisam ser feitos no Windows.
+O DuckCapture não integra conta Spotify compartilhada nem inclui tokens de usuários.
+É necessário fechar DuckCapture antes de atualizar os arquivos instalados.

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 
 
-def install():
+def install(require_local=False):
     if os.name != "nt":
         raise SystemExit(
             "Este instalador de FFmpeg é para Windows. No Linux, use o FFmpeg do seu sistema."
@@ -22,7 +22,7 @@ def install():
     if (tools / "ffmpeg.exe").exists() and (tools / "ffprobe.exe").exists():
         print("FFmpeg já está disponível na pasta tools.")
         return
-    if shutil.which("ffmpeg") and shutil.which("ffprobe"):
+    if not require_local and shutil.which("ffmpeg") and shutil.which("ffprobe"):
         print("FFmpeg e ffprobe já estão no PATH.")
         return
     print("Baixando FFmpeg Essentials (Gyan). O arquivo pode ter mais de 100 MB.")
@@ -66,8 +66,13 @@ def install():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Instalador do FFmpeg para o DuckCapture")
+    parser.add_argument("--require-local", action="store_true", help="Baixe copias locais mesmo se existir FFmpeg no PATH")
+    args = parser.parse_args()
     try:
-        install()
+        install(require_local=args.require_local)
     except Exception as error:
         raise SystemExit(
             f"Não foi possível instalar o FFmpeg: {error}\nAlternativa: coloque ffmpeg.exe e ffprobe.exe manualmente em tools, usando uma distribuição confiável."

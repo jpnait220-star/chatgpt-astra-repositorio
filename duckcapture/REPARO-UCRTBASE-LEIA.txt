@@ -1,0 +1,29 @@
+DUCKCAPTURE 0.4.5 — REPARO DO ERRO ucrtbase.dll
+===================================================
+
+ERRO NO LOG:
+PermissionError: [Errno 13] Permission denied: ...\_internal\ucrtbase.dll
+
+O QUE MUDA:
+O PyInstaller passa a gerar os arquivos temporarios em:
+%LOCALAPPDATA%\DuckCaptureBuild\staging\stage-...
+Em vez de criar a compilacao dentro de Downloads\...\DuckCapture\.build.
+A pasta .build\venv continua onde esta, para aproveitar as bibliotecas.
+O instalador final continua em DuckCapture\installer_saida.
+O arquivo FINALIZAR-INSTALADOR.bat continua funcionando para builds completos.
+
+INSTALACAO DO REPARO:
+1. Feche o gerador. Baixe e extraia este ZIP.
+2. Copie a pasta scripts deste reparo para a pasta DuckCapture 0.4.5
+   que contem CRIAR-INSTALADOR.bat. Aceite substituir os dois arquivos.
+3. Execute CRIAR-INSTALADOR.bat normalmente (SEM 'Executar como administrador').
+4. Aguarde. Se funcionar, abra installer_saida\DuckCapture-Setup-0.4.5.exe.
+
+IMPORTANTE:
+- Nao apague .build\venv: ela contem as bibliotecas ja baixadas.
+- Este reparo precisa COMPILAR O APP NOVAMENTE: o anterior NAO terminou COLLECT.
+- Se a permissao falhar de novo, abra Seguranca do Windows > Historico de
+  protecao e veja se ha bloqueio recente, ou consulte permissoes da pasta.
+- NAO desative antivirus, Smart App Control ou outras protecoes.
+- A compilacao Windows nao pode ser testada nesta maquina Linux.
+- Em caso de nova falha, envie erro-build.log.

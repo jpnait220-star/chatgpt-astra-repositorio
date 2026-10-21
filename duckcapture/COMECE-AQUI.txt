@@ -1,44 +1,21 @@
-﻿DuckCapture 0.2.1 — como abrir
+DUCKCAPTURE 0.5.0
 
-1. Instale Python 3.12 de 64 bits, incluindo o Python Launcher:
-   https://www.python.org/downloads/release/python-31210/
+SE VOCE BAIXOU O SETUP:
+1. Feche o DuckCapture antigo.
+2. Execute DuckCapture-Setup-0.5.0.exe.
+3. Abra o atalho DuckCapture no menu Iniciar ou na area de trabalho.
 
-2. Extraia a pasta inteira do ZIP.
+SE VOCE BAIXOU ESTE ZIP DO PROJETO:
+1. Extraia a pasta DuckCapture inteira para um local fixo.
+2. Com Python 3.12 x64 instalado, abra Abrir DuckCapture.py.
+   A primeira abertura prepara as dependencias e o FFmpeg.
+3. Para gerar um instalador independente, execute CRIAR-INSTALADOR.bat.
+   O resultado fica em installer_saida/DuckCapture-Setup-0.5.0.exe.
 
-3. Abra Abrir DuckCapture.py com o Python.
-   Na primeira vez, ele instala as dependências e abre o aplicativo.
-   A instalação precisa de internet e pode demorar alguns minutos.
+SPOTIFY:
+Abra o Spotify instalado no Windows e toque uma musica. Na aba Spotify
+no DuckCapture, clique em Conectar / atualizar. Isso funciona com conta
+gratuita; os limites da conta continuam valendo. Links podem abrir no app
+oficial; o player incorporado serve para previas.
 
-Se abrir em um editor, clique com o botão direito no arquivo:
-Abrir com → Python.
-
-Ou abra o Terminal na pasta extraída e execute:
-py -3.12 "Abrir DuckCapture.py"
-
-Se aparecer um bloqueio do Windows, anote o nome do arquivo indicado.
-O pacote não altera as proteções do Windows e não garante a aprovação
-pelo Controle de Aplicativo Inteligente.
-
-Erros: consulte instalacao.log e inicializacao.log na pasta extraída.
-Mais detalhes: LEIA-ME.md.
-
-JÁ TEM A VERSÃO ANTERIOR?
-Feche o DuckCapture, copie o conteúdo da nova pasta DuckCapture sobre a
-pasta instalada e aceite substituir os arquivos. Preserve .venv, tools
-e seus clipes. Depois abra Abrir DuckCapture.py.
-
-CAPTURA
-Aguarde REPLAY ATIVO e o contador aumentando. F8 salva o clipe.
-Se voltar ao zero, use Copiar diagnóstico no painel Capturar.
-Todos os clipes ficam no novo botão do menu.
-
-SPOTIFY
-Música → Spotify → cole o link de música, álbum ou playlist → Ouvir no app.
-Conta gratuita pode ficar limitada a prévias de 30 segundos.
-
-NOVIDADES 0.2.1
-Escolher janela agora mostra prévias no Windows.
-Você pode mover e redimensionar durante o replay.
-Ao minimizar, o último quadro e o áudio são mantidos até restaurar.
-Clipes e prints salvos tocam sons diferentes (desative em Configurações).
-Menu mais escuro, sem slime; clique nos ícones para expandir seus nomes.
+F8: pedir clipe. F9: print. Configure os atalhos nas configuracoes.

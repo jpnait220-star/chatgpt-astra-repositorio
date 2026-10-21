@@ -1,0 +1,21 @@
+DUCKCAPTURE 0.4.4 - MUSICA E FLUIDEZ
+======================================
+
+- Permite adicionar arquivos de música individuais sem copiar ou mover os originais.
+- A playlist fica salva para ser reaberta na próxima vez.
+- Mostra o estado do player, em vez de deixar um 0:00 sem explicação.
+- Se o player Windows/Qt não conseguir abrir uma música, tenta converter automaticamente
+  para WAV compatível usando o FFmpeg integrado, sem modificar o original.
+- A conversão roda sem bloquear a interface e seu resultado é guardado no cache local.
+- Melhora o uso de CPU da captura reutilizando quadros já preparados para o codificador
+  quando a fonte ainda não entregou novo quadro.
+- Reduz cópias desnecessárias dos quadros recebidos; ignora quadros acima do FPS escolhido.
+- Evita recarregar a prévia se o quadro da fonte não mudou.
+
+IMPORTANTE: Essas correções precisam de testes reais no Windows. Não é garantia de
+120 FPS, nem elimina limitações da GPU ou do Spotify. O navegador Spotify continua
+independente e pode exigir login, Premium ou bloquear a reprodução por DRM.
+
+INSTALACAO: feche completamente o DuckCapture anterior, execute CRIAR-INSTALADOR.bat
+na pasta DuckCapture e instale o DuckCapture-Setup-0.4.4.exe.
+Nao desative protecoes do Windows para instalar arquivos desconhecidos.

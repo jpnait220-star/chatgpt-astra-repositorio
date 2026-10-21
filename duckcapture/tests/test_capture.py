@@ -23,7 +23,10 @@ def test_audio_snapshot_survives_ring_eviction_and_keeps_timing(tmp_path):
         assert stream.getnframes() == 96000 and stream.getnchannels() == 2
         data = np.frombuffer(stream.readframes(96000), dtype="<i2").reshape(-1, 2)
     assert not data[:24000].any() and not data[72000:].any()
-    assert np.all(data[24000:72000] == 12000)
+    # Since 0.4.5 a tiny fade-in is intentional at a real audio gap:
+    # after the 4 ms edge, the recorded samples stay bit-perfect.
+    assert data[24000, 0] == 0
+    assert np.all(data[24000 + 192:72000] == 12000)
 
 
 def test_retention_and_screenshots(tmp_path):

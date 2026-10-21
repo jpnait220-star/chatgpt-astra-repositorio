@@ -1,0 +1,34 @@
+DUCKCAPTURE 0.4.1 — CORREÇÕES
+================================
+
+✓ Novo ícone enviado pelo criador, à esquerda do nome DuckCapture e no instalador.
+✓ Corrigida falha: Media.encoder() got an unexpected keyword argument 'bitrate_mbps'.
+✓ Gerador e instalador agora identificam a versão 0.4.1 (antes mostravam 0.3.0).
+✓ Seletor de janelas: rolagem vertical, barras arredondadas e até 12 janelas por página.
+✓ Cor padrão branca (com migração da cor-padrão antiga).
+✓ Botões voltar/avançar: transição de opacidade ao passar o mouse.
+✓ Removidos símbolos extras de clipe e print no topo; F8/F9 continuam visíveis.
+✓ Spotify: navegador restrito a Spotify, com barra de endereço, voltar, avançar,
+  recarregar, links clicáveis e bordas escuras; visual do disco no painel.
+✓ Microfone marcado como 'em desenvolvimento' para não prometer captura que não existe.
+✓ Mensagem de componente de gravação ausente ficou mais fácil de entender.
+
+IMPORTANTE: não é garantido que as músicas do Spotify sejam tocadas completas
+em navegador incorporado. Isto depende do Spotify/DRM/conta. A reprodução
+local de arquivos próprios é suportada pelo player local.
+
+COMO GERAR
+1. Feche o DuckCapture — inclusive na bandeja perto do relógio do Windows.
+2. Extraia o ZIP em uma pasta nova; não junte com um ZIP antigo.
+3. Abra DuckCapture/CRIAR-INSTALADOR.bat.
+4. Abra DuckCapture/installer_saida/DuckCapture-Setup-0.4.1.exe.
+
+O pacote é código-fonte + gerador. A compilação real do Windows exige executar
+o gerador em um PC Windows. A instalação ainda não tem assinatura digital,
+portanto o Controle Inteligente poderá bloqueá-la. Não recomendamos desligar
+proteções para instalar o aplicativo.
+
+VALIDAÇÃO
+- Compilação sintática e testes offline rodados no ambiente de desenvolvimento.
+- Não foi possível executar a interface gráfica ou testar a captura real do
+  Windows neste ambiente (PySide6 não está disponível).

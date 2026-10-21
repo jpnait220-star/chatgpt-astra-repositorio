@@ -61,7 +61,7 @@ WrapStyle: 2
 ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,24,&H00FFFFFF,&H000000FF,&H00202020,&H900D1018,0,0,0,0,100,100,0,0,1,1,0,7,0,0,0,1
+Style: Default,Manrope,24,&H00FFFFFF,&H000000FF,&H00202020,&H900D1018,0,0,0,0,100,100,0,0,1,1,0,7,0,0,0,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
@@ -201,3 +201,13 @@ def write_hud(path, items, samples, width, height, duration, fps):
                         )
                     )
     Path(path).write_text("".join(lines), encoding="utf-8-sig")
+
+
+def copy_fonts(destination):
+    """Keep rendered captions consistent on machines without our UI font installed."""
+    import shutil
+    from .config import ROOT
+    fonts = Path(destination) / 'fonts'
+    fonts.mkdir(exist_ok=True)
+    for source in (ROOT / 'assets/fonts').glob('Manrope-*.ttf'):
+        shutil.copyfile(source, fonts / source.name)

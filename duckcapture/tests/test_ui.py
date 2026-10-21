@@ -280,7 +280,7 @@ def test_saved_sounds_and_icon_expansion(tmp_path, monkeypatch):
             pass
 
         def setVolume(self, value):
-            assert 0 < value < 0.5
+            assert 0 <= value <= 1
 
         def setSource(self, url):
             self.name = Path(url.toLocalFile()).name
@@ -295,10 +295,13 @@ def test_saved_sounds_and_icon_expansion(tmp_path, monkeypatch):
     monkeypatch.setattr(sounds, "QSoundEffect", Effect)
     settings = Settings()
     player = sounds.CaptureSounds(None, settings)
+    player.queued_clip()
     player.saved("Clipe.mp4")
     player.saved("Print.png")
     settings.notification_sounds = False
+    player.queued_clip()
     player.saved("silenciado.mp4")
+    player.saved("silenciado.png")
     assert calls == ["clip.wav", "print.wav"]
     APP.setProperty("duckMotion", True)
     control = ExpandButton("HUD", "hud", 160)

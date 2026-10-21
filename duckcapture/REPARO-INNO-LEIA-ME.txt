@@ -1,0 +1,26 @@
+DUCKCAPTURE 0.4.2 - REPARO DA ETAPA INNO SETUP
+=================================================
+
+Causa: O gerador passou --define=DuckCaptureSource=... para ISCC.exe.
+Inno Setup 6 usa /DDuckCaptureSource=... (um argumento unico, inclusive
+quando o caminho contem espacos).
+
+RESOLVER SEM RECOMPILAR:
+1. Feche o DuckCapture e a janela do gerador.
+2. Abra sua pasta: DuckCapture-0.4.2-Corrigido-Instalador (1)\DuckCapture.
+3. Copie a pasta scripts e o arquivo FINALIZAR-INSTALADOR.bat
+   DESTE ZIP para a pasta DuckCapture, substituindo scripts\build_windows.py.
+4. NAO apague .build. Ela possui a compilacao do aplicativo e o FFmpeg.
+5. Clique duas vezes em FINALIZAR-INSTALADOR.bat.
+6. Abra installer_saida\DuckCapture-Setup-0.4.2-Corrigido.exe.
+
+Se voce extraiu o projeto completo em outra pasta, sera necessario
+executar CRIAR-INSTALADOR.bat nessa outra pasta, porque a nova pasta
+nao tem o aplicativo ja compilado dentro de .build.
+
+Antes de instalar, finalize qualquer DuckCapture.exe aberto no Gerenciador
+de Tarefas. Nao desative o antivirus ou o Controle Inteligente.
+
+OBS: Esta correcao modifica somente o empacotamento do instalador.
+Nao corrige bugs da captura ou do Spotify. Ainda nao foi possivel executar
+ISCC.exe real no ambiente Linux utilizado na preparacao desta correção.

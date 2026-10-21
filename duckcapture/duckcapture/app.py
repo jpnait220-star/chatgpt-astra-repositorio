@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 from PySide6.QtCore import Qt, QTimer, QUrl, QLockFile, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QIcon, QDesktopServices, QPixmap, QKeySequence
+from PySide6.QtGui import QIcon, QDesktopServices, QPixmap, QKeySequence, QColor, QImage
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -23,20 +23,24 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QProgressBar,
+    QSlider,
     QSystemTrayIcon,
     QMenu,
     QKeySequenceEdit,
     QLabel,
     QGraphicsOpacityEffect,
+    QPushButton,
 )
-from .config import Settings, data_dir, DURATIONS, FPS, PROFILES
-from .widgets import STYLE, Page, Tip, card, label, button, mascot, CHARACTERS
+from .config import Settings, data_dir, DURATIONS, FPS, PROFILES, ROOT
+from .widgets import STYLE, Page, Tip, card, label, button, mascot, CHARACTERS, BackdropCard
+from .theme import PRESETS, theme_style
 from .visuals import (
     MascotLabel,
     icon as vector_icon,
     motion_enabled,
     ExpandButton,
     StudioBackground,
+    FadeNavButton,
 )
 from .window_picker import WindowPicker, WindowCombo
 from .sounds import CaptureSounds
@@ -47,14 +51,24 @@ from .capture import CaptureEngine
 from .windows import IS_WINDOWS, list_windows, Hotkeys, InputSampler
 from .music import MusicPage
 from .hud_editor import HudEditor
+from .fold_hover import add_fold_hover
 from .editor import EditorPage
+from .color_picker import ColorDialog
+from .typography import install_font
+from .rounded import PopupRounder, install_rounded_controls
 
 
 class MainWindow(QMainWindow):
     def __init__(self, settings=None):
         super().__init__()
+        install_font()
+        app = QApplication.instance()
+        if not hasattr(app, '_duck_popup_rounder'):
+            app._duck_popup_rounder = PopupRounder(app)
+            app.installEventFilter(app._duck_popup_rounder)
         self.settings = settings or Settings.load()
         QApplication.instance().setProperty("duckMotion", self.settings.motion)
+        QApplication.instance().setProperty("duckAccent", self.settings.accent_color)
         self.fade_overlay = None
         self.media = Media(self.settings.ffmpeg_dir)
         self.engine = CaptureEngine(self.media)
@@ -63,8 +77,8 @@ class MainWindow(QMainWindow):
         screen = QApplication.primaryScreen().availableGeometry()
         self.setMinimumSize(1000, 640)
         self.resize(min(1360, screen.width() - 40), min(930, screen.height() - 60))
-        self.setWindowIcon(QIcon(mascot("Duck", 128)))
-        self.setStyleSheet(STYLE)
+        self.setWindowIcon(QIcon(str(ROOT / "assets" / "brand-icon.png")))
+        self.apply_theme(update=False)
         self.music_title = ""
         self.file_snapshot = []
         self.inputs = InputSampler()
@@ -83,12 +97,17 @@ class MainWindow(QMainWindow):
         nav.setContentsMargins(19, 27, 19, 23)
         nav.setSpacing(10)
         brand = QHBoxLayout()
-        icon = MascotLabel(mascot("Duck", 80), 44)
-        icon.setFixedSize(44, 44)
-        brand.addWidget(icon)
-        brand.addWidget(label("DuckCapture", "brand"))
+        brand.setSpacing(11)
+        logo = QLabel()
+        logo.setObjectName("brandIcon")
+        logo.setFixedSize(39, 39)
+        logo.setPixmap(QPixmap(str(ROOT / "assets" / "brand-icon.png")).scaled(
+            39, 39, Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation))
+        brand.addWidget(logo, 0, Qt.AlignmentFlag.AlignVCenter)
+        brand.addWidget(label("DuckCapture", "brand"), 0, Qt.AlignmentFlag.AlignVCenter)
         nav.addLayout(brand)
-        nav.addWidget(label("SEU MOMENTO MERECE FICAR.", "tiny"))
+        nav.addWidget(label("CAPTURE. EDITE. SALVE.", "tiny"))
         nav.addSpacing(19)
         nav.addWidget(label("SEU ESTÚDIO", "tiny"))
         self.stack = QStackedWidget()
@@ -118,10 +137,19 @@ class MainWindow(QMainWindow):
             )
         )
         nav.addSpacing(15)
-        nav.addWidget(button("Conhecer a turma", self.show_mascots))
         nav.addWidget(label(f"DUCKCAPTURE     {__version__} · ALPHA", "tiny"))
         row.addWidget(sidebar)
-        row.addWidget(self.stack, 1)
+        workspace = QFrame()
+        workspace.setObjectName("workspace")
+        work_layout = QVBoxLayout(workspace)
+        work_layout.setContentsMargins(0, 0, 0, 0)
+        work_layout.setSpacing(0)
+        self.history = []
+        self.history_index = -1
+        self.topbar = self.make_topbar()
+        work_layout.addWidget(self.topbar)
+        work_layout.addWidget(self.stack, 1)
+        row.addWidget(workspace, 1)
         self.home = self.home_page()
         self.capture = self.capture_page()
         self.editor = EditorPage(self.media, self.settings, self.notify)
@@ -133,7 +161,7 @@ class MainWindow(QMainWindow):
             self.edit_path,
             self.open_clips,
             self.notify,
-            lambda: self.engine.active or self.engine.starting,
+            lambda: self.engine.pending > 0 or self.engine.starting,
         )
 
         for page in [
@@ -149,6 +177,7 @@ class MainWindow(QMainWindow):
             scroll.setWidgetResizable(True)
             scroll.setWidget(page)
             self.stack.addWidget(scroll)
+        install_rounded_controls(self)
         self.music.trackChanged.connect(self.set_music)
         self.editor.exported.connect(lambda _: self.refresh_library(True))
         self.hotkeys = Hotkeys()
@@ -158,7 +187,7 @@ class MainWindow(QMainWindow):
         except ValueError as error:
             self.notify(str(error))
         self.timer = QTimer(self)
-        self.timer.setInterval(250)
+        self.timer.setInterval(100)
         self.timer.timeout.connect(self.tick)
         self.timer.start()
         self.input_timer = QTimer(self)
@@ -190,24 +219,129 @@ class MainWindow(QMainWindow):
         self.apply_tips()
         self.statusBar().showMessage("Pronto. Escolha uma janela e inicie a captura.")
         self._preview_tick = 0
+        self._last_preview_source = None
+        self._status_tick = 0
+
+    def make_topbar(self):
+        bar = QFrame()
+        bar.setObjectName("topbar")
+        bar.setFixedHeight(68)
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(20, 10, 20, 10)
+        layout.setSpacing(10)
+        self.back_button = FadeNavButton("←")
+        self.forward_button = FadeNavButton("→")
+        for b, cb, tooltip in [
+            (self.back_button, self.go_back, "Voltar"),
+            (self.forward_button, self.go_forward, "Avançar"),
+        ]:
+            b.setObjectName("topNav")
+            b.setToolTip(tooltip)
+            b.setFixedSize(36, 36)
+            b.clicked.connect(cb)
+            b.setEnabled(False)
+            layout.addWidget(b, 0, Qt.AlignmentFlag.AlignVCenter)
+        center = QHBoxLayout()
+        center.setSpacing(8)
+        gamepad = QLabel()
+        gamepad.setPixmap(vector_icon("gamepad").pixmap(27, 27))
+        gamepad.setToolTip("É aqui que começa a captura do seu jogo")
+        center.addWidget(gamepad)
+        self.top_status = label("◌  Esperando pelo jogo", "topStatus")
+        center.addWidget(self.top_status)
+        center.addSpacing(16)
+        self.top_clip_key = label(self.settings.clip_key, "hotkeyTag")
+        self.top_clip_key.setToolTip("Salvar clipe")
+        clip_icon = QLabel()
+        clip_icon.setPixmap(vector_icon("clip").pixmap(22, 22))
+        clip_icon.setToolTip("Atalho para salvar clipe")
+        center.addWidget(clip_icon)
+        center.addWidget(self.top_clip_key)
+        center.addWidget(label("Clipe", "topDescription"))
+        center.addSpacing(8)
+        self.top_print_key = label(self.settings.screenshot_key, "hotkeyTag")
+        self.top_print_key.setToolTip("Tirar print")
+        print_icon = QLabel()
+        print_icon.setPixmap(vector_icon("camera").pixmap(22, 22))
+        print_icon.setToolTip("Atalho para captura de tela")
+        center.addWidget(print_icon)
+        center.addWidget(self.top_print_key)
+        center.addWidget(label("Print", "topDescription"))
+        layout.addStretch(1)
+        layout.addLayout(center)
+        layout.addStretch(1)
+        return bar
+
+    def pulse_status(self):
+        if not motion_enabled():
+            return
+        effect = self.top_status.graphicsEffect()
+        if effect is None:
+            effect = QGraphicsOpacityEffect(self.top_status)
+            self.top_status.setGraphicsEffect(effect)
+        if hasattr(self, "status_animation"):
+            self.status_animation.stop()
+        self.status_animation = QPropertyAnimation(effect, b"opacity", self)
+        self.status_animation.setDuration(420)
+        self.status_animation.setStartValue(.45)
+        self.status_animation.setEndValue(1.0)
+        self.status_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.status_animation.start()
+
+    def go_back(self):
+        if self.history_index > 0:
+            self.history_index -= 1
+            self.navigate(self.history[self.history_index], record=False)
+
+    def go_forward(self):
+        if self.history_index + 1 < len(self.history):
+            self.history_index += 1
+            self.navigate(self.history[self.history_index], record=False)
+
+    def apply_theme(self, update=True):
+        QApplication.instance().setProperty("duckAccent", self.settings.accent_color)
+        self.setStyleSheet(theme_style(STYLE, self.settings.accent_color))
+        if update:
+            self.update()
+            for element in self.findChildren(QFrame) + self.findChildren(QPushButton):
+                element.update()
+            self.save_settings()
+
+    def choose_accent(self):
+        chosen = ColorDialog.getColor(QColor(self.settings.accent_color), self,
+                                      "Escolha a cor do DuckCapture")
+        if chosen.isValid():
+            self.settings.accent_color = chosen.name()
+            self.accent_options.blockSignals(True)
+            self.accent_options.setCurrentIndex(self.accent_options.count()-1)
+            self.accent_options.blockSignals(False)
+            self.apply_theme()
+
+    def select_accent(self, name):
+        if name in PRESETS:
+            self.settings.accent_color = PRESETS[name]
+            self.apply_theme()
+        elif name == "Personalizada…":
+            self.choose_accent()
 
     def home_page(self):
         page = Page(
-            "Se passou na tela, pode virar história.",
-            "Leve como um pato, rápido como um clique.",
+            "Se passou na tela, merece ficar.",
+            "Captura rápida, biblioteca organizada e visual mais limpo.",
         )
         self.status_label = label("○  CAPTURA PARADA", "eyebrow")
         page.body.addWidget(self.status_label)
         hero = card()
         hero.setObjectName("hero")
         row = QHBoxLayout(hero)
-        row.setContentsMargins(30, 22, 25, 22)
+        row.setContentsMargins(30, 24, 30, 24)
+        row.setSpacing(18)
         text = QVBoxLayout()
-        text.addWidget(label("UM CLIQUE. UM BOM MOMENTO.", "eyebrow"))
-        text.addWidget(label("Pronto para\ncapturar?", "heroTitle"))
+        text.addWidget(label("DUCKCAPTURE STUDIO", "eyebrow"))
+        text.addWidget(label("Replay instantâneo\nsem bagunça.", "heroTitle"))
         text.addWidget(
             label(
-                "Seu replay fica esperando por você.\nAperte o atalho e guarde o que acabou de acontecer.",
+                "Escolha a janela, deixe o replay ativo e salve só quando acontecer algo bom.",
                 "muted",
                 True,
             )
@@ -215,14 +349,37 @@ class MainWindow(QMainWindow):
         text.addSpacing(12)
         actions = QHBoxLayout()
         self.home_start = button("Iniciar captura  →", self.start_capture, True)
+        add_fold_hover(self.home_start)
         actions.addWidget(self.home_start)
         actions.addWidget(button("Escolher janela", lambda: self.navigate(1)))
         text.addLayout(actions)
-        row.addLayout(text, 3)
-        art = MascotLabel(mascot("Duck", 420), 190)
-        art.setMaximumWidth(300)
-        row.addWidget(art, 2)
+        row.addLayout(text, 5)
+        hero_art = QLabel()
+        hero_art.setObjectName("heroDuck")
+        hero_art.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        hero_art.setMinimumSize(160, 190)
+        hero_art.setMaximumWidth(255)
+        hero_pix = QPixmap(str(ROOT / "assets" / "hero-duck.png"))
+        if hero_pix.isNull():
+            hero_pix = QPixmap(str(ROOT / "assets" / "brand-icon.png"))
+        if not hero_pix.isNull():
+            hero_art.setPixmap(hero_pix.scaled(
+                215, 190, Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            ))
+        row.addWidget(hero_art, 2, Qt.AlignmentFlag.AlignVCenter)
         page.body.addWidget(hero)
+        section = QHBoxLayout()
+        section.addWidget(label("ACESSO RÁPIDO", "eyebrow"))
+        section.addStretch()
+        section.addWidget(label("Estilo inspirado em apps de clipping", "tiny"))
+        page.body.addLayout(section)
+        cards = QHBoxLayout()
+        cards.setSpacing(12)
+        cards.addWidget(BackdropCard("jogos", "Captura", "Escolha um jogo ou app", lambda: self.navigate(1)), 1)
+        cards.addWidget(BackdropCard("editor", "Editor", "Ajuste seus melhores momentos", lambda: self.navigate(2)), 1)
+        cards.addWidget(BackdropCard("atalhos", "Config", "Qualidade, áudio e aparência", lambda: self.navigate(5)), 1)
+        page.body.addLayout(cards)
         stats = QHBoxLayout()
         self.summary = {}
         for key, title in [
@@ -237,20 +394,23 @@ class MainWindow(QMainWindow):
             col.addWidget(label(title, "tiny"))
             value = label("—", "value")
             col.addWidget(value)
+            if key == "quality":
+                value.setWordWrap(True)
+                value.setStyleSheet("font-size:18px; font-weight:700;")
             self.summary[key] = value
             stats.addWidget(frame)
+            add_fold_hover(frame)
         page.body.addLayout(stats)
         header = QHBoxLayout()
         header.addWidget(label("Seus últimos momentos", "subheading"))
         header.addStretch()
         header.addWidget(button("Todos os clipes", lambda: self.navigate(6), True))
-        header.addWidget(
-            button("Importar no editor", lambda: self.editor.import_video())
-        )
+        header.addWidget(button("Importar no editor", lambda: self.editor.import_video()))
         page.body.addLayout(header)
         self.library = QListWidget()
         self.library.setMinimumHeight(150)
         self.library.itemDoubleClicked.connect(self.open_item)
+        add_fold_hover(self.library, item_view=self.library)
         page.body.addWidget(self.library, 1)
         controls = QHBoxLayout()
         controls.addWidget(button("Editar selecionado", self.edit_item))
@@ -259,23 +419,16 @@ class MainWindow(QMainWindow):
         self.total_label = label("Nenhum clipe salvo ainda", "tiny")
         controls.addWidget(self.total_label)
         page.body.addLayout(controls)
-        self.home_tip = Tip(
-            "GuardDuck",
-            "Seus clipes ficam no computador. Você escolhe o que capturar e quando começar.",
-        )
-        page.body.addWidget(self.home_tip)
         return page
 
     def capture_page(self):
         page = Page(
-            "Escolha o que merece ficar.",
-            "Selecione uma janela. O replay só começa quando você clicar em Iniciar captura.",
+            "Configure sua captura.",
+            "Escolha a janela, qualidade, FPS, resolução, bitrate e áudio.",
         )
         self.capture_error = label("", "captureError", True)
         self.capture_error.setTextFormat(Qt.TextFormat.PlainText)
-        self.capture_error.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
+        self.capture_error.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         page.body.addWidget(self.capture_error)
         self.capture_error.hide()
         self.copy_error = button("Copiar diagnóstico", self.copy_capture_error)
@@ -292,21 +445,12 @@ class MainWindow(QMainWindow):
         layout.addLayout(row)
         self.windows = WindowCombo()
         self.windows.chooseRequested.connect(self.choose_window)
-        self.windows.setMinimumHeight(45)
+        self.windows.setMinimumHeight(46)
         layout.addWidget(self.windows)
         grid = QGridLayout()
         self.duration = QComboBox()
         for seconds in DURATIONS:
-            self.duration.addItem(
-                {
-                    15: "15 segundos",
-                    30: "30 segundos",
-                    60: "1 minuto",
-                    90: "1 min e 30 s",
-                    120: "2 minutos",
-                }[seconds],
-                seconds,
-            )
+            self.duration.addItem({15: "15 s", 30: "30 s", 60: "1 min", 90: "1 min 30 s", 120: "2 min"}[seconds], seconds)
         self.duration.setCurrentIndex(DURATIONS.index(self.settings.duration))
         self.fps = QComboBox()
         self.fps.addItems([str(fps) for fps in FPS])
@@ -314,26 +458,48 @@ class MainWindow(QMainWindow):
         self.quality = QComboBox()
         self.quality.addItems(PROFILES)
         self.quality.setCurrentText(self.settings.quality)
-        for i, (title, control) in enumerate(
-            [
-                ("Duração do replay", self.duration),
-                ("Qualidade", self.quality),
-                ("FPS desejados", self.fps),
-            ]
-        ):
-            grid.addWidget(label(title, "muted"), 0, i)
-            grid.addWidget(control, 1, i)
+        self.resolution = QComboBox()
+        self.resolution.addItems(["720p", "1080p", "1440p", "4K", "Origem"])
+        self.resolution.setCurrentText(getattr(self.settings, "resolution", "1080p"))
+        self.bitrate = QComboBox()
+        self.bitrate.addItems([f"{value} Mbps" for value in (8, 12, 16, 24, 40, 60, 80, 100)])
+        self.bitrate.setCurrentText(f"{getattr(self.settings, 'bitrate_mbps', 16)} Mbps")
+        controls = [
+            ("Duração", self.duration),
+            ("FPS", self.fps),
+            ("Qualidade", self.quality),
+            ("Resolução", self.resolution),
+            ("Bitrate", self.bitrate),
+        ]
+        for i, (title, control) in enumerate(controls):
+            grid.addWidget(label(title, "muted"), 0 if i < 3 else 2, i % 3)
+            grid.addWidget(control, 1 if i < 3 else 3, i % 3)
         layout.addLayout(grid)
-        self.system_audio = QCheckBox(
-            "Capturar áudio do sistema (inclui outras aplicações)"
-        )
-        self.system_audio.setChecked(self.settings.system_audio)
-        layout.addWidget(self.system_audio)
+        audio_row = QGridLayout()
+        self.audio_mode = QComboBox()
+        self.audio_mode.addItems([
+            "Som do PC (jogo, Discord, navegador)",
+            "Sem áudio",
+        ])
+        self.audio_mode.setCurrentText(getattr(self.settings, "audio_mode", "Som do PC (jogo, Discord, navegador)"))
+        self.mic_audio = QCheckBox("Microfone (em desenvolvimento)")
+        self.mic_audio.setToolTip("A gravação do microfone será adicionada em uma atualização futura.")
+        self.mic_audio.setEnabled(False)
+        self.mic_audio.setChecked(getattr(self.settings, "microphone_audio", False))
         self.cursor = QCheckBox("Mostrar cursor na captura")
         self.cursor.setChecked(self.settings.cursor)
-        layout.addWidget(self.cursor)
+        audio_row.addWidget(label("Áudio", "muted"), 0, 0)
+        audio_row.addWidget(self.audio_mode, 1, 0)
+        audio_row.addWidget(self.mic_audio, 1, 1)
+        audio_row.addWidget(self.cursor, 1, 2)
+        layout.addLayout(audio_row)
+        self.f11_mode = QCheckBox("Compatibilidade F11: capturar o monitor quando o jogo estiver em tela cheia")
+        self.f11_mode.setChecked(getattr(self.settings, "fullscreen_compatibility", True))
+        self.f11_mode.setToolTip("Captura o monitor somente enquanto o jogo selecionado está em primeiro plano. "
+                                 "Se o Windows bloquear a imagem, use o modo janela sem bordas.")
+        layout.addWidget(self.f11_mode)
         self.capture_note = label(
-            "Windows Graphics Capture · melhor resultado com jogos em janela sem bordas. Ao minimizar, o replay mantém o último quadro e o áudio até restaurar a janela.",
+            "Dica: para maior estabilidade, use 60 FPS ou menos, modo leve ligado e codificador automático. 4K e 120 FPS exigem bastante GPU e disco.",
             "tiny",
             True,
         )
@@ -346,12 +512,7 @@ class MainWindow(QMainWindow):
         self.clip_button.setEnabled(False)
         self.print_button = button("Tirar print", self.screenshot)
         self.print_button.setEnabled(False)
-        for b in [
-            self.start_button,
-            self.stop_button,
-            self.clip_button,
-            self.print_button,
-        ]:
+        for b in [self.start_button, self.stop_button, self.clip_button, self.print_button]:
             row.addWidget(b)
         layout.addLayout(row)
         page.body.addWidget(frame)
@@ -365,34 +526,28 @@ class MainWindow(QMainWindow):
         self.source_note = label("", "muted", True)
         self.source_note.hide()
         page.body.addWidget(self.source_note)
-        self.action_note = label(
-            "F8 salva o replay · F9 tira um print", "eyebrow", True
-        )
+        self.action_note = label("F8 salva o replay · F9 tira um print", "eyebrow", True)
         page.body.addWidget(self.action_note)
         self.preview = QLabel("A prévia aparece aqui após iniciar.")
         self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview.setMinimumHeight(200)
-        self.preview.setMaximumHeight(280)
-        self.preview.setStyleSheet(
-            "background:#080b10;border:1px solid #2a303b;border-radius:10px;color:#707d91;"
-        )
+        self.preview.setMinimumHeight(240)
+        self.preview.setMaximumHeight(300)
+        self.preview.setStyleSheet("background:#090c11;border:1px solid #252d39;border-radius:14px;color:#8791a2;")
         page.body.addWidget(self.preview, 1)
-        self.capture_tip = Tip(
-            "SpeedDuck",
-            "Comece com 30 ou 60 FPS. Full preserva a resolução da janela com compressão de alta qualidade; FPS altos exigem mais GPU, memória e disco.",
-        )
-        page.body.addWidget(self.capture_tip)
-        for combo in [self.duration, self.fps, self.quality]:
+        for combo in [self.duration, self.fps, self.quality, self.resolution, self.bitrate, self.audio_mode]:
             combo.currentIndexChanged.connect(self.capture_settings)
-        self.system_audio.toggled.connect(self.capture_settings)
+        self.mic_audio.toggled.connect(self.capture_settings)
         self.cursor.toggled.connect(self.capture_settings)
+        self.f11_mode.toggled.connect(self.capture_settings)
+        for control in (self.resolution, self.fps, self.quality, self.bitrate, self.duration, self.start_button, self.clip_button):
+            add_fold_hover(control)
         self.refresh_windows()
         return page
 
     def settings_page(self):
         page = Page(
-            "No seu ritmo.",
-            "Atalhos, desempenho e pastas. Nada de assinatura ou conta.",
+            "Ajustes do aplicativo.",
+            "Atalhos, desempenho, aparência e pasta dos clipes.",
         )
         frame = card()
         layout = QGridLayout(frame)
@@ -406,50 +561,74 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.print_key, 1, 1)
         layout.addWidget(button("Aplicar atalhos", self.apply_hotkeys), 2, 1)
         self.encoder = QComboBox()
-        self.encoder.addItems(
-            ["Automático", "h264_nvenc", "h264_qsv", "h264_amf", "libx264"]
-        )
+        self.encoder.addItems(["Automático", "h264_nvenc", "h264_qsv", "h264_amf", "libx264"])
         self.encoder.setCurrentText(self.settings.encoder)
         self.encoder.currentTextChanged.connect(self.set_encoder)
         layout.addWidget(label("Codificador de vídeo", "muted"), 3, 0)
         layout.addWidget(self.encoder, 3, 1)
-        self.tip_check = QCheckBox("Mostrar dicas dos mascotes")
-        self.tip_check.setChecked(self.settings.tips)
-        self.tip_check.toggled.connect(self.toggle_tips)
-        layout.addWidget(self.tip_check, 4, 0, 1, 2)
-        layout.addWidget(label("Pasta de clipes", "muted"), 5, 0)
-        self.clips_path = label(self.settings.clips_dir, "muted", True)
-        layout.addWidget(self.clips_path, 5, 1)
-        layout.addWidget(button("Escolher pasta", self.choose_clips), 6, 1)
-        layout.addWidget(label("FFmpeg e ffprobe", "muted"), 7, 0)
-        self.ffmpeg_label = label(self.media.ffmpeg or "Não encontrado", "tiny", True)
-        layout.addWidget(self.ffmpeg_label, 7, 1)
-        layout.addWidget(button("Selecionar pasta do FFmpeg", self.choose_ffmpeg), 8, 1)
-        self.motion_check = QCheckBox("Animações suaves, expansão dos ícones e brilho")
+        self.performance_check = QCheckBox("Modo leve (recomendado)")
+        self.performance_check.setChecked(self.settings.performance_mode)
+        self.performance_check.toggled.connect(self.toggle_performance)
+        layout.addWidget(self.performance_check, 4, 0, 1, 2)
+        layout.addWidget(label("Reduz o uso de CPU e memória durante a captura.", "tiny", True), 5, 0, 1, 2)
+        self.motion_check = QCheckBox("Animações suaves e brilho nos botões")
         self.motion_check.setChecked(self.settings.motion)
         self.motion_check.toggled.connect(self.toggle_motion)
-        layout.addWidget(self.motion_check, 9, 0, 1, 2)
-        self.sound_check = QCheckBox("Som ao salvar clipes e prints")
+        layout.addWidget(self.motion_check, 6, 0, 1, 2)
+        self.sound_check = QCheckBox("Som ao apertar clipe e ao salvar print")
         self.sound_check.setChecked(self.settings.notification_sounds)
         self.sound_check.toggled.connect(self.toggle_sounds)
-        layout.addWidget(self.sound_check, 10, 0, 1, 2)
+        layout.addWidget(self.sound_check, 7, 0, 1, 2)
+        self.tip_check = QCheckBox("Mostrar dicas extras")
+        self.tip_check.setChecked(self.settings.tips)
+        self.tip_check.toggled.connect(self.toggle_tips)
+        layout.addWidget(self.tip_check, 8, 0, 1, 2)
+        layout.addWidget(label("Pasta de clipes", "muted"), 9, 0)
+        self.clips_path = label(self.settings.clips_dir, "muted", True)
+        layout.addWidget(self.clips_path, 9, 1)
+        layout.addWidget(button("Escolher pasta", self.choose_clips), 10, 1)
         page.body.addWidget(frame)
+        colors = card()
+        picker = QVBoxLayout(colors)
+        picker.setContentsMargins(20, 16, 20, 16)
+        picker.addWidget(label("APARÊNCIA", "eyebrow"))
+        picker.addWidget(label("Visual dark com brilhos mais claros e menos cores exageradas.", "muted", True))
+        color_controls = QHBoxLayout()
+        self.accent_options = QComboBox()
+        self.accent_options.addItems(list(PRESETS) + ["Personalizada…"])
+        match = next((name for name, color in PRESETS.items() if color.lower() == self.settings.accent_color.lower()), "Personalizada…")
+        self.accent_options.setCurrentText(match)
+        self.accent_options.currentTextChanged.connect(self.select_accent)
+        color_controls.addWidget(self.accent_options, 1)
+        color_controls.addWidget(button("Escolher qualquer cor", self.choose_accent))
+        picker.addLayout(color_controls)
+        page.body.addWidget(colors)
+        sound_card = card()
+        sound_body = QVBoxLayout(sound_card)
+        sound_body.setContentsMargins(20, 16, 20, 16)
+        sound_body.addWidget(label("SOM DO CLIPE", "eyebrow"))
+        sound_row = QHBoxLayout()
+        sound_volume = QSlider(Qt.Orientation.Horizontal)
+        sound_volume.setRange(0, 100)
+        sound_volume.setValue(round(self.settings.notification_volume * 100))
+        sound_volume.setAccessibleName("Volume do som de confirmação")
+        sound_level = label(f"{sound_volume.value()}%", "muted")
+        def change_volume(value):
+            self.settings.notification_volume = value / 100
+            sound_level.setText(f"{value}%")
+            self.save_settings()
+        sound_volume.valueChanged.connect(change_volume)
+        sound_row.addWidget(sound_volume, 1)
+        sound_row.addWidget(sound_level)
+        sound_row.addWidget(button("Ouvir som", self.sounds.queued_clip))
+        sound_body.addLayout(sound_row)
+        page.body.addWidget(sound_card)
         row = QHBoxLayout()
-        row.addWidget(
-            button(
-                "Abrir dados e logs",
-                lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir()))),
-            )
-        )
+        row.addWidget(button("Abrir dados e logs", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))))
         row.addWidget(button("Limpar replay temporário", self.clean_buffer))
         row.addWidget(button("Minimizar para a bandeja", self.to_tray))
         row.addStretch()
         page.body.addLayout(row)
-        self.settings_tip = Tip(
-            "ProfDuck",
-            "O primeiro uso precisa de Python 3.12, dependências e FFmpeg. Depois disso, captura, editor e músicas locais funcionam sem conexão.",
-        )
-        page.body.addWidget(self.settings_tip)
         page.body.addStretch()
         return page
 
@@ -462,19 +641,33 @@ class MainWindow(QMainWindow):
             values = dict(
                 key=self.settings.clip_key,
                 duration=f"{self.settings.duration}s",
-                quality=self.settings.quality,
+                quality=f"{self.settings.quality} · {getattr(self.settings, 'resolution', '1080p')}",
                 fps=str(self.settings.fps),
             )
             for key, value in values.items():
                 self.summary[key].setText(value)
+        if hasattr(self, "top_clip_key"):
+            self.top_clip_key.setText(self.settings.clip_key)
+            self.top_print_key.setText(self.settings.screenshot_key)
 
     def capture_settings(self, *_):
         self.settings.duration = self.duration.currentData()
         self.settings.fps = int(self.fps.currentText())
         self.settings.quality = self.quality.currentText()
-        self.settings.system_audio = self.system_audio.isChecked()
+        self.settings.resolution = self.resolution.currentText()
+        self.settings.bitrate_mbps = int(self.bitrate.currentText().split()[0])
+        self.settings.audio_mode = self.audio_mode.currentText()
+        self.settings.system_audio = self.settings.audio_mode != "Sem áudio"
+        self.settings.microphone_audio = self.mic_audio.isChecked()
         self.settings.cursor = self.cursor.isChecked()
+        self.settings.fullscreen_compatibility = self.f11_mode.isChecked()
         self.save_settings()
+
+    def toggle_performance(self, checked):
+        self.settings.performance_mode = checked
+        self.save_settings()
+        if self.engine.active:
+            self.notify("O modo leve será aplicado na próxima captura.")
 
     def set_encoder(self, value):
         self.settings.encoder = value
@@ -527,6 +720,7 @@ class MainWindow(QMainWindow):
             self.copy_error.hide()
             self.source_note.hide()
             self.preview.clear()
+            self._last_preview_source = None
             self.preview.setText("Preparando a janela e o codificador…")
             self.navigate(1)
             self.engine.start(target, self.settings)
@@ -546,8 +740,12 @@ class MainWindow(QMainWindow):
             self.duration,
             self.fps,
             self.quality,
-            self.system_audio,
+            self.audio_mode,
+            self.mic_audio,
             self.cursor,
+            self.f11_mode,
+            self.resolution,
+            self.bitrate,
             self.encoder,
         ]:
             control.setEnabled(not running)
@@ -572,6 +770,10 @@ class MainWindow(QMainWindow):
             self.engine.save_clip(self.settings)
         except Exception as error:
             self.notify(str(error))
+        else:
+            # Both F8 and the GUI button arrive here. Acknowledgement happens
+            # immediately, not when a potentially long export finishes.
+            self.sounds.queued_clip()
 
     def screenshot(self):
         try:
@@ -586,6 +788,7 @@ class MainWindow(QMainWindow):
             except queue.Empty:
                 break
             if kind == "started":
+                self.pulse_status()
                 self.status_label.setText(
                     "●  REPLAY ATIVO"
                     + (" · SEM ÁUDIO" if self.engine.audio_warning else "")
@@ -599,6 +802,7 @@ class MainWindow(QMainWindow):
                 self.input_timer.start()
                 self.tray.setToolTip("DuckCapture — gravando a janela selecionada")
             elif kind == "stopped":
+                self.pulse_status()
                 self.status_label.setText(
                     "FALHA NA CAPTURA" if self.engine.error else "○  CAPTURA PARADA"
                 )
@@ -622,10 +826,24 @@ class MainWindow(QMainWindow):
                 self.source_note.setVisible(bool(message))
             elif kind == "resized":
                 self.notify(message)
+            elif kind == "performance_warning":
+                self.source_note.setText(message)
+                self.source_note.show()
+                self.statusBar().showMessage(message, 15000)
+            elif kind == "queued":
+                self.action_note.setText(message)
+                self.statusBar().showMessage(message, 4500)
             elif kind == "saving":
                 self.action_note.setText(message)
-                self.clip_button.setEnabled(False)
-                self.notify(message)
+                # Allow F8 and the GUI button to queue more clips.
+                self.clip_button.setEnabled(self.engine.active)
+            elif kind == "queue_update":
+                if message:
+                    self.action_note.setText(f"{message} clipe(s) na fila de salvamento")
+                elif self.engine.active:
+                    self.action_note.setText(
+                        f"{self.settings.clip_key} salva o replay · {self.settings.screenshot_key} tira print"
+                    )
             elif kind == "saved":
                 self.sounds.saved(message)
                 self.action_note.setText("SALVO · " + Path(message).name)
@@ -642,27 +860,32 @@ class MainWindow(QMainWindow):
                 min(self.engine.settings.duration, int(self.engine.elapsed))
             )
             self._preview_tick += 1
-            if self._preview_tick % 4 == 0 and self.stack.currentIndex() == 1:
-                from PySide6.QtGui import QImage
-
+            if self.stack.currentIndex() == 1:
                 with self.engine.lock:
                     pixels = self.engine.latest
-                if pixels is not None:
+                if pixels is not None and pixels is not self._last_preview_source:
+                    self._last_preview_source = pixels
+                    # Only render a new frame; don't scale the same buffer twice.
+                    # Limit the conversion work by scaling before copying.
                     h, w = pixels.shape[:2]
-                    image = QImage(
-                        pixels.data,
-                        w,
-                        h,
-                        pixels.strides[0],
-                        QImage.Format.Format_ARGB32,
-                    ).copy()
-                    self.preview.setPixmap(
-                        QPixmap.fromImage(image).scaled(
-                            self.preview.size(),
-                            Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.FastTransformation,
-                        )
-                    )
+                    image = QImage(pixels.data, w, h, pixels.strides[0],
+                                   QImage.Format.Format_ARGB32)
+                    small = image.scaled(self.preview.size(),
+                                         Qt.AspectRatioMode.KeepAspectRatio,
+                                         Qt.TransformationMode.FastTransformation).copy()
+                    self.preview.setPixmap(QPixmap.fromImage(small))
+        self._status_tick += 1
+        if self._status_tick >= 10:
+            self._status_tick = 0
+            if self.engine.active:
+                self.top_status.setText("●  Capturando")
+                received = self.engine.source_fps if time.monotonic() - self.engine.last_frame_at < 2.5 else 0
+                self.top_status.setText(f"●  Capturando · {received:.0f} FPS recebidos")
+                self.top_status.setToolTip(f"Imagens recebidas: {received:.1f} FPS. Quadros gravados: {self.engine.output_fps:.1f} FPS. Meta: {self.engine.settings.fps} FPS.")
+            elif self.engine.starting:
+                self.top_status.setText("◌  Preparando gravação")
+            else:
+                self.top_status.setText("◌  Esperando pelo jogo")
 
     def sample_inputs(self):
         if self.engine.active and self.settings.hud_enabled:
@@ -682,10 +905,17 @@ class MainWindow(QMainWindow):
     def set_music(self, title):
         self.music_title = title
 
-    def navigate(self, index):
+    def navigate(self, index, record=True):
         previous = self.stack.currentIndex()
+        if record and (self.history_index < 0 or self.history[self.history_index] != index):
+            self.history = self.history[:self.history_index + 1]
+            self.history.append(index)
+            self.history_index = len(self.history) - 1
+        self.back_button.setEnabled(self.history_index > 0)
+        self.forward_button.setEnabled(self.history_index + 1 < len(self.history))
         if self.fade_overlay:
             self.fade_animation.stop()
+            self.fade_overlay.hide()
             self.fade_overlay.deleteLater()
             self.fade_overlay = None
         # Fade a static page snapshot, never attach opacity effects to native
@@ -725,10 +955,13 @@ class MainWindow(QMainWindow):
             self.fade_animation.start()
         if index != 2 and hasattr(self, "editor"):
             self.editor.player.pause()
+        if hasattr(self, "music"):
+            self.music.spotify_panel.set_browser_active(index == 4 and self.music.tabs.currentIndex() == 1)
         self.save_settings()
 
     def finish_fade(self):
         if self.fade_overlay:
+            self.fade_overlay.hide()
             self.fade_overlay.deleteLater()
             self.fade_overlay = None
 
@@ -988,7 +1221,7 @@ class MainWindow(QMainWindow):
         self.timer.stop()
         self.input_timer.stop()
         self.music.player.stop()
-        self.music.spotify_panel.close_player()
+        self.music.spotify_panel.shutdown()
         self.music.watch.stop()
         self.library_timer.stop()
         self.gallery.timer.stop()
@@ -1006,6 +1239,9 @@ def main():
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+    if len(sys.argv) == 3 and sys.argv[1] == "--check-installation":
+        from .diagnostics import check_installation
+        return check_installation(app, sys.argv[2])
     lock = QLockFile(str(data_dir() / "application.lock"))
     lock.setStaleLockTime(0)
     if not lock.tryLock(0):

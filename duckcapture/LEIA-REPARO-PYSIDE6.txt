@@ -1,0 +1,34 @@
+DuckCapture 0.4.6 - REPARO DO ERRO NO PYSIDE6
+==========================================
+
+O erro-build(8).log mostrou "Permission denied" ao instalar:
+PySide6\qml\QtDataVisualization\datavisualizationqmlplugin.dll
+
+Essa falha ocorreu mesmo com a instalação em AppData/Local.
+Este reparo tenta primeiro REUTILIZAR o ambiente virtual existente de
+DuckCapture 0.4.5, que já conseguiu compilar neste PC.
+
+COMO APLICAR (SEM REINSTALAR TUDO)
+1. Feche qualquer outro gerador do DuckCapture.
+2. NÃO remova a pasta DuckCapture 0.4.5 que já compilou corretamente.
+3. No ZIP do reparo, copie scripts/build_windows.py para a pasta
+   DuckCapture/scripts da versão 0.4.6. Substitua o arquivo.
+4. Execute CRIAR-INSTALADOR.bat da versão 0.4.6 normalmente,
+   sem clicar em "Executar como administrador".
+5. Confira se aparece no terminal:
+   "Bibliotecas compativeis encontradas em uma versao anterior"
+6. Aguarde a geração em installer_saida/DuckCapture-Setup-0.4.6.exe.
+
+Este reparo procura ambientes existentes apenas nas pastas de
+DuckCapture 0.4.5/0.4.4 em Downloads e verifica que as versões das
+bibliotecas são compatíveis com a 0.4.6. Ele NÃO escreve no ambiente
+antigo e NÃO altera sua instalação do DuckCapture.
+
+SE NÃO ENCONTRAR AMBIENTE COMPATÍVEL
+O gerador tentará instalar em ambiente novo; nesse caso, o mesmo erro
+de permissão poderá ocorrer. Verifique Segurança do Windows > Histórico
+de proteção para checar bloqueios, ou reinicie o PC, feche programas
+Python/DuckCapture e envie o log. NÃO desative o antivírus.
+
+Os testes locais verificam a lógica de detecção e escolha do ambiente,
+mas não substituem o teste no Windows do seu PC.

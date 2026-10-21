@@ -1,9 +1,10 @@
 from __future__ import annotations
 import copy
-from PySide6.QtCore import Qt, QRectF, QTimer
-from PySide6.QtGui import QPen, QColor, QFont, QPainter, QPixmap
+from PySide6.QtCore import Qt, QRectF, QTimer, QPointF, QVariantAnimation, QEasingCurve
+from PySide6.QtGui import QPen, QColor, QFont, QPainter, QPixmap, QRadialGradient
 from PySide6.QtWidgets import (
     QGraphicsObject,
+    QScrollArea,
     QGraphicsItem,
     QGraphicsScene,
     QGraphicsView,
@@ -14,6 +15,9 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QInputDialog,
     QFileDialog,
+    QGridLayout,
+    QFrame,
+    QVBoxLayout,
 )
 from .widgets import Page, Tip, label, button
 from .hud import NAMES, preset
@@ -36,6 +40,47 @@ class HudItem(QGraphicsObject):
         self.setPos(model["x"] * 960, model["y"] * 540)
         self.setScale(model.get("scale", 1))
         self.setOpacity(model.get("opacity", 1))
+        self._fold = 0.0
+        self._fold_pointer = QPointF(self.boundingRect().center())
+        if model.get("kind") == "music":
+            self.setAcceptHoverEvents(True)
+            self._fold_anim = QVariantAnimation(self)
+            self._fold_anim.setDuration(180)
+            self._fold_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+            self._fold_anim.valueChanged.connect(self._fold_changed)
+
+    def _fold_changed(self, value):
+        self._fold = float(value)
+        self.update()
+
+    def _fold_to(self, target):
+        from .visuals import motion_enabled
+        if not hasattr(self, '_fold_anim'):
+            return
+        if not motion_enabled():
+            self._fold_changed(target)
+            return
+        self._fold_anim.stop()
+        self._fold_anim.setStartValue(self._fold)
+        self._fold_anim.setEndValue(target)
+        self._fold_anim.start()
+
+    def hoverEnterEvent(self, event):
+        if self.model["kind"] == "music":
+            self._fold_pointer = event.pos()
+            self._fold_to(1.0)
+        super().hoverEnterEvent(event)
+
+    def hoverMoveEvent(self, event):
+        if self.model["kind"] == "music":
+            self._fold_pointer = event.pos()
+            self.update()
+        super().hoverMoveEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        if self.model["kind"] == "music":
+            self._fold_to(0.0)
+        super().hoverLeaveEvent(event)
 
     def boundingRect(self):
         kind = self.model["kind"]
@@ -67,13 +112,24 @@ class HudItem(QGraphicsObject):
         kind = self.model["kind"]
         p.setPen(
             QPen(
-                QColor("#ffe489" if self.isSelected() else "#414958"),
+                QColor("#eef2f8" if self.isSelected() else "#242b37"),
                 2 if self.isSelected() else 1,
             )
         )
         p.setBrush(QColor("#1b202a"))
         p.drawRoundedRect(rect, 6, 6)
-        p.setFont(QFont("Segoe UI", 10))
+        if kind == "music" and self._fold > 0.005:
+            px, py = self._fold_pointer.x(), self._fold_pointer.y()
+            x = max(-1, min(1, 2*px/max(1, rect.width()) - 1))
+            y = max(-1, min(1, 2*py/max(1, rect.height()) - 1))
+            grad = QRadialGradient(self._fold_pointer, max(26, rect.width() * .40))
+            grad.setColorAt(0, QColor(255,255,255,round(32 * self._fold)))
+            grad.setColorAt(1, QColor(255,255,255,0))
+            p.fillRect(rect.adjusted(2,2,-2,-2), grad)
+            p.setPen(QPen(QColor(240,244,255,round(170*self._fold)), 1))
+            p.drawLine(QPointF(rect.width()/2, 1), QPointF(rect.width()/2+3*x, 1))
+            p.drawLine(QPointF(1, rect.height()/2), QPointF(1, rect.height()/2+2*y))
+        p.setFont(QFont("Manrope", 10))
         if kind in ("keyboard", "mouse"):
             cells = (
                 [
@@ -91,14 +147,14 @@ class HudItem(QGraphicsObject):
             for key, column, row, width in cells:
                 x = 2 + column * 28
                 y = 2 + row * 28
-                p.setBrush(QColor("#efd36c" if key == "W" else "#333b49"))
+                p.setBrush(QColor("#e6ebf2" if key == "W" else "#252b34"))
                 p.setPen(Qt.PenStyle.NoPen)
                 p.drawRoundedRect(x, y, width, 25, 3, 3)
-                p.setFont(QFont("Segoe UI", 6 if len(key) > 1 else 9))
+                p.setFont(QFont("Manrope", 6 if len(key) > 1 else 9))
                 p.setPen(QColor("#12161d" if key == "W" else "#eee"))
                 p.drawText(QRectF(x, y, width, 25), Qt.AlignmentFlag.AlignCenter, key)
             if kind == "mouse":
-                p.setFont(QFont("Segoe UI", 6))
+                p.setFont(QFont("Manrope", 6))
                 p.drawText(
                     QRectF(2, 29, 58, 16), Qt.AlignmentFlag.AlignCenter, "DuckMouse"
                 )
@@ -208,10 +264,47 @@ class HudEditor(Page):
             lambda _: self.hud_tools[self.kind.currentData()].setChecked(True)
         )
         self.hud_tools[self.kind.currentData()].setChecked(True)
+        # Classic advanced palette stays available, but is no longer the only
+        # way to add a built-in HUD to a preset.
         tools.addStretch()
-        self.body.addLayout(tools)
+        self.ready_section = QFrame()
+        self.ready_section.setObjectName("readyHudSection")
+        ready_layout = QVBoxLayout(self.ready_section)
+        ready_layout.setContentsMargins(17, 16, 17, 16)
+        ready_layout.setSpacing(10)
+        ready_layout.addWidget(label("HUDS PRONTOS PARA O PRESET", "eyebrow"))
+        ready_layout.addWidget(label(
+            "Ative os módulos que deseja. Eles aparecem no jogo gravado, sem importar arquivos.",
+            "muted", True,
+        ))
+        choices = QGridLayout()
+        choices.setSpacing(10)
+        self.ready_checks = {}
+        ready_kinds = ("keyboard", "mouse", "cps", "fps", "music", "timer", "clicks", "title")
+        for index, kind in enumerate(ready_kinds):
+            control = QCheckBox(NAMES[kind])
+            control.setToolTip("Adicionar ou remover este HUD dos próximos clipes")
+            control.toggled.connect(lambda enabled, k=kind: self.toggle_ready_hud(k, enabled))
+            self.ready_checks[kind] = control
+            choices.addWidget(control, index // 4, index % 4)
+        ready_layout.addLayout(choices)
+        self.body.addWidget(self.ready_section)
+        advanced_row = QHBoxLayout()
+        advanced_row.addWidget(label("PERSONALIZAÇÃO AVANÇADA", "eyebrow"))
+        advanced_row.addStretch()
+        advanced_row.addWidget(label("Escolha um módulo abaixo e clique em Adicionar", "tiny"))
+        self.body.addLayout(advanced_row)
+        self.tool_scroll = QScrollArea()
+        self.tool_scroll.setWidgetResizable(True)
+        self.tool_scroll.setMaximumHeight(76)
+        self.tool_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.tool_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        tools_frame = QFrame()
+        tools_frame.setLayout(tools)
+        self.tool_scroll.setWidget(tools_frame)
+        self.body.addWidget(self.tool_scroll)
         self.scene = QGraphicsScene(0, 0, 960, 540, self)
-        self.scene.setBackgroundBrush(QColor("#10151d"))
+        self.scene.setBackgroundBrush(QColor("#090a0c"))
         self.view = QGraphicsView(self.scene)
         self.view.setMinimumHeight(320)
         self.view.setRenderHints(
@@ -272,8 +365,34 @@ class HudEditor(Page):
         if not self.loading:
             self.debounce.start()
 
+    def toggle_ready_hud(self, kind, enabled):
+        if self.loading:
+            return
+        matching = [item for item in self.settings.hud if item.get("kind") == kind]
+        if enabled and not matching:
+            placements = {
+                "keyboard": (.04, .69), "mouse": (.22, .77),
+                "fps": (.83, .04), "cps": (.83, .10),
+                "music": (.04, .05), "timer": (.83, .16),
+                "clicks": (.48, .5), "title": (.35, .08),
+            }
+            x, y = placements.get(kind, (.4, .35))
+            self.settings.hud.append(dict(kind=kind, x=x, y=y,
+                                          scale=1.0, opacity=.92,
+                                          text="Meu título" if kind == "title" else ""))
+        elif not enabled:
+            self.settings.hud = [item for item in self.settings.hud if item.get("kind") != kind]
+        self.render()
+        self.save()
+
     def render(self):
         self.loading = True
+        if hasattr(self, "ready_checks"):
+            included = {item.get("kind") for item in self.settings.hud}
+            for kind, control in self.ready_checks.items():
+                control.blockSignals(True)
+                control.setChecked(kind in included)
+                control.blockSignals(False)
         self.scene.clear()
         # Subtle alignment grid.
         for x in range(0, 961, 60):

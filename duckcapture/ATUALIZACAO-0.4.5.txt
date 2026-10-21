@@ -1,0 +1,23 @@
+DUCKCAPTURE 0.4.5 — ÁUDIO, SPOTIFY E HOVER
+
+ALTERAÇÕES
+- Áudio do PC (48 kHz): blocos consecutivos usam o relógio das amostras, reduzindo cortes originados em atrasos pequenos do agendador do Windows.
+- Buffer de captura de áudio lê blocos de 2048 frames para reduzir chamadas de CPU; lacunas reais são preservadas com transição nas bordas.
+- Spotify: aviso claro sobre DRM e botão destacado para usar Spotify oficial no navegador ou aplicativo, sem tokens compartilhados.
+- Spotify: indicador de áudio detectado quando o Qt WebEngine disponibiliza esse sinal.
+- Cards: efeito leve de brilho/dobra em quatro cantos ao passar o mouse pela biblioteca, controles de resolução, FPS, qualidade, duração e captura, e painel do Spotify.
+- HUD de música: interação suave ao passar o mouse no elemento da prévia do editor.
+- Nenhum render extra contínuo quando o cursor está fora dos controles.
+
+LIMITAÇÕES
+- Spotify embutido depende de suporte a DRM/Widevine, autenticação e regras do Spotify; não há como garantir música completa apenas com o Qt WebEngine. Use "Ouvir no Spotify oficial" quando não sair som.
+- Os efeitos de hover simulam a dobra com iluminação por quadrantes; não deformam fisicamente janelas de vídeo nem afetam os frames gravados.
+- Correções de áudio foram testadas com buffers sintéticos e WAV; confirme no Windows com seu jogo e periféricos.
+- O instalador deve ser compilado no Windows com CRIAR-INSTALADOR.bat. A build gerada ainda não possui assinatura digital. Não desative as proteções do Windows para executá-la.
+
+INSTALAÇÃO
+1. Feche o DuckCapture e saia também da bandeja.
+2. Extraia a versão 0.4.5 em pasta nova.
+3. Execute CRIAR-INSTALADOR.bat pelo Windows, sem executar como administrador.
+4. Confira installer_saida/DuckCapture-Setup-0.4.5.exe.
+5. Faça um clipe de teste e ouça o áudio no player externo (ex: Filmes e TV) para conferir.

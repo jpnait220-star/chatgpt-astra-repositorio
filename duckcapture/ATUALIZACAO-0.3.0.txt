@@ -1,0 +1,46 @@
+DUCKCAPTURE 0.3.0 — ATUALIZAÇÃO DE DESEMPENHO E VISUAL
+====================================================
+
+NOVIDADES
+- Prévia de captura atualizada até 10 vezes por segundo (antes era 1/s).
+- Modo leve ativado por padrão: reduz a resolução de gravação de perfis
+  Econômico / Equilibrado / Alta qualidade, diminuindo o volume de dados
+  enviado ao FFmpeg. O perfil Full mantém a resolução original.
+- Captura Windows: menos cópias de quadros, taxa de entrada limitada à taxa
+  necessária, sem tentar copiar 120 frames/s quando você escolhe 60.
+- Travamentos curtos não encerram imediatamente o replay: agora aparece
+  aviso de sobrecarga e a captura tenta se recuperar. Travamentos de mais de
+  seis segundos ainda podem causar parada para proteger a integridade.
+- FPS padrão para uma instalação nova: 30 (a preferência anterior é mantida).
+- Barra superior inspirada na organização do Medal: Voltar/Avançar,
+  status de gravação e atalhos para clipe e print.
+- Seis temas de cor e escolha de cor hexadecimal com seletor visual.
+- Cards animados com quatro fundos novos: jogos, edição, atalhos e captura.
+  Os fundos estão na pasta duckcapture/assets/banners.
+- As transições de páginas e os brilhos de hover respeitam a opção Animações.
+
+COMO ATUALIZAR SEM CMD
+1. Extraia este ZIP numa pasta nova (não misture versões antigas).
+2. Abra a pasta DuckCapture e dê dois cliques em CRIAR-INSTALADOR.bat.
+3. Ao final, abra installer_saida e execute DuckCapture-Setup-0.3.0.exe.
+4. Seu novo instalador atualiza a versão anterior sem apagar os clipes.
+   As configurações são guardadas fora da pasta do programa.
+
+PRIMEIRO TESTE
+1. Em Capturar, selecione o jogo em modo janela sem bordas.
+2. Em Configurações, use Codificador Automático e marque Modo leve.
+3. Escolha 30 FPS e Econômico para verificar se a gravação funciona.
+4. Inicie, deixe 10 segundos de gameplay e salve um clipe com F8.
+5. Se funcionar, tente 60 FPS e Equilibrado e compare a estabilidade.
+6. Para customizar a cor: Configurações > Aparência e cores.
+
+LIMITAÇÕES
+- Código compilado e teste de clipe sintético no ambiente de desenvolvimento.
+- A interface Qt não foi testada aqui em Windows e a captura em jogos reais
+  depende da GPU, codificador FFmpeg e drivers do seu PC.
+- O instalador Windows é gerado no Windows. Sem assinatura digital,
+  um aviso do SmartScreen pode aparecer — NÃO desative a proteção por causa disso.
+- O projeto usa o mesmo FFmpeg incluído pelo gerador da versão anterior.
+
+Se a captura falhar, copie o diagnóstico em Capturar e envie o erro-build.log
+(apenas se for erro ao GERAR o instalador) ou duckcapture.log (erro do app).

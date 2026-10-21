@@ -4,6 +4,12 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl, QThread, Signal
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QVBoxLayout,
+    QFormLayout,
+    QTabWidget,
+    QWidget,
+    QAbstractItemView,
+    QStackedWidget,
     QFileDialog,
     QListWidget,
     QDoubleSpinBox,
@@ -13,7 +19,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QVideoWidget
-from .widgets import Page, Tip, label, button
+from .widgets import Page, Tip, label, button, card
+from .timeline import TrimTimeline
+from .visuals import icon
 from .media import EditPart
 
 
@@ -47,31 +55,139 @@ class EditorPage(Page):
         self.undo = []
         self.loading = False
         self.task = None
+        self.durations = {}
         top = QHBoxLayout()
-        top.addWidget(button("+ Importar vídeo", self.import_video))
-        top.addWidget(button("Dividir aqui", self.split))
+        top.addWidget(button("Importar vídeo", self.import_video))
         top.addWidget(button("Desfazer", self.revert))
         top.addStretch()
         self.export_button = button("Exportar MP4", self.export, True)
         top.addWidget(self.export_button)
         self.body.addLayout(top)
-        middle = QHBoxLayout()
+
+        studio = QHBoxLayout()
+        studio.setSpacing(16)
+        preview = card()
+        preview_body = QVBoxLayout(preview)
+        preview_body.setContentsMargins(16, 16, 16, 16)
+        preview_body.addWidget(label("01 / PRÉVIA", "eyebrow"))
         self.video = QVideoWidget()
-        self.video.setMinimumSize(380, 210)
-        middle.addWidget(self.video, 3)
-        self.list = QListWidget()
-        self.list.setMinimumWidth(180)
-        self.list.currentRowChanged.connect(self.select)
-        middle.addWidget(self.list, 1)
-        self.body.addLayout(middle, 1)
+        self.video.setMinimumSize(300, 195)
+        self.preview_stack = QStackedWidget()
+        empty = QWidget()
+        empty_body = QVBoxLayout(empty)
+        empty_body.addStretch()
+        empty_icon = label("")
+        empty_icon.setPixmap(icon("editor").pixmap(42, 42))
+        empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_body.addWidget(empty_icon)
+        empty_title = label("Seu próximo clipe começa aqui", "subheading", True)
+        empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_body.addWidget(empty_title)
+        empty_hint = label("Importe um vídeo ou escolha um clipe na biblioteca.", "muted", True)
+        empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_body.addWidget(empty_hint)
+        empty_body.addStretch()
+        self.preview_stack.addWidget(empty)
+        self.preview_stack.addWidget(self.video)
+        preview_body.addWidget(self.preview_stack, 1)
         playback = QHBoxLayout()
-        playback.addWidget(button("Reproduzir / Pausar", self.toggle))
+        self.play_button = button("Reproduzir", self.toggle)
+        self.play_button.setIcon(icon("play"))
+        playback.addWidget(self.play_button)
         self.position = QSlider(Qt.Orientation.Horizontal)
         self.position.sliderMoved.connect(self.seek)
         playback.addWidget(self.position, 1)
         self.position_label = label("00:00 / 00:00", "muted")
         playback.addWidget(self.position_label)
-        self.body.addLayout(playback)
+        preview_body.addLayout(playback)
+        preview_body.addWidget(label("Arraste as pontas para definir o corte", "tiny"))
+        self.timeline = TrimTimeline()
+        self.timeline.trimmed.connect(self.trimmed)
+        self.timeline.seeked.connect(self.seek)
+        preview_body.addWidget(self.timeline)
+        preview_body.addWidget(label("Texto, filtro, imagem e zoom aparecem no arquivo exportado.", "tiny", True))
+        studio.addWidget(preview, 3)
+
+        inspector = card()
+        inspector.setMinimumWidth(248)
+        inspector.setMaximumWidth(330)
+        inspection = QVBoxLayout(inspector)
+        inspection.setContentsMargins(16, 16, 16, 16)
+        inspection.addWidget(label("02 / AJUSTES DO TRECHO", "eyebrow"))
+        self.selected_title = label("Nenhum trecho selecionado", "muted", True)
+        inspection.addWidget(self.selected_title)
+        self.inspector_tabs = QTabWidget()
+        cut, look = QWidget(), QWidget()
+        self.inspector_tabs.addTab(cut, "Corte e som")
+        self.inspector_tabs.addTab(look, "Aparência")
+        inspection.addWidget(self.inspector_tabs)
+        cut_form, look_form = QFormLayout(cut), QFormLayout(look)
+        for form in (cut_form, look_form):
+            form.setContentsMargins(0, 10, 0, 0)
+            form.setSpacing(12)
+            form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        cut_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
+        self.start, self.end = QDoubleSpinBox(), QDoubleSpinBox()
+        self.start.setRange(0, 86400)
+        self.end.setRange(.01, 86400)
+        for control in (self.start, self.end):
+            control.setSuffix(" s")
+            control.setDecimals(2)
+            control.setSingleStep(.1)
+        self.speed, self.volume, self.zoom = QDoubleSpinBox(), QDoubleSpinBox(), QDoubleSpinBox()
+        self.speed.setRange(.25, 4)
+        self.speed.setSingleStep(.25)
+        self.speed.setSuffix(" ×")
+        self.volume.setRange(0, 2)
+        self.volume.setSingleStep(.1)
+        self.volume.setSuffix(" ×")
+        self.zoom.setRange(1, 3)
+        self.zoom.setSingleStep(.1)
+        self.zoom.setSuffix(" ×")
+        for control in (self.speed, self.volume, self.zoom):
+            control.setValue(1)
+        for title, control in [("Início", self.start), ("Fim", self.end), ("Velocidade", self.speed), ("Volume", self.volume)]:
+            cut_form.addRow(title, control)
+        look_form.addRow("Zoom", self.zoom)
+        for control in (self.start, self.end, self.speed, self.volume, self.zoom):
+            control.editingFinished.connect(self.commit)
+        self.text = QLineEdit()
+        self.text.setPlaceholderText("Uma legenda para esse momento")
+        self.text.editingFinished.connect(self.commit)
+        look_form.addRow("Texto no vídeo", self.text)
+        self.effect = QComboBox()
+        self.effect.addItems(["Original", "Preto e branco", "Quente", "Contraste"])
+        self.effect.currentTextChanged.connect(self.commit)
+        look_form.addRow("Filtro", self.effect)
+        look_form.addRow(button("Adicionar imagem", self.sticker))
+        look_form.addRow(button("Remover imagem", self.no_sticker))
+        inspection.addStretch()
+        studio.addWidget(inspector, 2)
+        self.body.addLayout(studio, 1)
+
+        sequence = card()
+        sequence_body = QVBoxLayout(sequence)
+        sequence_body.setContentsMargins(16, 14, 16, 14)
+        order = QHBoxLayout()
+        order.addWidget(label("03 / SEQUÊNCIA", "eyebrow"))
+        order.addStretch()
+        order.addWidget(button("Dividir aqui", self.split))
+        order.addWidget(button("Anterior", lambda: self.move(-1)))
+        order.addWidget(button("Próximo", lambda: self.move(1)))
+        order.addWidget(button("Remover", self.remove))
+        sequence_body.addLayout(order)
+        self.list = QListWidget()
+        self.list.setFlow(QListWidget.Flow.LeftToRight)
+        self.list.setWrapping(False)
+        self.list.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.list.setFixedHeight(94)
+        self.list.currentRowChanged.connect(self.select)
+        sequence_body.addWidget(self.list)
+        self.body.addWidget(sequence)
+        self.tip = Tip("EditDuck", "Importe um vídeo, escolha o trecho e ajuste as pontas do corte. Organize a sequência e exporte seu clipe.")
+        self.body.addWidget(self.tip)
+        self.inspector_tabs.setEnabled(False)
+        self.export_button.setEnabled(False)
         self.player = QMediaPlayer(self)
         self.audio = QAudioOutput(self)
         self.audio.setVolume(1)
@@ -79,71 +195,27 @@ class EditorPage(Page):
         self.player.setVideoOutput(self.video)
         self.player.mediaStatusChanged.connect(self.media_ready)
         self.player.positionChanged.connect(self.position_changed)
-        self.player.durationChanged.connect(lambda d: self.position.setMaximum(d))
-        self.player.errorOccurred.connect(
-            lambda *_: notify("Prévia de vídeo: " + self.player.errorString())
-        )
-        row = QHBoxLayout()
-        self.start = QDoubleSpinBox()
-        self.start.setRange(0, 86400)
-        self.start.setSuffix(" s")
-        self.end = QDoubleSpinBox()
-        self.end.setRange(0.01, 86400)
-        self.end.setSuffix(" s")
-        self.speed = QDoubleSpinBox()
-        self.speed.setRange(0.25, 4)
-        self.speed.setSingleStep(0.25)
-        self.speed.setValue(1)
-        self.speed.setSuffix("×")
-        self.volume = QDoubleSpinBox()
-        self.volume.setRange(0, 2)
-        self.volume.setSingleStep(0.1)
-        self.volume.setValue(1)
-        self.zoom = QDoubleSpinBox()
-        self.zoom.setRange(1, 3)
-        self.zoom.setSingleStep(0.1)
-        self.zoom.setValue(1)
-        for title, control in [
-            ("Início", self.start),
-            ("Fim", self.end),
-            ("Velocidade", self.speed),
-            ("Volume", self.volume),
-            ("Zoom", self.zoom),
-        ]:
-            row.addWidget(label(title, "muted"))
-            row.addWidget(control)
-            control.editingFinished.connect(self.commit)
-        self.body.addLayout(row)
-        row = QHBoxLayout()
-        self.text = QLineEdit()
-        self.text.setPlaceholderText("Texto sobre o vídeo")
-        self.text.editingFinished.connect(self.commit)
-        row.addWidget(self.text, 1)
-        self.effect = QComboBox()
-        self.effect.addItems(["Original", "Preto e branco", "Quente", "Contraste"])
-        self.effect.currentTextChanged.connect(self.commit)
-        row.addWidget(self.effect)
-        row.addWidget(button("Sticker…", self.sticker))
-        row.addWidget(button("Sem sticker", self.no_sticker))
-        self.body.addLayout(row)
-        order = QHBoxLayout()
-        order.addWidget(button("Mover ↑", lambda: self.move(-1)))
-        order.addWidget(button("Mover ↓", lambda: self.move(1)))
-        order.addWidget(button("Remover trecho", self.remove))
-        order.addStretch()
-        self.body.addLayout(order)
-        self.body.addWidget(
-            label(
-                "A prévia reproduz o trecho original. Texto, filtros, sticker e zoom são aplicados na exportação.",
-                "tiny",
-                True,
-            )
-        )
-        self.tip = Tip(
-            "EditDuck",
-            "Use a barra para escolher o ponto e “Dividir aqui”. Ajuste início e fim de cada trecho; a lista define a ordem do vídeo final.",
-        )
-        self.body.addWidget(self.tip)
+        self.player.durationChanged.connect(self.duration_changed)
+        self.player.playbackStateChanged.connect(self.play_state_changed)
+        self.player.errorOccurred.connect(lambda *_: notify("Prévia de vídeo: " + self.player.errorString()))
+
+    def duration_changed(self, duration):
+        self.position.setMaximum(duration)
+        part = self.current()
+        if part:
+            total = self.durations.get(part.path, duration / 1000)
+            self.timeline.set_range(total, part.start, part.end)
+
+    def play_state_changed(self, state):
+        playing = state == QMediaPlayer.PlaybackState.PlayingState
+        self.play_button.setText("Pausar" if playing else "Reproduzir")
+        self.play_button.setIcon(icon("pause" if playing else "play"))
+
+    def trimmed(self, start, end):
+        self.start.setValue(start)
+        self.end.setValue(end)
+        self.commit()
+        self.seek(round(self.start.value()*1000))
 
     def current(self):
         i = self.list.currentRow()
@@ -167,7 +239,9 @@ class EditorPage(Page):
         try:
             info = self.media.probe(path)
             self.remember()
-            self.parts.append(EditPart(str(Path(path).resolve()), 0, info.duration))
+            absolute = str(Path(path).resolve())
+            self.durations[absolute] = info.duration
+            self.parts.append(EditPart(absolute, 0, info.duration))
             self.render(len(self.parts) - 1)
         except Exception as error:
             self.notify(str(error))
@@ -180,17 +254,27 @@ class EditorPage(Page):
                 f"{i + 1:02}  {Path(p.path).name}\n{p.start:.2f}–{p.end:.2f}s · {p.speed:g}×"
             )
         self.list.blockSignals(False)
+        self.inspector_tabs.setEnabled(bool(self.parts))
+        self.export_button.setEnabled(bool(self.parts) and not (self.task and self.task.isRunning()))
         if self.parts:
             self.list.setCurrentRow(max(0, min(index, len(self.parts) - 1)))
         else:
             self.player.stop()
             self.player.setSource(QUrl())
+            self.preview_stack.setCurrentIndex(0)
+            self.selected_title.setText("Nenhum trecho selecionado")
+            self.timeline.set_range(0, 0, 0)
 
     def select(self, index):
         if not 0 <= index < len(self.parts):
             return
         self.loading = True
+        self.preview_stack.setCurrentIndex(1)
         p = self.parts[index]
+        self.selected_title.setText(f"{index+1:02} / {Path(p.path).name}")
+        self.timeline.set_range(self.durations.get(p.path, p.end), p.start, p.end)
+        self.start.setMaximum(max(0, self.durations.get(p.path, 86400) - .05))
+        self.end.setMaximum(self.durations.get(p.path, 86400))
         self.start.setValue(p.start)
         self.end.setValue(p.end)
         self.speed.setValue(p.speed)
@@ -208,6 +292,12 @@ class EditorPage(Page):
         p = self.current()
         if self.loading or p is None:
             return
+        if self.start.value() >= self.end.value():
+            self.start.setValue(p.start)
+            self.end.setValue(p.end)
+            self.notify("O início precisa ficar antes do fim do trecho.")
+            self.timeline.set_range(self.durations.get(p.path, p.end), p.start, p.end)
+            return
         values = dict(
             start=self.start.value(),
             end=self.end.value(),
@@ -224,6 +314,7 @@ class EditorPage(Page):
             setattr(p, key, value)
         self.player.setPlaybackRate(p.speed)
         self.audio.setVolume(min(1, p.volume))
+        self.timeline.set_range(self.durations.get(p.path, p.end), p.start, p.end)
         row = self.list.currentRow()
         self.list.item(row).setText(
             f"{row + 1:02}  {Path(p.path).name}\n{p.start:.2f}–{p.end:.2f}s · {p.speed:g}×"
@@ -237,6 +328,7 @@ class EditorPage(Page):
         self.player.setPosition(milliseconds)
 
     def position_changed(self, milliseconds):
+        self.timeline.set_position(milliseconds)
         if not self.position.isSliderDown():
             self.position.setValue(milliseconds)
         t = milliseconds // 1000

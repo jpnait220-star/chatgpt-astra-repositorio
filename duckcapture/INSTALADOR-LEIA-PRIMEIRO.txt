@@ -1,0 +1,21 @@
+DUCKCAPTURE 0.5.0
+
+SE VOCE BAIXOU O SETUP:
+1. Feche o DuckCapture antigo.
+2. Execute DuckCapture-Setup-0.5.0.exe.
+3. Abra o atalho DuckCapture no menu Iniciar ou na area de trabalho.
+
+SE VOCE BAIXOU ESTE ZIP DO PROJETO:
+1. Extraia a pasta DuckCapture inteira para um local fixo.
+2. Com Python 3.12 x64 instalado, abra Abrir DuckCapture.py.
+   A primeira abertura prepara as dependencias e o FFmpeg.
+3. Para gerar um instalador independente, execute CRIAR-INSTALADOR.bat.
+   O resultado fica em installer_saida/DuckCapture-Setup-0.5.0.exe.
+
+SPOTIFY:
+Abra o Spotify instalado no Windows e toque uma musica. Na aba Spotify
+no DuckCapture, clique em Conectar / atualizar. Isso funciona com conta
+gratuita; os limites da conta continuam valendo. Links podem abrir no app
+oficial; o player incorporado serve para previas.
+
+F8: pedir clipe. F9: print. Configure os atalhos nas configuracoes.

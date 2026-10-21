@@ -8,6 +8,7 @@ from PySide6.QtCore import (
     QSize,
     QEvent,
     QVariantAnimation,
+    QPropertyAnimation,
     QEasingCurve,
     QByteArray,
 )
@@ -23,10 +24,21 @@ from PySide6.QtGui import (
     QFontMetrics,
 )
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QApplication, QPushButton, QFrame, QLabel, QWidget
+from .theme import current_palette
+from PySide6.QtWidgets import QApplication, QPushButton, QFrame, QLabel, QWidget, QGraphicsOpacityEffect
 
 
 PATHS = {
+    "gamepad": '<path d="M7 6h10c3 0 4 3 5 10 .4 3-2 4-4 1l-2-2H8l-2 2c-2 3-4.4 2-4-1C3 9 4 6 7 6Z"/><path d="M6 9v5m-2.5-2.5h5M16 10h.1M19 12h.1"/>',
+    "clip": '<rect x="3" y="5" width="18" height="15" rx="4"/><path d="m9 9 6 4-6 4zM7 2h10"/>',
+    "camera": '<path d="M8 5 10 2h4l2 3h4a2 2 0 0 1 2 2v12H2V7a2 2 0 0 1 2-2Z"/><circle cx="12" cy="12" r="4"/>',
+    "pause": '<path d="M8 5v14M16 5v14"/>',
+    "previous": '<path d="m17 5-10 7 10 7ZM4 5v14"/>',
+    "next": '<path d="m7 5 10 7-10 7ZM20 5v14"/>',
+    "undo": '<path d="m8 3-5 5 5 5M3 8h11a6 6 0 0 1 0 12h-4"/>',
+    "trash": '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
+    "export": '<path d="M12 15V2m-5 5 5-5 5 5M4 12v8h16v-8"/>',
+    "link": '<path d="m10 14 4-4m-6 1-2 2a4 4 0 0 0 5 6l3-3m-4-8 3-3a4 4 0 0 1 6 5l-2 2"/>',
     "home": '<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',
     "capture": '<rect x="3" y="4" width="18" height="14" rx="3"/><circle cx="12" cy="11" r="3"/><path d="M8 21h8"/>',
     "editor": '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m8 8 12 12M8 16 20 4"/>',
@@ -45,7 +57,7 @@ PATHS = {
 }
 
 
-@lru_cache(maxsize=32)
+@lru_cache(maxsize=64)
 def icon(name, color="#c4c6d0"):
     svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="{color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">{PATHS.get(name, PATHS["capture"])}</g></svg>'
     pixmap = QPixmap(48, 48)
@@ -54,6 +66,35 @@ def icon(name, color="#c4c6d0"):
     QSvgRenderer(QByteArray(svg.encode())).render(painter, QRectF(3, 3, 42, 42))
     painter.end()
     return QIcon(pixmap)
+
+
+class FadeNavButton(QPushButton):
+    """Subtle opacity transitions on hover without any idle render loop."""
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        self.effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.effect)
+        self.effect.setOpacity(0.78)
+        self.fade = QPropertyAnimation(self.effect, b"opacity", self)
+        self.fade.setDuration(165)
+        self.fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+    def transition(self, opacity):
+        self.fade.stop()
+        if not motion_enabled():
+            self.effect.setOpacity(opacity)
+            return
+        self.fade.setStartValue(self.effect.opacity())
+        self.fade.setEndValue(opacity)
+        self.fade.start()
+
+    def enterEvent(self, event):
+        self.transition(1.0)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.transition(0.78)
+        super().leaveEvent(event)
 
 
 def motion_enabled():
@@ -134,6 +175,7 @@ class GlowButton(QPushButton):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         enabled = self.isEnabled()
+        colors = current_palette()
         primary = self.objectName() == "primary"
         nav = self.objectName() == "nav"
         selected = self.isChecked()
@@ -142,16 +184,16 @@ class GlowButton(QPushButton):
         path.addRoundedRect(rect, 10, 10)
         gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
         if primary:
-            gradient.setColorAt(0, QColor("#f7e9ad" if enabled else "#3a3830"))
-            gradient.setColorAt(1, QColor("#e7c963" if enabled else "#292822"))
+            gradient.setColorAt(0, QColor(colors["bright"] if enabled else "#3a3830"))
+            gradient.setColorAt(1, QColor(colors["accent"] if enabled else "#292822"))
         else:
             gradient.setColorAt(
                 0,
-                QColor("#25252a" if selected else "#1c1d23" if not nav else "#101115"),
+                QColor(colors["selected"] if selected else "#1c1d23" if not nav else "#101115"),
             )
             gradient.setColorAt(
                 1,
-                QColor("#18191d" if selected else "#14151a" if not nav else "#101115"),
+                QColor(colors["selected"] if selected else "#14151a" if not nav else "#101115"),
             )
         painter.fillPath(path, gradient)
         painter.save()
@@ -167,9 +209,9 @@ class GlowButton(QPushButton):
             painter.fillRect(rect, QColor(255, 255, 255, round(45 * self.press)))
         painter.restore()
         edge = QColor(
-            "#fff4ce"
+            colors["bright"]
             if primary and enabled
-            else "#625941"
+            else colors["muted"]
             if selected
             else "#45464f"
             if self.hover > 0.3
@@ -179,7 +221,7 @@ class GlowButton(QPushButton):
         painter.setPen(QPen(edge, 1))
         painter.drawPath(path)
         if nav and selected:
-            painter.setPen(QPen(QColor("#f4db83"), 3))
+            painter.setPen(QPen(QColor(colors["accent"]), 3))
             painter.drawLine(
                 QPointF(2, rect.center().y() - 7), QPointF(2, rect.center().y() + 7)
             )
@@ -246,8 +288,11 @@ class GlowFrame(QFrame):
             light = QRadialGradient(
                 QPointF(self.width() * 0.82, self.height() * 0.43), self.height() * 0.8
             )
-            light.setColorAt(0, QColor(243, 216, 134, 24))
-            light.setColorAt(1, QColor(243, 216, 134, 0))
+            tone = QColor(current_palette()['accent'])
+            tone.setAlpha(24)
+            light.setColorAt(0, tone)
+            tone.setAlpha(0)
+            light.setColorAt(1, tone)
             p.fillRect(rect, light)
             p.setPen(QPen(QColor(255, 255, 255, 11), 1))
             for radius in (100, 139):
@@ -389,12 +434,11 @@ class ExpandButton(GlowButton):
 class StudioBackground(QWidget):
     def paintEvent(self, event):
         p = QPainter(self)
-        p.fillRect(self.rect(), QColor("#050608"))
-        glow = QRadialGradient(QPointF(self.width() * 0.8, 0), self.width() * 0.55)
-        glow.setColorAt(0, QColor(103, 106, 123, 15))
-        glow.setColorAt(1, QColor(103, 106, 123, 0))
+        p.fillRect(self.rect(), QColor("#030405"))
+        glow = QRadialGradient(QPointF(self.width() * 0.78, 0), self.width() * 0.70)
+        col = QColor(current_palette()["accent"])
+        col.setAlpha(9)
+        glow.setColorAt(0, col)
+        col.setAlpha(0)
+        glow.setColorAt(1, col)
         p.fillRect(self.rect(), glow)
-        p.setPen(QPen(QColor(180, 185, 205, 12), 1))
-        for x in range(260, self.width(), 34):
-            for y in range(20, self.height(), 34):
-                p.drawPoint(x, y)

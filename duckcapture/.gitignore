@@ -7,3 +7,7 @@ artifacts/
 
 instalacao.log
 inicializacao.log
+.build/
+installer_saida/
+erro-build.log
+.ruff_cache/

@@ -1,0 +1,34 @@
+DUCKCAPTURE 0.4.2 - REPARO DO INSTALADOR (PERMISSIONERROR)
+======================================================
+
+O QUE ACONTECEU?
+O log anterior mostra que PyInstaller conseguiu gerar o .exe, mas falhou
+ao copiar Qt6QuickParticles.dll em .build/dist/DuckCapture/_internal/PySide6.
+A causa exata do acesso negado depende do Windows (arquivo ocupado, politica
+de protecao de pastas ou antivirus). Nao ha evidencia de que falta biblioteca.
+
+O QUE FOI ALTERADO?
+O gerador passou a criar uma pasta nova .build/stage-XXXXXX para CADA tentativa,
+separando completamente os arquivos do build atual dos anteriores.
+O Inno Setup usa exatamente essa nova pasta. O instalador final desta correção se
+chama DuckCapture-Setup-0.4.2-Corrigido.exe.
+Nao precisa apagar a pasta .build/venv nem reinstalar dependencias.
+
+COMO USAR SE VOCE BAIXOU O ZIP DE REPARO PEQUENO
+1. Feche a janela do DuckCapture e outros geradores antigos.
+2. Extraia o ZIP de reparo.
+3. Copie a pasta scripts para dentro da pasta DuckCapture anterior,
+   substituindo scripts/build_windows.py.
+4. Copie a pasta installer para a mesma pasta DuckCapture anterior,
+   substituindo installer/DuckCapture.iss.
+5. Substitua tambem CRIAR-INSTALADOR.bat pelo arquivo do reparo.
+6. Execute CRIAR-INSTALADOR.bat normalmente (SEM 'Executar como administrador').
+7. O arquivo final deve aparecer em installer_saida.
+
+IMPORTANTE
+- Nao desative o antivírus nem o Controle Inteligente do Windows.
+- Se o antivírus bloquear a gravacao da nova DLL, sera necessaria uma analise
+  do evento do Windows; a pasta nova nao garante que isso deixara de ocorrer.
+- Este hotfix modifica o GERADOR, nao altera o codigo da gravacao/Spotify/HUD.
+- O instalador continua sem assinatura digital confiavel e pode ser bloqueado.
+- Se ainda falhar, envie as ultimas linhas de erro-build.log.

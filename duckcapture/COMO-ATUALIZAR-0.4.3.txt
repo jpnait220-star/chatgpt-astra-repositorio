@@ -1,0 +1,22 @@
+DUCKCAPTURE 0.4.3 — COMO ATUALIZAR
+
+1. Feche o DuckCapture (inclusive o ícone ao lado do relógio do Windows).
+2. Extraia este ZIP em uma pasta NOVA no computador.
+3. Abra a pasta DuckCapture.
+4. Execute CRIAR-INSTALADOR.bat (sem Executar como administrador).
+5. Aguarde gerar installer_saida\DuckCapture-Setup-0.4.3.exe.
+6. Feche o DuckCapture se ele estiver aberto e execute o instalador.
+7. Abra o DuckCapture e teste um clipe de 15 ou 30 segundos.
+
+AVISOS
+- Não execute FINALIZAR-INSTALADOR.bat para reutilizar uma compilação da versão 0.4.2.
+- Não copie os arquivos por cima dos executáveis em uso.
+- Os clipes ficam na pasta escolhida nas configurações; copie seus arquivos importantes para backup antes de atualizar.
+- O pacote não tem assinatura digital. Não desative as proteções do Windows para instalá-lo.
+- O funcionamento da captura de jogos e a geração do setup devem ser testados no Windows.
+
+SPOTIFY
+- O login do Spotify deve ser individual.
+- Para integração oficial, use OAuth PKCE por usuário. Nunca coloque senha,
+  refresh token ou Client Secret de uma conta compartilhada dentro do .exe.
+- A integração por SDK depende das regras do Spotify, podendo exigir Premium.

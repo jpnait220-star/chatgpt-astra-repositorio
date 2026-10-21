@@ -1,0 +1,20 @@
+DUCKCAPTURE 0.4.7 — FLUIDEZ DOS CLIPES (60 FPS REAIS QUANDO A FONTE PERMITE)
+
+Correção no seletor de quadros da captura de jogos:
+- Em monitores/jogos a 75/90/100/120 FPS, a regra anterior podia descartar
+  quadros demais. Exemplo: jogo a 90 FPS e captura configurada a 60 FPS
+  podiam resultar em ~45 quadros DIFERENTES/s no vídeo.
+- Agora o seletor acompanha uma linha do tempo constante em vez de calcular
+  sempre a partir do último quadro recebido. Isso reduz quadros repetidos.
+- Evita cópias desnecessárias quando a origem é mais rápida que o alvo.
+- Conserva o som instantâneo do F8, a fila de 6 clipes, o tratamento de áudio
+  e a reutilização do ambiente de compilação da versão 0.4.6.
+
+IMPORTANTE: o arquivo pode indicar 60 FPS mesmo quando só há 40–50 quadros
+reais diferentes, seja por captura ou porque o jogo/PC entregou menos frames.
+Esta mudança corrige a perda causada pela seleção de quadros, mas não pode
+inventar imagens que o jogo não forneceu. Teste no Windows com a taxa de
+captura em 60 FPS e o jogo rodando acima de 60 FPS.
+
+Para gerar instalador no Windows: CRIAR-INSTALADOR.bat
+Resultado previsto: installer_saida/DuckCapture-Setup-0.4.7.exe

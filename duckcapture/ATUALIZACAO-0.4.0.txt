@@ -1,0 +1,21 @@
+DUCKCAPTURE 0.4.0
+=================
+
+PRINCIPAIS MUDANÇAS
+- visual dark mais limpo e menos colorido
+- topo reorganizado com status central e atalhos destacados
+- banner grande do pato removido da tela inicial
+- captura com opções de resolução: 720p, 1080p, 1440p, 4K e Origem
+- captura com FPS: 25, 30, 45, 60, 90 e 120
+- captura com bitrate até 100 Mbps
+- área de áudio simplificada: som do PC ou sem áudio
+- opção de microfone marcada como experimental
+- sons de print/clipe mais altos
+- player local com tempo decorrido e duração
+- fontes e controles visuais mais profissionais
+- pequenas melhorias de prévia e ritmo de atualização
+
+OBSERVAÇÕES IMPORTANTES
+- o player embutido do Spotify pode continuar limitado pelas regras do próprio Spotify
+- músicas locais tocam completas e agora têm controles melhores
+- áudio somente do app/jogo ainda não está isolado por processo nesta base

@@ -1,0 +1,10 @@
+DUCKCAPTURE 0.4.8 — F11 + FLUIDEZ
+
+- Captura F11: opção "Compatibilidade F11" ligada por padrão na página Capturar. Detecta quando a janela selecionada passa para tela cheia e alterna automaticamente para o monitor correspondente. Ao voltar ao modo janela, retoma a captura da janela.
+- Privacidade: no modo de monitor, quadros só são recebidos quando o aplicativo selecionado está em primeiro plano. Alt+Tab mantém o último quadro e impede gravar outras janelas.
+- Caso o jogo recrie sua janela ao alternar F11, tenta recuperar a janela pelo mesmo processo.
+- Recomeça a captura se a origem parar de fornecer quadros.
+- Fluidez: pequeno buffer de quadros diferentes antes do codificador para evitar repetir frames em oscilações curtas de tempo.
+- Mantidos: som do F8, fila de até 6 clipes, exportação e gerador com ambientes reutilizáveis.
+
+LIMITES: F11 pode ser afetado por problemas do Windows 11/driver/versão do Minecraft; se a imagem congelar, experimente janela sem bordas. A qualidade ainda depende da taxa real de quadros da origem, do encoder e do desempenho do PC. Validar a captura em máquina Windows real.

@@ -40,27 +40,37 @@ class EditPart:
 class Media:
     def __init__(self, directory=""):
         suffix = ".exe" if os.name == "nt" else ""
-        base = (
-            Path(directory)
-            if directory
-            else Path(__file__).resolve().parents[1] / "tools"
-        )
-        self.ffmpeg = (
-            str(base / ("ffmpeg" + suffix))
-            if (base / ("ffmpeg" + suffix)).exists()
-            else shutil.which("ffmpeg")
-        )
-        self.ffprobe = (
-            str(base / ("ffprobe" + suffix))
-            if (base / ("ffprobe" + suffix)).exists()
-            else shutil.which("ffprobe")
-        )
+        # In the installed version, bundled binaries are under _internal/tools.
+        # An old user setting pointing to an outdated folder must not hide them.
+        bundled = Path(__file__).resolve().parents[1] / "tools"
+        candidates = []
+        if directory:
+            candidates.append(Path(directory))
+        if bundled not in candidates:
+            candidates.append(bundled)
+        self.ffmpeg = next(
+            (
+                str(folder / ("ffmpeg" + suffix))
+                for folder in candidates
+                if (folder / ("ffmpeg" + suffix)).is_file()
+            ),
+            None,
+        ) or shutil.which("ffmpeg")
+        self.ffprobe = next(
+            (
+                str(folder / ("ffprobe" + suffix))
+                for folder in candidates
+                if (folder / ("ffprobe" + suffix)).is_file()
+            ),
+            None,
+        ) or shutil.which("ffprobe")
         self._encoders = {}
 
     def require(self):
         if not self.ffmpeg or not self.ffprobe:
             raise MediaError(
-                "FFmpeg não encontrado. Execute Instalar.py ou selecione a pasta com ffmpeg e ffprobe em Configurações."
+                "Componentes de gravação não encontrados. Reinstale o DuckCapture "
+                "usando o instalador completo."
             )
 
     def run(self, args, timeout=600, cwd=None):
@@ -131,9 +141,10 @@ class Media:
         cancelled=None,
         progress=None,
         realtime=False,
+        bitrate_mbps=0,
     ):
         self.require()
-        key = (size, quality, fps, realtime)
+        key = (size, quality, fps, realtime, int(bitrate_mbps or 0))
         if requested != "Automático":
             choices = [requested]
         elif key in self._encoders:
@@ -155,7 +166,7 @@ class Media:
                         f"color=s={size[0]}x{size[1]}:r={fps}",
                         "-frames:v",
                         "1",
-                        *self.encoding(encoder, quality, fps, realtime=realtime),
+                        *self.encoding(encoder, quality, fps, realtime=realtime, bitrate_mbps=bitrate_mbps),
                         "-f",
                         "null",
                         "-",
@@ -173,7 +184,7 @@ class Media:
         )
 
     @staticmethod
-    def encoding(encoder, quality="Equilibrado", fps=60, realtime=False):
+    def encoding(encoder, quality="Equilibrado", fps=60, realtime=False, bitrate_mbps=0):
         level = {"Econômico": 29, "Equilibrado": 24, "Alta qualidade": 19, "Full": 16}[
             quality
         ]
@@ -243,49 +254,66 @@ class Media:
                 args += ["-usage", "lowlatency"]
             elif encoder == "libx264":
                 args += ["-tune", "zerolatency"]
+        if bitrate_mbps and bitrate_mbps > 0:
+            target = f"{int(bitrate_mbps)}M"
+            args += ["-b:v", target, "-maxrate", target, "-bufsize", f"{int(bitrate_mbps) * 2}M"]
         return args + ["-pix_fmt", "yuv420p", "-g", str(fps * 2), "-bf", "0"]
 
     def decoded_duration(self, path, fps):
-        """Measure a frozen MKV prefix even when its duration/cues are unwritten."""
+        """Measure a *frozen* MKV prefix without decoding every video frame.
+
+        Counting decoded frames in a live/recently-frozen Matroska file can
+        stall ffprobe (15-second timeouts on some GPUs). There is one video
+        packet per encoded frame in the H.264 segments we produce, so counting
+        compressed packets is significantly lighter. Failure is recoverable;
+        the caller waits for the segment to close instead of crashing.
+        """
         self.require()
-        result = subprocess.run(
-            [
-                self.ffprobe,
-                "-v",
-                "error",
-                "-select_streams",
-                "v:0",
-                "-count_frames",
-                "-show_entries",
-                "stream=nb_read_frames",
-                "-of",
-                "json",
-                str(path),
-            ],
-            capture_output=True,
-            timeout=15,
-            creationflags=CREATE_FLAGS,
-        )
         try:
-            frames = int(json.loads(result.stdout)["streams"][0]["nb_read_frames"])
-        except (ValueError, KeyError, IndexError):
-            raise MediaError("O segmento ainda não contém quadros de vídeo legíveis.")
-        return frames / fps
+            result = subprocess.run(
+                [self.ffprobe, "-v", "error", "-select_streams", "v:0",
+                 "-count_packets", "-show_entries", "stream=nb_read_packets",
+                 "-of", "json", str(path)],
+                capture_output=True,
+                timeout=5,
+                creationflags=CREATE_FLAGS,
+            )
+            if result.returncode:
+                raise MediaError("O trecho ainda está sendo finalizado pelo gravador.")
+            packets = int(json.loads(result.stdout)["streams"][0]["nb_read_packets"])
+            if packets <= 0 or fps <= 0:
+                raise MediaError("O trecho ainda não possui quadros completos.")
+            return packets / fps
+        except subprocess.TimeoutExpired as error:
+            raise MediaError("O trecho de vídeo ainda está ocupado; aguardando a finalização.") from error
+        except (ValueError, KeyError, IndexError, TypeError, json.JSONDecodeError) as error:
+            raise MediaError("O trecho ainda não contém pacotes de vídeo legíveis.") from error
 
     def thumbnail(self, path, target):
-        self.run(
-            [
-                "-y",
-                "-i",
-                str(path),
-                "-frames:v",
-                "1",
-                "-vf",
-                "scale=480:-2",
-                str(target),
-            ],
-            timeout=30,
-        )
+        """Generate a clip cover slightly after the first frame, atomically."""
+        source, target = Path(path), Path(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_name(target.stem + ".partial.png")
+        try:
+            # Seek to an actual action frame, not the often-black first frame.
+            # Try the beginning too (short clips and videos without seek tables).
+            for seek in ("0.35", "0"):
+                temporary.unlink(missing_ok=True)
+                try:
+                    self.run(
+                        ["-y", "-ss", seek, "-i", str(source),
+                         "-map", "0:v:0", "-an", "-frames:v", "1",
+                         "-vf", "scale=480:-2", "-threads", "1", str(temporary)],
+                        timeout=12,
+                    )
+                    if temporary.is_file() and temporary.stat().st_size > 100:
+                        temporary.replace(target)
+                        return
+                except (MediaError, subprocess.TimeoutExpired, OSError):
+                    pass
+            raise MediaError("Não foi possível criar a capa deste clipe.")
+        finally:
+            temporary.unlink(missing_ok=True)
 
     def export(
         self,
@@ -338,7 +366,7 @@ class Media:
                     filters.append(effects[p.effect])
                 if p.text:
                     # ASS avoids drawtext interpolation and keeps all user text out of executable filter expressions.
-                    from .hud import write_title_ass
+                    from .hud import write_title_ass, copy_fonts
 
                     write_title_ass(
                         tmp / "title.ass",
@@ -347,7 +375,8 @@ class Media:
                         height,
                         (p.end - p.start) / p.speed,
                     )
-                    filters.append("subtitles=title.ass")
+                    copy_fonts(tmp)
+                    filters.append("subtitles=title.ass:fontsdir=fonts")
                 args = ["-y", "-i", str(Path(p.path).resolve())]
                 if p.sticker:
                     if not Path(p.sticker).is_file():

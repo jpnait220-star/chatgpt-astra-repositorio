@@ -6,33 +6,26 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.2.1"
+VERSION = "0.5.0"
 TOP = [
-    "README.md",
-    "COMECE-AQUI.txt",
-    "LEIA-ME.md",
-    "CONCEITO.md",
-    "THIRD-PARTY.md",
-    "VALIDACAO.md",
-    "requirements.txt",
-    "requirements-dev.txt",
-    "pytest.ini",
-    "run.pyw",
-    "Abrir DuckCapture.py",
-    "Instalar.py",
+    'README.md', 'COMECE-AQUI.txt', 'LEIA-ME.md', 'THIRD-PARTY.md', 'VALIDACAO.md',
+    'requirements.txt', 'requirements-dev.txt', 'requirements-build.txt', 'pytest.ini',
+    'run.pyw', 'Abrir DuckCapture.py', 'Instalar.py', 'CRIAR-INSTALADOR.bat',
+    'FINALIZAR-INSTALADOR.bat', 'INSTALADOR-LEIA-PRIMEIRO.txt',
+    'LICENCAS-E-DISTRIBUICAO.txt', 'ATUALIZACAO-0.5.0.md',
 ]
 
 
 def package(output):
     output.mkdir(parents=True, exist_ok=True)
     files = [ROOT / name for name in TOP]
-    for folder in ["duckcapture", "scripts", "tests", "docs"]:
+    for folder in ["duckcapture", "scripts", "tests", "docs", "installer"]:
         files.extend(
             p
             for p in (ROOT / folder).rglob("*")
             if p.is_file()
             and not p.is_symlink()
-            and p.suffix in (".py", ".png", ".md", ".wav")
+            and p.suffix.lower() in (".py", ".png", ".md", ".wav", ".webp", ".ttf", ".txt", ".svg", ".iss")
             and "__pycache__" not in p.parts
         )
     archive = output / f"DuckCapture-{VERSION}.zip"
@@ -41,7 +34,7 @@ def package(output):
     ) as zip:
         for path in sorted(files):
             name = "DuckCapture/" + path.relative_to(ROOT).as_posix()
-            entry = zipfile.ZipInfo(name, date_time=(2026, 10, 18, 0, 0, 0))
+            entry = zipfile.ZipInfo(name, date_time=(2026, 10, 21, 0, 0, 0))
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o100644 << 16
             data = path.read_bytes()

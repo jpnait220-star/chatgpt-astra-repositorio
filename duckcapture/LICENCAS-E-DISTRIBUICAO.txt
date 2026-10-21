@@ -1,0 +1,21 @@
+DuckCapture 0.2.2 - informações de distribuição
+
+Esta versão foi preparada para gerar um instalador Windows com Python, PySide6 e FFmpeg incluídos.
+Este instalador NÃO é assinado digitalmente; o Windows pode apresentar avisos.
+Não ignore alertas de segurança sem verificar a origem do arquivo.
+
+COMPONENTES DE TERCEIROS
+O programa utiliza Python, Qt/PySide6, NumPy, Pillow, Mutagen, Windows Capture,
+SoundCard, OpenCV, CFFI, FFmpeg e componentes transitivos. Consulte THIRD-PARTY.md.
+
+ATENÇÃO ANTES DE DISTRIBUIR PUBLICAMENTE
+Alguns componentes usam licenças LGPL ou GPL, inclusive builds de FFmpeg com
+opções de GPL e a biblioteca Mutagen. Verifique quais licenças se aplicam,
+inclua avisos/licenças exigidos e cumpra as obrigações de disponibilização de
+código-fonte correspondentes. Compilar um executável não remove tais obrigações.
+O projeto original e seus próprios arquivos-fonte devem ser mantidos sob o
+controle do autor. Este pacote não afirma que uma distribuição pública já
+esteja em conformidade com todas as licenças.
+
+O instalador usa instalação no perfil do usuário; não altera o Defender,
+SmartScreen, Smart App Control ou configurações de segurança do Windows.

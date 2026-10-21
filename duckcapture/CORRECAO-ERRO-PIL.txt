@@ -1,0 +1,19 @@
+DuckCapture 0.2.2 - correção do gerador do instalador (19/10/2026)
+
+ERRO CORRIGIDO:
+  ModuleNotFoundError: No module named 'PIL'
+
+CAUSA:
+  O Pillow havia sido instalado no ambiente .build/venv, mas o gerador
+  tentava carregar o modulo pelo Python externo, que nao tinha Pillow.
+
+O QUE FOI ALTERADO:
+  - scripts/build_windows.py agora chama o gerador do icone usando
+    .build/venv/Scripts/python.exe, onde o Pillow foi instalado.
+  - scripts/install_ffmpeg.py aceita --require-local, garantindo
+    o empacotamento das copias de ffmpeg.exe e ffprobe.exe.
+
+IMPORTANTE:
+  O instalador Windows ainda nao foi compilado/testado aqui.
+  O ZIP nao contem DuckCapture-Setup.exe pronto.
+  Se ocorrer outro erro, envie erro-build.log.

@@ -1,13 +1,23 @@
-"""Spotify's public player, loaded on request inside Qt; no API keys or downloads."""
+"""Spotify-only embedded browser. Site playback follows Spotify's licensing and DRM rules."""
+from __future__ import annotations
 
 import re
 from urllib.parse import urlparse
-from PySide6.QtCore import QUrl, Signal
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+from PySide6.QtCore import QUrl, Signal, Qt, QRectF
+from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame
 from .widgets import label, button
+from .fold_hover import add_fold_hover
+
+START_URL = "https://open.spotify.com/intl-pt/"
+ALLOWED_HOSTS = frozenset((
+    "open.spotify.com", "spotify.com", "www.spotify.com",
+    "accounts.spotify.com", "login.spotify.com", "auth.spotify.com", "spotify.link",
+))
 
 
 def embed_url(value):
+    """Validate an official Spotify content link or URI for preview playback."""
     value = value.strip()
     uri = re.fullmatch(
         r"spotify:(playlist|track|album|artist|episode|show):([A-Za-z0-9]{22})", value
@@ -20,196 +30,232 @@ def embed_url(value):
         parsed.path,
     )
     if parsed.scheme != "https" or parsed.netloc != "open.spotify.com" or not match:
-        raise ValueError(
-            "Use um link HTTPS de música, álbum ou playlist em open.spotify.com (Compartilhar → Copiar link)."
-        )
+        raise ValueError("Use um link HTTPS de música, álbum ou playlist em open.spotify.com.")
     return f"https://open.spotify.com/embed/{match[1]}/{match[2]}?theme=0"
+
+
+def browser_url(raw: str) -> str:
+    """Accept only Spotify destinations; no arbitrary in-app browser sites."""
+    value = raw.strip()
+    if not value:
+        return START_URL
+    uri = re.fullmatch(
+        r"spotify:(playlist|track|album|artist|episode|show):([A-Za-z0-9]{22})", value
+    )
+    if uri:
+        value = f"https://open.spotify.com/{uri[1]}/{uri[2]}"
+    elif not "://" in value:
+        value = "https://" + value
+    parsed = urlparse(value)
+    if (
+        parsed.scheme != "https" or
+        (parsed.hostname or "").lower() not in ALLOWED_HOSTS or
+        parsed.username or parsed.password or parsed.port or
+        not parsed.hostname
+    ):
+        raise ValueError("Este navegador abre apenas endereços oficiais do Spotify (open.spotify.com ou spotify.com).")
+    return value
+
+
+class SpotifyDisc(QWidget):
+    """A decorative disc shared with the local-player visual language.
+
+    The official Spotify webpage owns playback; the disc never pretends it can
+    bypass account requirements or DRM restrictions.
+    """
+    def __init__(self):
+        super().__init__()
+        self.setFixedSize(106, 106)
+        self.setToolTip("Representação visual; controle a reprodução no Spotify abaixo")
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        area = QRectF(4, 4, self.width()-8, self.height()-8)
+        painter.setBrush(QColor("#07080a"))
+        painter.setPen(QPen(QColor("#33363e"), 1))
+        painter.drawEllipse(area)
+        for offset in (11, 19, 27):
+            painter.setPen(QPen(QColor("#262930"), 1))
+            painter.drawEllipse(area.adjusted(offset, offset, -offset, -offset))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("#e9edf2"))
+        painter.drawEllipse(QRectF(34, 34, 38, 38))
+        painter.setBrush(QColor("#060709"))
+        painter.drawEllipse(QRectF(49, 49, 8, 8))
+        painter.end()
 
 
 class SpotifyPanel(QWidget):
     opened = Signal()
+    trackChanged = Signal(str)
 
     def __init__(self):
         super().__init__()
-        self.view = None
-        self.profile = None
-        self.url = ""
-        self.resolve_reply = None
-        self.network = None
+        from .spotify_desktop import SpotifyDesktop
+        from .visuals import icon
+        self.view = self.profile = None
+        self.url = ''
+        self.desktop_state = {}
         self.layout_ = QVBoxLayout(self)
         self.layout_.setContentsMargins(0, 0, 0, 0)
-        self.message = label(
-            "Spotify dentro do DuckCapture. Cole um link de música, álbum ou playlist e clique em Ouvir no app.",
-            "muted",
-            True,
-        )
+        self.layout_.setSpacing(14)
+        self.desktop = SpotifyDesktop(self)
+        self.desktop.changed.connect(self.desktop_changed)
+        self.desktop.busyChanged.connect(self.busy_changed)
+        header = QFrame()
+        header.setObjectName('card')
+        body = QVBoxLayout(header)
+        body.setContentsMargins(20, 18, 20, 18)
+        record = QHBoxLayout()
+        record.addWidget(SpotifyDisc())
+        titles = QVBoxLayout()
+        titles.addWidget(label('SPOTIFY / CONECTADO AO SEU PC', 'eyebrow'))
+        self.disc_title = label('Sua música, no seu ritmo.', 'subheading', True)
+        titles.addWidget(self.disc_title)
+        self.artist = label('Conecte o aplicativo Spotify do Windows.', 'muted', True)
+        titles.addWidget(self.artist)
+        record.addLayout(titles, 1)
+        body.addLayout(record)
+        controls = QHBoxLayout()
+        self.transport = {}
+        for command, text, symbol in [('previous', 'Anterior', 'previous'), ('toggle', 'Reproduzir', 'play'), ('next', 'Próxima', 'next')]:
+            control = button(text, lambda checked=False, cmd=command: self.command(cmd))
+            control.setIcon(icon(symbol))
+            control.setEnabled(False)
+            self.transport[command] = control
+            controls.addWidget(control)
+        controls.addStretch()
+        body.addLayout(controls)
+        body.addWidget(label('O Spotify instalado toca a música; você controla por aqui. Funciona com conta gratuita e Premium, conforme as regras da sua conta.', 'tiny', True))
+        self.layout_.addWidget(header)
+        add_fold_hover(header)
+        connection = QHBoxLayout()
+        connection.addWidget(button('Abrir Spotify no PC', self.open_external, True))
+        connection.addWidget(button('Conectar / atualizar', lambda: self.desktop.refresh()))
+        self.layout_.addLayout(connection)
+        self.message = label('Abra uma faixa no Spotify do Windows e clique em Conectar.', 'muted', True)
         self.layout_.addWidget(self.message)
-        self.layout_.addWidget(
-            label(
-                "Conta gratuita: o player oficial pode reproduzir apenas prévias de 30 segundos. Faixas completas dependem das permissões do Spotify e do suporte do player. Músicas locais tocam completas.",
-                "tiny",
-                True,
-            )
-        )
-        actions = QHBoxLayout()
-        self.reload_button = button("Recarregar player", self.reload)
-        self.close_button = button("Fechar player", self.close_player)
-        actions.addWidget(self.reload_button)
-        actions.addWidget(self.close_button)
-        actions.addStretch()
-        self.layout_.addLayout(actions)
-        self.reload_button.hide()
-        self.close_button.hide()
+        self.browser_message = label('Sem o Spotify instalado? Cole um link acima para abrir a prévia oficial.', 'tiny', True)
+        self.layout_.addWidget(self.browser_message)
+        from PySide6.QtCore import QTimer
+        self.load_timeout = QTimer(self)
+        self.load_timeout.setSingleShot(True)
+        self.load_timeout.setInterval(18000)
+        self.load_timeout.timeout.connect(self.browser_timed_out)
+
+    def command(self, command):
+        self.opened.emit()
+        if self.view:
+            self.view.page().setAudioMuted(True)
+        self.desktop.refresh(command)
+
+    def busy_changed(self, busy):
+        for name, control in self.transport.items():
+            control.setEnabled(not busy and bool(self.desktop_state.get(name, False)))
+
+    def desktop_changed(self, state):
+        from .visuals import icon
+        self.desktop_state = state
+        self.disc_title.setText(state.get('title', 'Conecte seu Spotify'))
+        self.artist.setText(state.get('artist', 'Spotify para Windows'))
+        self.message.setText(state.get('message', 'Reproduzindo no Spotify.' if state.get('playing') else 'Conectado. Use os controles acima.'))
+        playing = state.get('playing', False)
+        self.transport['toggle'].setText('Pausar' if playing else 'Reproduzir')
+        self.transport['toggle'].setIcon(icon('pause' if playing else 'play'))
+        self.busy_changed(False)
+        self.trackChanged.emit(state.get('title', '') if playing else '')
+
+    def open_external(self):
+        from PySide6.QtGui import QDesktopServices
+        if self.view:
+            self.view.page().setAudioMuted(True)
+        destination = 'spotify:'
+        if self.url:
+            match = re.search(r'/embed/(track|album|playlist|artist|show|episode)/([A-Za-z0-9]{22})', self.url)
+            if match:
+                destination = f'spotify:{match[1]}:{match[2]}'
+        if QDesktopServices.openUrl(QUrl(destination)):
+            self.opened.emit()
+            self.message.setText('Toque uma música no Spotify. Os controles aparecem aqui ao conectar.')
+            self.desktop.set_active(True)
+        else:
+            self.message.setText('Spotify não encontrado. Instale o aplicativo oficial do Spotify para Windows ou use a prévia por link.')
+
+    def set_browser_active(self, active):
+        self.desktop.set_active(active)
+        if self.view:
+            self.view.page().setAudioMuted(not active)
 
     def load(self, value):
-        parsed = urlparse(value.strip())
-        if (
-            parsed.scheme == "https"
-            and parsed.netloc == "spotify.link"
-            and re.fullmatch(r"/[A-Za-z0-9_-]+/?", parsed.path)
-        ):
-            self.resolve_short(QUrl(value.strip()))
-            return
+        # Embeds are supported previews. The full website is not a playback SDK.
         self.url = embed_url(value)
         if self.view is None:
-            # Lazy import avoids a Chromium process while only clipping or
-            # listening to local music. Keep Qt's sandbox and TLS defaults.
             from PySide6.QtWebEngineWidgets import QWebEngineView
-            from PySide6.QtWebEngineCore import (
-                QWebEnginePage,
-                QWebEngineProfile,
-                QWebEngineSettings,
-            )
-
+            from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings
             panel = self
 
-            class PlayerPage(QWebEnginePage):
+            class SpotifyPage(QWebEnginePage):
                 def acceptNavigationRequest(self, url, kind, main_frame):
-                    if main_frame and url.scheme() != "https":
+                    if main_frame and (url.scheme() != 'https' or url.host().lower() not in ALLOWED_HOSTS):
+                        panel.browser_message.setText('Esse link não pertence ao Spotify.')
                         return False
-                    if main_frame and url.host() not in (
-                        "open.spotify.com",
-                        "accounts.spotify.com",
-                    ):
-                        panel.message.setText(
-                            "Este link não faz parte do player. Use os controles da playlist abaixo."
-                        )
-                        return False
-                    return True
+                    return super().acceptNavigationRequest(url, kind, main_frame)
 
-            self.profile = QWebEngineProfile(
-                self
-            )  # Ephemeral, no stored account session.
-            self.profile.downloadRequested.connect(lambda request: request.cancel())
+            # Qt owns this profile for the application lifetime. Previews do not
+            # need persistent login, and destroying a profile during Chromium's
+            # asynchronous page teardown can crash later UI events.
+            self.profile = QWebEngineProfile.defaultProfile()
+            if not self.profile.property('duckPreviewConfigured'):
+                self.profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
+                self.profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
+                self.profile.downloadRequested.connect(lambda request: request.cancel())
+                self.profile.setProperty('duckPreviewConfigured', True)
             self.view = QWebEngineView(self)
-            page = PlayerPage(self.profile, self.view)
+            page = SpotifyPage(self.profile, self.view)
+            page.setBackgroundColor(QColor('#08090c'))
             self.view.setPage(page)
-            page.newWindowRequested.connect(
-                lambda _: self.message.setText(
-                    "Esse controle tenta abrir outra janela. A reprodução disponível nesta versão usa os botões da playlist abaixo."
-                )
-            )
-            page.featurePermissionRequested.connect(
-                lambda origin, feature: page.setFeaturePermission(
-                    origin,
-                    feature,
-                    QWebEnginePage.PermissionPolicy.PermissionDeniedByUser,
-                )
-            )
-            self.view.settings().setAttribute(
-                QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, True
-            )
-            self.view.setMinimumHeight(390)
+            page.featurePermissionRequested.connect(lambda origin, feature: page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser))
+            self.view.settings().setAttribute(QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, True)
+            self.view.setMinimumHeight(352)
+            self.view.setMaximumHeight(380)
             self.view.loadFinished.connect(self.loaded)
-            self.layout_.insertWidget(1, self.view)
-        self.message.setText(
-            "Carregando player oficial… Depois clique em reproduzir nos controles abaixo."
-        )
-        self.reload_button.show()
-        self.close_button.show()
+            page.recentlyAudibleChanged.connect(self.audio_state_changed)
+            self.layout_.addWidget(self.view)
         self.opened.emit()
+        self.view.show()
+        self.view.page().setAudioMuted(False)
+        self.browser_message.setText('Carregando a prévia oficial…')
+        self.load_timeout.start()
         self.view.setUrl(QUrl(self.url))
 
-    def resolve_short(self, url, hops=0):
-        from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
-
-        if hops >= 5:
-            self.message.setText(
-                "Esse link redirecionou muitas vezes. Copie o endereço completo de open.spotify.com."
-            )
-            return
-        if self.resolve_reply:
-            old, self.resolve_reply = self.resolve_reply, None
-            old.abort()
-        if self.network is None:
-            self.network = QNetworkAccessManager(self)
-        self.message.setText("Abrindo o link compartilhado do Spotify…")
-        request = QNetworkRequest(url)
-        request.setTransferTimeout(8000)
-        request.setAttribute(
-            QNetworkRequest.Attribute.RedirectPolicyAttribute,
-            QNetworkRequest.RedirectPolicy.ManualRedirectPolicy,
-        )
-        reply = self.network.head(request)
-        self.resolve_reply = reply
-
-        def finished():
-            reply.deleteLater()
-            if self.resolve_reply is not reply:
-                return
-            self.resolve_reply = None
-            location = reply.attribute(
-                QNetworkRequest.Attribute.RedirectionTargetAttribute
-            )
-            if location:
-                target = url.resolved(location)
-                try:
-                    canonical = embed_url(target.toString())
-                except ValueError:
-                    if (
-                        target.scheme() == "https"
-                        and target.host() == "spotify.link"
-                        and not target.userName()
-                        and not target.port() > 0
-                    ):
-                        self.resolve_short(target, hops + 1)
-                        return
-                else:
-                    self.load(canonical)
-                    return
-            self.message.setText(
-                "Não foi possível abrir o link curto. Confira a conexão ou copie o endereço completo de open.spotify.com."
-            )
-
-        reply.finished.connect(finished)
-
     def loaded(self, ok):
-        self.message.setText(
-            "Player oficial do Spotify · use os controles abaixo para ouvir."
-            if ok
-            else "O Spotify não carregou. Confira sua conexão e tente Recarregar player. O serviço pode bloquear players incorporados."
-        )
+        self.load_timeout.stop()
+        self.browser_message.setText('Prévia carregada. Pressione Reproduzir no player. Faixas completas: use o Spotify do PC acima.' if ok else 'Não foi possível carregar a prévia. Confira sua conexão ou use o Spotify do PC.')
 
-    def reload(self):
-        if self.url:
-            self.load(self.url)
+    def browser_timed_out(self):
+        if self.view:
+            self.view.stop()
+            self.view.hide()
+        self.browser_message.setText('A prévia não respondeu a tempo. Tente o link novamente ou use o Spotify do PC acima.')
+
+    def audio_state_changed(self, audible):
+        if audible:
+            self.load_timeout.stop()
+            self.browser_message.setText('Reproduzindo a prévia oficial do Spotify.')
 
     def close_player(self):
-        if self.resolve_reply:
-            reply, self.resolve_reply = self.resolve_reply, None
-            reply.abort()
+        self.load_timeout.stop()
+        self.desktop.set_active(False)
         if self.view:
-            view, profile = self.view, self.profile
+            view = self.view
             self.view = self.profile = None
             view.stop()
             view.page().setAudioMuted(True)
             self.layout_.removeWidget(view)
             view.hide()
-            # The profile must outlive its page.
-            view.destroyed.connect(profile.deleteLater)
             view.deleteLater()
-        self.reload_button.hide()
-        self.close_button.hide()
-        self.message.setText(
-            "Player fechado. Carregue a playlist para ouvir novamente."
-        )
+
+    def shutdown(self):
+        self.close_player()
+        self.desktop.shutdown()

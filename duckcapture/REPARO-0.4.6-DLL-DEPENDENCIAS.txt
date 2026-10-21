@@ -1,0 +1,30 @@
+DuckCapture 0.4.6 - Reparo do erro PermissionError em Qt6PdfWidgets.dll
+
+O QUE ACONTECEU?
+O gerador tentou reinstalar bibliotecas dentro da pasta .build\venv em
+Downloads. No log, o Windows recusou a gravacao de uma DLL do PySide6.
+
+O QUE O REPARO MUDA?
+- Cria o ambiente Python da compilacao em %LOCALAPPDATA%\DuckCaptureBuild\environments.
+- Na proxima compilacao, reutiliza esse ambiente quando as dependencias estiverem prontas.
+- Caso uma instalacao falhe pela metade, tenta outra pasta NOVA na proxima execucao.
+- Nao muda a instalacao atual nem as funcoes do DuckCapture 0.4.6.
+- O ambiente Python antigo em .build\venv nao e alterado/apagado.
+
+COMO APLICAR O REPARO PEQUENO
+1. Feche janelas de compilacao e o DuckCapture, se aberto.
+2. Extraia o ZIP do reparo.
+3. Copie a pasta scripts extraida para a pasta DuckCapture da versao 0.4.6,
+   aceitando substituir scripts\build_windows.py.
+4. Execute o CRIAR-INSTALADOR.bat, normalmente e sem administrador.
+5. Ao terminar, abra installer_saida para encontrar DuckCapture-Setup-0.4.6.exe.
+
+A PRIMEIRA EXECUCAO AINDA INSTALA AS BIBLIOTECAS, PODENDO DEMORAR.
+Depois, a recompilacao pode reutilizar as bibliotecas, sem rodar pip novamente.
+
+SE AINDA DER PERMISSION DENIED
+Reinicie o Windows, feche outras compilacoes do DuckCapture e confira em
+Seguranca do Windows > Historico de protecao se houve um bloqueio.
+Nao desative o antivirus nem o Smart App Control para corrigir esse erro.
+Envie o novo erro-build.log para diagnosticar. O reparo foi testado localmente,
+mas nao foi compilado no Windows neste ambiente.
