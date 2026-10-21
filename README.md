@@ -16,15 +16,15 @@ Não abra apenas o arquivo `dashboard.html`: o gerenciamento de abas exige que a
 
 ## Atualizar e resolver ERR_FILE_NOT_FOUND
 
-O Opera precisa que a pasta instalada continue existindo. Não use uma pasta temporária aberta de dentro do ZIP e não apague os arquivos após instalar. Se aparecer `ERR_FILE_NOT_FOUND`, confira o caminho da instalação e a presença de `dashboard.html`. Extraia a versão nova para uma pasta permanente, substitua os arquivos na pasta instalada e clique em **Recarregar** em `opera://extensions`. Feche a aba com erro e abra o painel pelo patinho. Se o caminho antigo deixou de existir, carregue a pasta permanente novamente. Recarregar limpa os favoritos da sessão; reinstalar em outro caminho pode reiniciar também as configurações. Veja o passo a passo em `INSTALAR-NO-OPERA.txt`.
+O Opera precisa que a pasta instalada continue existindo. Não use uma pasta temporária aberta de dentro do ZIP e não apague os arquivos após instalar. Se aparecer `ERR_FILE_NOT_FOUND`, confira o caminho da instalação e a presença de `dashboard.html`. Extraia a versão nova para uma pasta permanente, substitua os arquivos na pasta instalada e clique em **Recarregar** em `opera://extensions`. Feche a aba com erro e abra o painel pelo patinho. Se o caminho antigo deixou de existir, carregue a pasta permanente novamente. Se atualizar na mesma instalação, os favoritos e o histórico persistem. Antes de reinstalar em outro caminho, exporte um backup na aba Configurações. Veja o passo a passo em `INSTALAR-NO-OPERA.txt`.
 
-A versão 1.1.0 adiciona transições de fade, botões com movimento elástico ao acompanhar o mouse e uma bolinha branca arrastável na barra de tempo. As animações respeitam a preferência do sistema por movimento reduzido.
+A versão 1.2.0 mantém as animações e passa a salvar os favoritos por endereço no armazenamento local, mesmo após reiniciar o navegador. Também oferece backup e restauração de favoritos, histórico e configurações. As animações respeitam a preferência do sistema por movimento reduzido.
 
 ## Como usar
 
 - **Visão geral:** veja as abas de todas as janelas, busque pelo título ou site, abra uma aba, favorite e pause ou retome a limpeza.
-- **Favoritos:** uma aba com estrela nunca é fechada automaticamente. A proteção acompanha a aba ao navegar para outros sites e dura até fechar a aba, encerrar a sessão do navegador ou recarregar a extensão. As configurações e o histórico ficam salvos.
-- **Configurações:** escolha um tempo predefinido, use o controle de 1 a 240 minutos ou digite até 1.440 minutos. O mínimo de 1 minuto é aplicado também na lógica de limpeza.
+- **Favoritos:** um site com estrela fica salvo permanentemente no navegador; abas favoritas abertas ficam protegidas da limpeza. Após reiniciar, você pode reabrir sites favoritos pelo painel.
+- **Configurações:** escolha um tempo predefinido, use o controle de 1 a 240 minutos ou digite até 1.440 minutos. Exporte um backup JSON e restaure-o se precisar reinstalar a extensão.
 - **Histórico:** consulte os títulos e horários das últimas 30 abas fechadas automaticamente. Limpar o histórico não zera o contador total de abas fechadas.
 
 ## Regras de proteção e tempo
@@ -40,7 +40,7 @@ Desafixar uma aba, encerrar o áudio, remover a estrela, mudar o tempo ou retoma
 ## Privacidade e permissões
 
 - `tabs`: lê títulos, endereços e estado das abas; permite ativar e fechar abas.
-- `storage`: armazena configurações, contagens e favoritos da sessão e o histórico local.
+- `storage`: armazena configurações, contagens, favoritos por URL e histórico local; temporizadores das abas permanecem na sessão.
 - `alarms`: agenda as verificações.
 
 Não há rastreamento, fontes externas, solicitações de ícones a sites, scripts injetados em páginas ou servidores externos. Títulos e endereços são exibidos como texto, nunca como HTML.
@@ -71,4 +71,10 @@ O teste completo `python tests/browser_smoke.py` usa um perfil descartável e p�
 python scripts/package.py
 ```
 
-O arquivo é criado em `artifacts/DuckCleans-1.1.0.zip`. Extraia o ZIP antes de usar **Carregar sem compactação** no Opera.
+O arquivo é criado em `artifacts/DuckCleans-1.2.0.zip`. Extraia o ZIP antes de usar **Carregar sem compactação** no Opera.
+
+## Persistência e limites
+
+Os favoritos são salvos por URL sem fragmento (o mesmo site com parâmetros diferentes pode gerar favoritos distintos). O histórico das últimas 30 abas fechadas pela extensão já usa `chrome.storage.local`. Reiniciar o computador com o mesmo perfil do Opera deve preservar esses dados. Limpar os dados da extensão, criar outro perfil, removê-la ou reinstalá-la como uma nova extensão pode perder os dados locais; por isso exporte o backup antes.
+
+Os favoritos da versão 1.1.0 ainda presentes na sessão são migrados no primeiro carregamento da 1.2.0; favoritos já perdidos antes da atualização não podem ser reconstruídos automaticamente. Um backup é um arquivo JSON que guarda os URLs dos sites favoritos e os títulos do histórico: mantenha-o em local privado.
