@@ -1,9 +1,0 @@
-.venv/
-tools/
-__pycache__/
-.pytest_cache/
-*.pyc
-artifacts/
-
-instalacao.log
-inicializacao.log

@@ -1,6 +1,0 @@
-"""Double-click with the official Python 3.12 launcher; no .cmd is required."""
-
-from scripts.bootstrap import main
-
-if __name__ == "__main__":
-    raise SystemExit(main())
