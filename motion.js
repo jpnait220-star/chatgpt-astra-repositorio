@@ -1,4 +1,4 @@
-// DuckCleans 1.3 — magnetic effects with slow return on release and leave.
+// DuckCleans 1.3.2 — magnetic effects with slow return on release and leave.
 // This module intentionally changes presentation only.
 const reduced=matchMedia('(prefers-reduced-motion:reduce)');
 const fine=matchMedia('(pointer:fine) and (hover:hover)');
@@ -27,11 +27,11 @@ function paint(){
  const x=Math.max(-1,Math.min(1,(point.x-r.left-r.width/2)/(r.width/2)));
  const y=Math.max(-1,Math.min(1,(point.y-r.top-r.height/2)/(r.height/2)));
  const isCard=active.classList.contains('stat');
- active.style.setProperty('--magnet-x',(x*(isCard?1.5:4)).toFixed(2)+'px');
- active.style.setProperty('--magnet-y',(y*(isCard?1.5:2.6)).toFixed(2)+'px');
+ active.style.setProperty('--magnet-x',(x*(isCard?2.2:5.5)).toFixed(2)+'px');
+ active.style.setProperty('--magnet-y',(y*(isCard?2.2:3.6)).toFixed(2)+'px');
  if(isCard) {
-  active.style.setProperty('--tilt-x',(-y*1.8).toFixed(2)+'deg');
-  active.style.setProperty('--tilt-y',(x*1.8).toFixed(2)+'deg');
+  active.style.setProperty('--tilt-x',(-y*2.4).toFixed(2)+'deg');
+  active.style.setProperty('--tilt-y',(x*2.4).toFixed(2)+'deg');
  }
 }
 function requestPaint(p){
