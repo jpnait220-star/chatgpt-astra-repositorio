@@ -17,11 +17,11 @@ def test_bitrate_api_accepts_new_setting():
 
 def test_fresh_version_and_brand_asset():
     root = Path(__file__).resolve().parents[1]
-    assert __version__ == "0.5.0"
+    assert __version__ == "0.5.1"
     with Image.open(root / "duckcapture" / "assets" / "brand-icon.png") as icon:
         assert icon.mode == "RGBA" and icon.size == (400, 400)
         assert icon.getbbox()
-    assert "0.5.0" in (root / "installer" / "DuckCapture.iss").read_text("utf-8")
+    assert "0.5.1" in (root / "installer" / "DuckCapture.iss").read_text("utf-8")
     assert "brand-icon.png" in (root / "duckcapture" / "app.py").read_text("utf-8")
 
 

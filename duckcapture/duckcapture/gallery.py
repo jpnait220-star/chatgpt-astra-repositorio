@@ -160,12 +160,26 @@ class GalleryPage(Page):
         actions = QHBoxLayout()
         actions.addWidget(button("Reproduzir / ver", self.open_selected, True))
         actions.addWidget(button("Editar selecionado", self.edit_selected))
+        actions.addWidget(button("Criar link", self.share_selected))
         actions.addStretch()
         self.body.addLayout(actions)
         self.timer = QTimer(self)
         self.timer.setInterval(400)
         self.timer.timeout.connect(self.next_thumbnail)
         self.timer.start()
+
+    def share_selected(self):
+        path = self.selected()
+        if not path or not Path(path).is_file():
+            self.notify("Selecione um clipe para criar o link.")
+            return
+        if Path(path).suffix.lower() != '.mp4':
+            self.notify("Selecione um clipe MP4. Prints não são enviados por este botão.")
+            return
+        from .sharing import ShareDialog
+        dialog = ShareDialog(path, self)
+        dialog.exec()
+        dialog.deleteLater()
 
     def refresh(self, snapshot):
         selected = self.selected()

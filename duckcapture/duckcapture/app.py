@@ -39,7 +39,6 @@ from .visuals import (
     icon as vector_icon,
     motion_enabled,
     ExpandButton,
-    StudioBackground,
     FadeNavButton,
 )
 from .window_picker import WindowPicker, WindowCombo
@@ -51,7 +50,8 @@ from .capture import CaptureEngine
 from .windows import IS_WINDOWS, list_windows, Hotkeys, InputSampler
 from .music import MusicPage
 from .hud_editor import HudEditor
-from .fold_hover import add_fold_hover
+from .fold_hover import add_fold_hover, install_interactive_motion
+from .wallpaper import VideoBackground
 from .editor import EditorPage
 from .color_picker import ColorDialog
 from .typography import install_font
@@ -66,6 +66,7 @@ class MainWindow(QMainWindow):
         if not hasattr(app, '_duck_popup_rounder'):
             app._duck_popup_rounder = PopupRounder(app)
             app.installEventFilter(app._duck_popup_rounder)
+        install_interactive_motion()
         self.settings = settings or Settings.load()
         QApplication.instance().setProperty("duckMotion", self.settings.motion)
         QApplication.instance().setProperty("duckAccent", self.settings.accent_color)
@@ -84,7 +85,10 @@ class MainWindow(QMainWindow):
         self.inputs = InputSampler()
         self.hud_sampling = False
         self.last_toast = ""
-        shell = StudioBackground()
+        shell = VideoBackground()
+        self.wallpaper = shell
+        shell.dim = self.settings.wallpaper_dim
+        shell.failed.connect(self.notify)
         shell.setObjectName("shell")
         self.setCentralWidget(shell)
         row = QHBoxLayout(shell)
@@ -128,10 +132,10 @@ class MainWindow(QMainWindow):
             nav.addWidget(b, 0, Qt.AlignmentFlag.AlignLeft)
             self.nav[index] = b
         nav.addStretch()
-        nav.addWidget(label("LOCAL. PRIVADO. SEU.", "eyebrow"))
+        nav.addWidget(label("SEUS MOMENTOS. SEU CONTROLE.", "eyebrow"))
         nav.addWidget(
             label(
-                "Seus clipes ficam no PC.\nSpotify conecta ao serviço ao carregar o player.",
+                "Clipes ficam no PC. Só vão ao Catbox quando você escolhe criar um link.",
                 "muted",
                 True,
             )
@@ -221,6 +225,7 @@ class MainWindow(QMainWindow):
         self._preview_tick = 0
         self._last_preview_source = None
         self._status_tick = 0
+        self.wallpaper.set_video(self.settings.wallpaper_path)
 
     def make_topbar(self):
         bar = QFrame()
@@ -606,6 +611,28 @@ class MainWindow(QMainWindow):
         color_controls.addWidget(self.accent_options, 1)
         color_controls.addWidget(button("Escolher qualquer cor", self.choose_accent))
         picker.addLayout(color_controls)
+        picker.addWidget(label("PAPEL DE PAREDE EM VÍDEO", "eyebrow"))
+        self.wallpaper_name = label(Path(self.settings.wallpaper_path).name if self.settings.wallpaper_path else "Nenhum vídeo selecionado", "muted", True)
+        picker.addWidget(self.wallpaper_name)
+        wallpaper_actions = QHBoxLayout()
+        wallpaper_actions.addWidget(button("Escolher vídeo em loop", self.choose_wallpaper))
+        wallpaper_actions.addWidget(button("Remover vídeo", lambda: self.set_wallpaper("")))
+        picker.addLayout(wallpaper_actions)
+        picker.addWidget(label("Sem som. Pausa durante a captura, ao minimizar e com animações desativadas. Prefira vídeos curtos em 720p ou 1080p.", "tiny", True))
+        wallpaper_dim = QSlider(Qt.Orientation.Horizontal)
+        wallpaper_dim.setRange(35, 95)
+        wallpaper_dim.setValue(self.settings.wallpaper_dim)
+        wallpaper_dim.setAccessibleName("Escurecer papel de parede")
+        dim_text = label(f"Escurecer fundo: {wallpaper_dim.value()}%", "muted")
+        def dim_background(value):
+            self.settings.wallpaper_dim = value
+            self.wallpaper.dim = value
+            self.wallpaper.update()
+            dim_text.setText(f"Escurecer fundo: {value}%")
+            self.save_settings()
+        wallpaper_dim.valueChanged.connect(dim_background)
+        picker.addWidget(dim_text)
+        picker.addWidget(wallpaper_dim)
         page.body.addWidget(colors)
         sound_card = card()
         sound_body = QVBoxLayout(sound_card)
@@ -626,6 +653,14 @@ class MainWindow(QMainWindow):
         sound_row.addWidget(sound_level)
         sound_row.addWidget(button("Ouvir som", self.sounds.queued_clip))
         sound_body.addLayout(sound_row)
+        self.clip_chime_check = QCheckBox("Incluir este som perto do final dos clipes salvos")
+        self.clip_chime_check.setChecked(self.settings.clip_end_sound)
+        def set_clip_chime(value):
+            self.settings.clip_end_sound = value
+            self.save_settings()
+        self.clip_chime_check.toggled.connect(set_clip_chime)
+        sound_body.addWidget(self.clip_chime_check)
+        sound_body.addWidget(label("Misturado ao áudio do jogo, com o volume acima. A opção também adiciona o som a gravações sem áudio do PC.", "tiny", True))
         page.body.addWidget(sound_card)
         row = QHBoxLayout()
         row.addWidget(button("Abrir dados e logs", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))))
@@ -635,6 +670,17 @@ class MainWindow(QMainWindow):
         page.body.addLayout(row)
         page.body.addStretch()
         return page
+
+    def choose_wallpaper(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Escolher vídeo de fundo", "", "Vídeos (*.mp4 *.webm *.mkv *.mov)")
+        if path:
+            self.set_wallpaper(path)
+
+    def set_wallpaper(self, path):
+        self.settings.wallpaper_path = path
+        self.wallpaper.set_video(path)
+        self.wallpaper_name.setText(Path(path).name if path else "Nenhum vídeo selecionado")
+        self.save_settings()
 
     def save_settings(self):
         try:
@@ -786,6 +832,7 @@ class MainWindow(QMainWindow):
             self.notify(str(error))
 
     def tick(self):
+        self.wallpaper.set_blocked(self.engine.active or self.engine.starting or not self.isVisible() or self.isMinimized() or not self.settings.motion)
         while True:
             try:
                 kind, message = self.engine.events.get_nowait()
@@ -930,8 +977,6 @@ class MainWindow(QMainWindow):
                 self.isVisible()
                 and motion_enabled()
                 and previous != index
-                and previous not in (2, 4)
-                and index not in (2, 4)
             )
             else None
         )
@@ -948,7 +993,7 @@ class MainWindow(QMainWindow):
             effect = QGraphicsOpacityEffect(overlay)
             overlay.setGraphicsEffect(effect)
             self.fade_animation = QPropertyAnimation(effect, b"opacity", overlay)
-            self.fade_animation.setDuration(190)
+            self.fade_animation.setDuration(320)
             self.fade_animation.setStartValue(1.0)
             self.fade_animation.setEndValue(0.0)
             self.fade_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -1222,6 +1267,7 @@ class MainWindow(QMainWindow):
             ):
                 event.ignore()
                 return
+        self.wallpaper.player.stop()
         self.timer.stop()
         self.input_timer.stop()
         self.music.player.stop()

@@ -53,6 +53,9 @@ class Settings:
     motion: bool = True
     notification_sounds: bool = True
     notification_volume: float = .82
+    clip_end_sound: bool = True
+    wallpaper_path: str = ""
+    wallpaper_dim: int = 72
     accent_color: str = "#f4f6fb"
     performance_mode: bool = True
     fullscreen_compatibility: bool = True
@@ -94,6 +97,12 @@ class Settings:
             settings.accent_color = "#f4f6fb"  # Migrate old default cyan to new white
         if not isinstance(settings.notification_volume, (int, float)) or not 0 <= settings.notification_volume <= 1:
             settings.notification_volume = .82
+        if not isinstance(settings.wallpaper_path, str):
+            settings.wallpaper_path = ""
+        if not isinstance(settings.wallpaper_dim, int) or not 35 <= settings.wallpaper_dim <= 95:
+            settings.wallpaper_dim = 72
+        if not isinstance(settings.clip_end_sound, bool):
+            settings.clip_end_sound = True
         settings.system_audio = settings.audio_mode != "Sem áudio"
         import re
         if not isinstance(settings.accent_color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", settings.accent_color):

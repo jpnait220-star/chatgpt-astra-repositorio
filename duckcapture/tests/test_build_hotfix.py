@@ -46,7 +46,7 @@ def test_inno_receives_stage_and_corrected_filename(tmp_path):
     source = tmp_path / "stage space" / "dist" / "DuckCapture"
     builder.compile_installer("ISCC.exe", source)
     assert "/DDuckCaptureSource=" + str(source) in seen
-    assert "/FDuckCapture-Setup-0.5.0" in seen
+    assert "/FDuckCapture-Setup-0.5.1" in seen
     iss = (Path(__file__).resolve().parents[1] / "installer" / "DuckCapture.iss").read_text(encoding="utf-8")
     assert 'Source: "{#DuckCaptureSource}\\*"' in iss
     assert 'Source: "..\\.build\\dist\\DuckCapture\\*"' not in iss

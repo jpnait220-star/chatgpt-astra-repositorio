@@ -30,7 +30,7 @@ VENV_HOME = Path(os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()) / "Duc
 ENV_POINTER = BUILD / "active-environment.txt"
 VENV = VENV_HOME / "not-selected"
 PY = VENV / "Scripts" / "python.exe"
-OUTPUT = ROOT / "installer_saida" / "DuckCapture-Setup-0.5.0.exe"
+OUTPUT = ROOT / "installer_saida" / "DuckCapture-Setup-0.5.1.exe"
 LOG = ROOT / "erro-build.log"
 
 
@@ -127,7 +127,7 @@ def _compatible_previous_environment(candidate: Path) -> bool:
     if not exe.is_file() or not (candidate / "pyvenv.cfg").is_file():
         return False
     # Keep this independent from pip. Failed pip updates are the reason that
-    # creating a new 0.5.0 environment is currently blocked on some systems.
+    # creating a new 0.5.1 environment is currently blocked on some systems.
     probe = r"""
 import importlib.metadata as md
 import sys
@@ -296,7 +296,7 @@ def make_windows_exe():
         if not list(output.rglob(binary)):
             raise RuntimeError("O executável gerado não contém " + binary)
     print("Executável e FFmpeg incluídos no pacote isolado.", flush=True)
-    (stage / "duckcapture.version").write_text("0.5.0", encoding="utf-8")
+    (stage / "duckcapture.version").write_text("0.5.1", encoding="utf-8")
     return output, stage
 
 
@@ -309,7 +309,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-winget", action="store_true", help="For CI: do not install Inno Setup")
     args = parser.parse_args()
-    LOG.write_text("DuckCapture 0.5.0 - log de geração do instalador (venv antigo validado ou novo ambiente isolado)\n", encoding="utf-8")
+    LOG.write_text("DuckCapture 0.5.1 - log de geração do instalador (venv antigo validado ou novo ambiente isolado)\n", encoding="utf-8")
     if os.name != "nt":
         raise RuntimeError("A geração do .exe precisa ser executada em Windows 10/11 x64.")
     if sys.version_info[:2] != (3, 12) or sys.maxsize <= 2**32:

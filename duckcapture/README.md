@@ -1,12 +1,12 @@
-# DuckCapture 0.5.0
+# DuckCapture 0.5.1
 
 Clipador para Windows 10/11 de 64 bits. Interface em português, tema escuro, fonte Manrope, detalhes claros e menus arredondados.
 
 ## Abrir
 
-O instalador pronto, quando disponível, fica em [Downloads no GitHub](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/DuckCapture-v0.5.0). Instale `DuckCapture-Setup-0.5.0.exe` e abra pelo atalho DuckCapture.
+O instalador pronto, quando disponível, fica em [Downloads no GitHub](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/DuckCapture-v0.5.1). Instale `DuckCapture-Setup-0.5.1.exe` e abra pelo atalho DuckCapture.
 
-Este ZIP contém o projeto e o gerador do instalador. Extraia a pasta inteira. Para gerar o Setup em um Windows com Python 3.12 x64, execute `CRIAR-INSTALADOR.bat`. O resultado fica em `installer_saida/DuckCapture-Setup-0.5.0.exe`. Também é possível executar o projeto com `Abrir DuckCapture.py`; a primeira abertura instala as dependências e o FFmpeg.
+Este ZIP contém o projeto e o gerador do instalador. Extraia a pasta inteira. Para gerar o Setup em um Windows com Python 3.12 x64, execute `CRIAR-INSTALADOR.bat`. O resultado fica em `installer_saida/DuckCapture-Setup-0.5.1.exe`. Também é possível executar o projeto com `Abrir DuckCapture.py`; a primeira abertura instala as dependências e o FFmpeg.
 
 ## O que mudou
 
@@ -35,3 +35,10 @@ Na biblioteca, abra um clipe no editor. A prévia mostra o vídeo original com c
 
 `python -m pip install -r requirements-dev.txt` e `python -m pytest -q`.
 O aplicativo usa Python 3.12, PySide6 e FFmpeg. Captura e controle de sessões Spotify dependem do Windows. As verificações e seus limites estão em [VALIDACAO.md](VALIDACAO.md). Licenças: [THIRD-PARTY.md](THIRD-PARTY.md).
+
+## Novidades da versão 0.5.1
+
+- Efeito de perspectiva nos botões e seletores, retorno suave de 650 ms e pulso ao clicar. O fade de navegação também cobre Editor e Música.
+- Configurações → Aparência → Escolher vídeo em loop: papel de parede local sem som, com escurecimento ajustável. Pausa durante captura, ao minimizar e com animações desligadas.
+- Todos os clipes → selecionar um MP4 → Criar link: envio manual ao Catbox, com progresso, cancelamento e histórico local do link. Limite conservador de 200 MB por arquivo. O vídeo fica público em serviço externo; não há exclusão remota pelo DuckCapture. A prévia no Discord depende das regras e configurações dele.
+- Configurações → Som do clipe: opção para misturar o som de confirmação no final dos novos clipes, com o volume escolhido e sem aumentar a duração do vídeo. Funciona também sem áudio do PC.

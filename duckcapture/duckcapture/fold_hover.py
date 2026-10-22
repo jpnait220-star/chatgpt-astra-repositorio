@@ -2,7 +2,7 @@
 from __future__ import annotations
 from PySide6.QtCore import QObject, Qt, QRectF, QPoint, QPointF, QEvent, QVariantAnimation, QEasingCurve, QModelIndex
 from PySide6.QtGui import QColor, QPainter, QPixmap, QPainterPath, QRadialGradient, QPen, QPolygonF, QTransform
-from PySide6.QtWidgets import QWidget, QApplication, QGraphicsEffect, QStyledItemDelegate, QStyleOptionViewItem
+from PySide6.QtWidgets import QWidget, QApplication, QGraphicsEffect, QStyledItemDelegate, QStyleOptionViewItem, QAbstractButton, QComboBox, QAbstractSpinBox
 
 
 def motion_enabled():
@@ -137,18 +137,25 @@ class FoldController(QObject):
                 point = self.target.mapFromGlobal(self.target.cursor().pos())
             self.pointer = QPointF(point)
             if self.item_view is not None:
-                self.hovered = self.item_view.indexAt(point)
-                self.switch(self.hovered.isValid())
+                index = self.item_view.indexAt(point)
+                if index.isValid():
+                    self.hovered = index
+                self.switch(index.isValid())
             else:
                 self.switch(self.target.rect().contains(point))
             self.repaint()
-        elif kind in (QEvent.Type.Leave, QEvent.Type.Hide) and watched is self.target:
+        elif kind == QEvent.Type.Hide and watched is self.target:
+            self.reset()
+        elif kind == QEvent.Type.Leave and watched is self.target:
             self.switch(False)
+        elif kind == QEvent.Type.EnabledChange and not self.target.isEnabled():
+            self.reset()
         elif kind == QEvent.Type.Wheel:
             self.switch(False)
         return False
 
     def switch(self, active):
+        active = active and self.target.isEnabled()
         if active == self.active:
             return
         self.active = active
@@ -158,6 +165,8 @@ class FoldController(QObject):
             return
         self.anim.setStartValue(self.opacity)
         self.anim.setEndValue(float(active))
+        self.anim.setDuration(200 if active else 650)
+        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic if active else QEasingCurve.Type.InOutCubic)
         self.anim.start()
 
     def reset(self):
@@ -185,3 +194,19 @@ def add_fold_hover(widget, item_view=None):
         existing = FoldController(target, item_view)
         widget._duck_fold_overlay = existing
     return existing
+
+
+class InteractiveMotion(QObject):
+    """Include controls created later in dialogs, without affecting video surfaces."""
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Type.Show and isinstance(watched, (QAbstractButton, QComboBox, QAbstractSpinBox)):
+            if watched.graphicsEffect() is None:
+                add_fold_hover(watched)
+        return False
+
+
+def install_interactive_motion():
+    app = QApplication.instance()
+    if not hasattr(app, '_duck_interactive_motion'):
+        app._duck_interactive_motion = InteractiveMotion(app)
+        app.installEventFilter(app._duck_interactive_motion)

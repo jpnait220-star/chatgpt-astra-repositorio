@@ -71,7 +71,7 @@ def test_navigation_interrupts_fades_and_editor_rejects_inverted_trim(tmp_path, 
         for index in [1, 5, 6, 0, 1, 0]:
             window.navigate(index)
             APP.processEvents()
-        QTest.qWait(240)
+        QTest.qWait(450)
         overlays = window.stack.findChildren(QLabel, options=Qt.FindChildOption.FindDirectChildrenOnly)
         assert not any(overlay.isVisible() for overlay in overlays)
         assert isinstance(window.stack.currentWidget().verticalScrollBar(), RoundScrollBar)

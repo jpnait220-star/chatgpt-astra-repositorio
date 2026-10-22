@@ -8,7 +8,6 @@ from PySide6.QtCore import (
     QSize,
     QEvent,
     QVariantAnimation,
-    QPropertyAnimation,
     QEasingCurve,
     QByteArray,
 )
@@ -25,7 +24,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtSvg import QSvgRenderer
 from .theme import current_palette
-from PySide6.QtWidgets import QApplication, QPushButton, QFrame, QLabel, QWidget, QGraphicsOpacityEffect
+from PySide6.QtWidgets import QApplication, QPushButton, QFrame, QLabel, QWidget
 
 
 PATHS = {
@@ -69,32 +68,8 @@ def icon(name, color="#c4c6d0"):
 
 
 class FadeNavButton(QPushButton):
-    """Subtle opacity transitions on hover without any idle render loop."""
-    def __init__(self, text, parent=None):
-        super().__init__(text, parent)
-        self.effect = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self.effect)
-        self.effect.setOpacity(0.78)
-        self.fade = QPropertyAnimation(self.effect, b"opacity", self)
-        self.fade.setDuration(165)
-        self.fade.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-    def transition(self, opacity):
-        self.fade.stop()
-        if not motion_enabled():
-            self.effect.setOpacity(opacity)
-            return
-        self.fade.setStartValue(self.effect.opacity())
-        self.fade.setEndValue(opacity)
-        self.fade.start()
-
-    def enterEvent(self, event):
-        self.transition(1.0)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        self.transition(0.78)
-        super().leaveEvent(event)
+    """Uses the same perspective and slow return as every clickable control."""
+    pass
 
 
 def motion_enabled():
@@ -148,6 +123,7 @@ class GlowButton(QPushButton):
             self.hover = target
             self.update()
             return
+        self.hover_animation.setDuration(180 if target else 650)
         self.hover_animation.setStartValue(self.hover)
         self.hover_animation.setEndValue(target)
         self.hover_animation.start()
@@ -206,7 +182,12 @@ class GlowButton(QPushButton):
             shine.setColorAt(1, QColor(255, 255, 255, 0))
             painter.fillRect(rect, shine)
         if self.press:
-            painter.fillRect(rect, QColor(255, 255, 255, round(45 * self.press)))
+            radius = max(8, (1 - self.press) * max(self.width(), self.height()) * 1.4)
+            ripple = QRadialGradient(self.pointer, radius)
+            ripple.setColorAt(0, QColor(255, 255, 255, round(12 * self.press)))
+            ripple.setColorAt(.72, QColor(255, 255, 255, round(65 * self.press)))
+            ripple.setColorAt(1, QColor(255, 255, 255, 0))
+            painter.fillRect(rect, ripple)
         painter.restore()
         edge = QColor(
             colors["bright"]

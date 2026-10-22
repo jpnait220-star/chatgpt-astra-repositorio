@@ -1,5 +1,5 @@
 #define AppName "DuckCapture"
-#define AppVersion "0.5.0"
+#define AppVersion "0.5.1"
 #define AppExe "DuckCapture.exe"
 
 #ifndef DuckCaptureSource

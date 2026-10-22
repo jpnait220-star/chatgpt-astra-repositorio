@@ -16,7 +16,7 @@ def find_completed_build():
     for entry in [*BUILD.glob("stage-*/dist/DuckCapture"),
                   *STAGE_ROOT.glob("stage-*/dist/DuckCapture")]:
         version_file = entry.parent.parent / "duckcapture.version"
-        if not version_file.is_file() or version_file.read_text(encoding="utf-8").strip() != "0.5.0":
+        if not version_file.is_file() or version_file.read_text(encoding="utf-8").strip() != "0.5.1":
             continue
         executable = entry / "DuckCapture.exe"
         if not executable.is_file():

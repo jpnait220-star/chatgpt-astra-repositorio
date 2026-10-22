@@ -1,4 +1,4 @@
-# DuckCapture 0.5.0
+# DuckCapture 0.5.1
 
 Veja [COMECE-AQUI.txt](COMECE-AQUI.txt) para abrir e [README.md](README.md) para os recursos, Spotify, captura e editor.
 

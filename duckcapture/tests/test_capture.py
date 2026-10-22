@@ -207,7 +207,8 @@ def wait_for(predicate, engine, timeout=10):
         time.sleep(0.025)
 
 
-def test_live_writer_saves_real_clip_despite_audio_start_failure(tmp_path, monkeypatch):
+@pytest.mark.parametrize("chime", [False, True])
+def test_live_writer_saves_real_clip_despite_audio_start_failure(tmp_path, monkeypatch, chime):
     from duckcapture import capture
 
     class UnavailableAudio:
@@ -226,6 +227,7 @@ def test_live_writer_saves_real_clip_despite_audio_start_failure(tmp_path, monke
         duration=15,
         encoder="libx264",
         system_audio=True,
+        clip_end_sound=chime,
         clips_dir=str(tmp_path / "clips"),
     )
     try:
@@ -233,7 +235,7 @@ def test_live_writer_saves_real_clip_despite_audio_start_failure(tmp_path, monke
         wait_for(lambda: engine.active and engine.elapsed >= 2.3, engine)
         output = engine.save_clip().result(timeout=12)
         info = media.probe(output)
-        assert not info.audio
+        assert info.audio == chime
         assert 2.2 <= info.duration <= 3.0
         assert info.width == 160 and info.height == 90
         events = list(engine.events.queue)

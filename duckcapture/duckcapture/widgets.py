@@ -70,7 +70,7 @@ def button(text, callback=None, primary=False):
         if glyph in clean:
             clean = clean.replace(glyph, '').strip()
             symbol = name
-    for prefix, name in [('Importar', 'folder'), ('+ Importar', 'folder'), ('Exportar', 'export'), ('Desfazer', 'undo'), ('Dividir', 'editor'), ('Remover', 'trash'), ('Colar link', 'link')]:
+    for prefix, name in [('Importar', 'folder'), ('+ Importar', 'folder'), ('Exportar', 'export'), ('Desfazer', 'undo'), ('Dividir', 'editor'), ('Remover', 'trash'), ('Colar link', 'link'), ('Criar link', 'link')]:
         if clean.startswith(prefix):
             symbol = name
             clean = clean.removeprefix('+ ')
@@ -120,7 +120,8 @@ class Page(QWidget):
 STYLE = """
 * { font-family: "Manrope"; font-size: 13px; color: #eef0f6; }
 QWidget { background: transparent; }
-QMainWindow, QWidget#shell, QFrame#workspace { background: #030405; }
+QMainWindow { background: #030405; }
+QWidget#shell, QFrame#workspace { background: transparent; }
 QDialog { background: #08090c; }
 QFrame#sidebar { background: #08090b; border-right: 1px solid #1c1e24; }
 QFrame#topbar { background: #07080b; border-bottom: 1px solid #1c1e24; }

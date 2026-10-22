@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from PIL import Image
 from .audio import AudioRing
+from .clip_sound import mix_clip_chime
 from .frame_pacer import SourceFramePacer, FrameWaiter
 from .config import Settings, atomic_json, data_dir
 from .hud import write_hud, copy_fonts
@@ -828,6 +829,8 @@ class CaptureEngine:
                 self.audio.snapshot(epoch + start, epoch + end) if self.audio else None
             )
             if hud_settings is not None:
+                settings.clip_end_sound = hud_settings.clip_end_sound
+                settings.notification_volume = hud_settings.notification_volume
                 settings.hud_enabled = hud_settings.hud_enabled
                 settings.hud = copy.deepcopy(hud_settings.hud)
         self.events.put((
@@ -872,6 +875,11 @@ class CaptureEngine:
             ]
             if audio:
                 audio.write(temp / "audio.wav", epoch + start, epoch + end)
+            chime = settings.clip_end_sound and settings.notification_volume > 0
+            if chime:
+                mix_clip_chime(temp / "audio.wav", duration, settings.notification_volume)
+            has_audio = audio is not None or chime
+            if has_audio:
                 args += ["-i", "audio.wav"]
             # Decode before trimming: a frozen live MKV may not have a seek
             # index, and input -ss can silently produce an empty MP4.
@@ -904,7 +912,7 @@ class CaptureEngine:
                             "Uma imagem do HUD foi movida. Escolha a imagem novamente no editor de HUD."
                         )
                     args += ["-loop", "1", "-i", str(path.resolve())]
-                    slot = i + (2 if audio else 1)
+                    slot = i + (2 if has_audio else 1)
                     w = max(
                         24,
                         round(self.output_size[0] * 0.15 * float(item.get("scale", 1))),
@@ -923,7 +931,7 @@ class CaptureEngine:
                 if filters:
                     args += ["-vf", ",".join(filters)]
                 args += ["-map", "0:v:0"]
-            if audio:
+            if has_audio:
                 args += ["-map", "1:a:0", "-c:a", "aac", "-b:a", "160k"]
             else:
                 args += ["-an"]
@@ -938,7 +946,7 @@ class CaptureEngine:
             self.media.run(args, cwd=temp)
             verified = self.media.probe(temp / "clip.mp4")
             if abs(verified.duration - duration) > max(0.15, 2 / settings.fps) or (
-                audio is not None and not verified.audio
+                has_audio and not verified.audio
             ):
                 raise MediaError(
                     "A exportação não contém toda a duração ou o áudio esperado. Confira o diagnóstico em duckcapture.log."
@@ -954,7 +962,9 @@ class CaptureEngine:
                     duration=duration,
                     fps=settings.fps,
                     quality=settings.quality,
-                    audio=audio is not None,
+                    audio=has_audio,
+                    system_audio=audio is not None,
+                    clip_end_sound=chime,
                     hud=settings.hud if settings.hud_enabled else [],
                     inputs=samples,
                 ),

@@ -41,9 +41,21 @@ def check_installation(app, output):
             try:
                 window.resize(1360, 930)
                 window.show()
-                for _ in range(25):
+                window.wallpaper.set_video(str(clip))
+                window.wallpaper.set_blocked(False)
+                for _ in range(150):
                     app.processEvents()
                     QThread.msleep(20)
+                    if not window.wallpaper.frame.isNull():
+                        break
+                result['wallpaper_decoded'] = not window.wallpaper.frame.isNull()
+                assert result['wallpaper_decoded'], 'O vídeo de fundo não produziu imagens.'
+                window.wallpaper.set_blocked(True)
+                from .sharing import ShareDialog
+                share = ShareDialog(clip, window)
+                result['sharing_dialog'] = share.reply is None
+                share.reject()
+                share.deleteLater()
                 window.grab().save(str(output.with_suffix('.png')))
                 result['window_created'] = window.isVisible()
                 result['pages'] = window.stack.count()
