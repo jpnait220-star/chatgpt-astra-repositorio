@@ -1,13 +1,13 @@
 name: DuckCapture Windows
 on:
   push:
-    branches: [duckcapture-0.5.1]
+    branches: [duckcapture-0.5.2]
     paths: ['duckcapture/**', '.github/workflows/duckcapture-windows.yml']
   workflow_dispatch:
 permissions:
   contents: write
 concurrency:
-  group: duckcapture-windows-051
+  group: duckcapture-windows-052
   cancel-in-progress: true
 jobs:
   windows:
@@ -37,7 +37,7 @@ jobs:
           from scripts import build_windows as build
           try:
               build.PY = Path(sys.executable)
-              build.LOG.write_text('DuckCapture 0.5.1 / GitHub Windows build\n', encoding='utf-8')
+              build.LOG.write_text('DuckCapture 0.5.2 / GitHub Windows build\n', encoding='utf-8')
               source, stage = build.make_windows_exe()
               report = (build.ROOT / 'installer_saida' / 'verificacao-windows.json').resolve()
               subprocess.run([str(source / 'DuckCapture.exe'), '--check-installation', str(report)], timeout=90, check=True)
@@ -60,19 +60,19 @@ jobs:
           sys.path.insert(0, str(Path.cwd()))
           from scripts.package import package
           package(Path('installer_saida'))
-          exe = Path('installer_saida/DuckCapture-Setup-0.5.1.exe')
+          exe = Path('installer_saida/DuckCapture-Setup-0.5.2.exe')
           exe.with_suffix('.exe.sha256').write_text(hashlib.sha256(exe.read_bytes()).hexdigest()+'  '+exe.name+'\n')
       - name: Publicar downloads
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          gh release view DuckCapture-v0.5.1 *> $null
+          gh release view DuckCapture-v0.5.2 *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create DuckCapture-v0.5.1 --target $env:GITHUB_SHA --title "DuckCapture 0.5.1" --prerelease --notes-file ATUALIZACAO-0.5.1.md
+            gh release create DuckCapture-v0.5.2 --target $env:GITHUB_SHA --title "DuckCapture 0.5.2" --prerelease --notes-file ATUALIZACAO-0.5.2.md
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          gh release upload DuckCapture-v0.5.1 installer_saida/DuckCapture-Setup-0.5.1.exe installer_saida/DuckCapture-Setup-0.5.1.exe.sha256 installer_saida/DuckCapture-0.5.1.zip installer_saida/DuckCapture-0.5.1.zip.sha256 --clobber
+          gh release upload DuckCapture-v0.5.2 installer_saida/DuckCapture-Setup-0.5.2.exe installer_saida/DuckCapture-Setup-0.5.2.exe.sha256 installer_saida/DuckCapture-0.5.2.zip installer_saida/DuckCapture-0.5.2.zip.sha256 --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()

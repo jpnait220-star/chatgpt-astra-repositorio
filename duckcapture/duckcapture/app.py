@@ -89,6 +89,7 @@ class MainWindow(QMainWindow):
         self.wallpaper = shell
         shell.dim = self.settings.wallpaper_dim
         shell.failed.connect(self.notify)
+        shell.preparing.connect(self.notify)
         shell.setObjectName("shell")
         self.setCentralWidget(shell)
         row = QHBoxLayout(shell)
@@ -165,7 +166,7 @@ class MainWindow(QMainWindow):
             self.edit_path,
             self.open_clips,
             self.notify,
-            lambda: self.engine.pending > 0 or self.engine.starting,
+            lambda: self.engine.active or self.engine.pending > 0 or self.engine.starting,
         )
 
         for page in [
@@ -618,7 +619,7 @@ class MainWindow(QMainWindow):
         wallpaper_actions.addWidget(button("Escolher vídeo em loop", self.choose_wallpaper))
         wallpaper_actions.addWidget(button("Remover vídeo", lambda: self.set_wallpaper("")))
         picker.addLayout(wallpaper_actions)
-        picker.addWidget(label("Sem som. Pausa durante a captura, ao minimizar e com animações desativadas. Prefira vídeos curtos em 720p ou 1080p.", "tiny", True))
+        picker.addWidget(label("Vídeos pesados, inclusive 4K, são preparados uma vez para sua tela. Sem som; pausa durante gravação, exportação e ao minimizar. O arquivo original é preservado.", "tiny", True))
         wallpaper_dim = QSlider(Qt.Orientation.Horizontal)
         wallpaper_dim.setRange(35, 95)
         wallpaper_dim.setValue(self.settings.wallpaper_dim)
@@ -832,7 +833,13 @@ class MainWindow(QMainWindow):
             self.notify(str(error))
 
     def tick(self):
-        self.wallpaper.set_blocked(self.engine.active or self.engine.starting or not self.isVisible() or self.isMinimized() or not self.settings.motion)
+        self.wallpaper.set_blocked(self.engine.active or self.engine.starting or self.engine.pending > 0 or not self.isVisible() or self.isMinimized() or not self.settings.motion)
+        if self.stack.currentIndex() == 3 and self.isVisible():
+            state = self.music.hud_state()
+            if state.get('music'):
+                state.update(t=self.engine.elapsed,capture_fps=self.engine.unique_output_fps,
+                             music_phase=(time.monotonic()*48)%360 if state.get('music_playing') else 0)
+                self.hud.set_live_state(state)
         while True:
             try:
                 kind, message = self.engine.events.get_nowait()
@@ -911,7 +918,7 @@ class MainWindow(QMainWindow):
                 min(self.engine.settings.duration, int(self.engine.elapsed))
             )
             self._preview_tick += 1
-            if self.stack.currentIndex() == 1:
+            if self.stack.currentIndex() == 1 and self.isVisible() and not self.isMinimized():
                 with self.engine.lock:
                     pixels = self.engine.latest
                 if pixels is not None and pixels is not self._last_preview_source:
@@ -928,11 +935,15 @@ class MainWindow(QMainWindow):
         self._status_tick += 1
         if self._status_tick >= 10:
             self._status_tick = 0
+            hud_music = any(item.get('kind') == 'music' for item in self.settings.hud)
+            self.music.spotify_panel.desktop.set_active(
+                (hud_music and (self.engine.active and self.settings.hud_enabled or self.stack.currentIndex() == 3))
+                or self.stack.currentIndex() == 4 and self.music.tabs.currentIndex() == 1)
             if self.engine.active:
                 self.top_status.setText("●  Capturando")
                 received = self.engine.source_fps if time.monotonic() - self.engine.last_frame_at < 2.5 else 0
-                self.top_status.setText(f"●  Capturando · {received:.0f} FPS recebidos")
-                self.top_status.setToolTip(f"Imagens recebidas: {received:.1f} FPS. Quadros gravados: {self.engine.output_fps:.1f} FPS. Meta: {self.engine.settings.fps} FPS.")
+                self.top_status.setText(f"●  Capturando · {self.engine.unique_output_fps:.0f} FPS novos")
+                self.top_status.setToolTip(f"Imagens recebidas: {received:.1f} FPS. Imagens novas gravadas: {self.engine.unique_output_fps:.1f} FPS. Saída: {self.engine.output_fps:.1f} FPS. Repetições: {self.engine.repeated_frames}. Meta: {self.engine.settings.fps} FPS.")
             elif self.engine.starting:
                 self.top_status.setText("◌  Preparando gravação")
             else:
@@ -941,11 +952,10 @@ class MainWindow(QMainWindow):
     def sample_inputs(self):
         if self.engine.active and self.settings.hud_enabled:
             self.hud_sampling = True
-            self.engine.sample(
-                self.inputs.sample(
-                    self.engine.hwnd, self.engine.elapsed, self.music_title
-                )
-            )
+            state = self.inputs.sample(self.engine.hwnd, self.engine.elapsed, self.music_title)
+            state.update(self.music.hud_state())
+            state['capture_fps'] = self.engine.unique_output_fps
+            self.engine.sample(state)
         elif self.engine.active and self.hud_sampling:
             # End a held key state when recording of HUD inputs is disabled.
             self.engine.sample(

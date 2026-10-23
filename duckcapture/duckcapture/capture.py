@@ -82,6 +82,9 @@ class CaptureEngine:
         self.fitted_frame = None
         self.source_fps = 0.0
         self.output_fps = 0.0
+        self.unique_output_fps = 0.0
+        self.repeated_frames = 0
+        self.pipe_format = 'bgra'
         self.last_frame_at = 0.0
         self._late_warning_at = 0.0
         self._last_encoded_source = None
@@ -142,6 +145,8 @@ class CaptureEngine:
         self.source_retries = 0
         self.source_fps = 0.0
         self.output_fps = 0.0
+        self.unique_output_fps = 0.0
+        self.repeated_frames = 0
         self.last_frame_at = 0.0
         self._late_warning_at = 0.0
         self._last_encoded_source = None
@@ -161,8 +166,9 @@ class CaptureEngine:
             try:
                 import cv2
                 cv2.setNumThreads(1 if self.settings.performance_mode else 2)
+                self.pipe_format = 'yuv420p'
             except ImportError:
-                pass
+                self.pipe_format = 'bgra'
             self.events.put(("preparing", "Conectando à janela selecionada…"))
             # F11 may already be active when recording starts.
             self._detect_fullscreen(force=True)
@@ -240,7 +246,7 @@ class CaptureEngine:
                 "-f",
                 "rawvideo",
                 "-pix_fmt",
-                "bgra",
+                self.pipe_format,
                 "-s",
                 f"{out_width}x{out_height}",
                 "-r",
@@ -287,6 +293,7 @@ class CaptureEngine:
             )
             self.epoch = time.monotonic()
             rate_started, rate_frames = self.epoch, 0
+            rate_unique, previous_pixels = 0, None
             with self.lock:
                 self.frame_queue.clear()  # Drop frames captured while the encoder/audio were being prepared.
             while not self.done.is_set():
@@ -320,10 +327,17 @@ class CaptureEngine:
                 )
                 self.frames += 1
                 rate_frames += 1
+                if pixels is previous_pixels:
+                    self.repeated_frames += 1
+                else:
+                    rate_unique += 1
+                previous_pixels = pixels
                 now = time.monotonic()
                 if now - rate_started >= 1:
                     self.output_fps = rate_frames / (now - rate_started)
+                    self.unique_output_fps = rate_unique / (now - rate_started)
                     rate_started, rate_frames = now, 0
+                    rate_unique = 0
                 if self.audio and self.audio.error:
                     self.audio_warning = (
                         "O áudio do sistema parou: "
@@ -364,7 +378,7 @@ class CaptureEngine:
                         (data_dir() / "last-encoder.log").write_bytes(stream.read())
                 except OSError:
                     pass
-            if isinstance(error, (BrokenPipeError, OSError)) and process is not None:
+            if process is not None and (isinstance(error, (BrokenPipeError, OSError)) or process.poll() is not None):
                 try:
                     detail = (self.session / "encoder.log").read_text(
                         encoding="utf-8", errors="replace"
@@ -421,6 +435,11 @@ class CaptureEngine:
         # Scaling to the old window size and then again to the output wastes a
         # full resize and several large frame copies on every frame.
         pixels = self._fit_frame(source, out_width, out_height)
+        if self.pipe_format == 'yuv420p':
+            import cv2
+            # 1.5 bytes/pixel instead of 4 in the Python -> FFmpeg pipe.
+            # This uses OpenCV's native SIMD conversion on every GPU vendor.
+            pixels = cv2.cvtColor(pixels, cv2.COLOR_BGRA2YUV_I420)
         self._last_encoded_size = (out_width, out_height)
         self._last_encoded_bytes = memoryview(np.ascontiguousarray(pixels)).cast("B")
         self._last_encoded_source = source
@@ -485,7 +504,7 @@ class CaptureEngine:
                     return
             elif self.is_minimized(self.hwnd):
                 return
-            pixels = frame.frame_buffer.copy()
+            pixels = self._retain_frame(frame)
             if pixels.shape[0] < 2 or pixels.shape[1] < 2:
                 return
             with self.lock:
@@ -517,6 +536,16 @@ class CaptureEngine:
             return
         self.control = control
         self.last_source_attempt = time.monotonic()
+
+    @staticmethod
+    def _retain_frame(frame):
+        buffer = frame.frame_buffer
+        # windows-capture 2.0.1 exposes an owned native mapped-frame buffer;
+        # its NumPy base keeps the mapping alive after the callback returns.
+        # Other producers may reuse their arrays and still need a copy.
+        if type(frame).__module__.split('.')[0] == 'windows_capture' and isinstance(buffer, np.ndarray) and buffer.base is not None:
+            return buffer
+        return buffer.copy()
 
     def _retire_source(self, control, source):
         # Native stop() joins the WGC thread. A GPU mode change can delay that

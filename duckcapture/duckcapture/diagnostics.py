@@ -37,6 +37,25 @@ def check_installation(app, output):
             media.run(['-y', '-f', 'lavfi', '-i', 'color=c=black:s=160x90:r=30', '-t', '0.2', '-c:v', 'libx264', str(clip)])
             assert media.probe(clip).duration > 0
             result['ffmpeg_encode'] = True
+            from .capture import CaptureEngine
+            import numpy as np
+            engine = CaptureEngine(media)
+            engine.pipe_format = 'yuv420p'
+            try:
+                payload = engine._frame_payload(np.zeros((90,160,4),dtype=np.uint8),160,90,160,90)
+                assert len(payload) == 160*90*3//2
+                result['yuv_pipe'] = True
+            finally:
+                engine.shutdown()
+            from .media_jobs import MediaJob
+            job = MediaJob(clip, 'share', limit=100_000)
+            job.start()
+            if not job.wait(30_000):
+                job.cancel()
+                job.wait()
+                raise RuntimeError('A preparação da cópia para link excedeu o prazo.')
+            assert job.result and Path(job.result).stat().st_size <= 100_000
+            result['share_encode'] = True
             window = MainWindow(Settings(clips_dir=str(Path(tmp)/'clips'), music_dir=str(Path(tmp)/'music'), tips=False))
             try:
                 window.resize(1360, 930)

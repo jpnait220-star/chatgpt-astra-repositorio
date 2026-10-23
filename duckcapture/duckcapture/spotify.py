@@ -155,6 +155,8 @@ class SpotifyPanel(QWidget):
             control.setEnabled(not busy and bool(self.desktop_state.get(name, False)))
 
     def desktop_changed(self, state):
+        import time
+        self.desktop_updated_at = time.monotonic()
         from .visuals import icon
         self.desktop_state = state
         self.disc_title.setText(state.get('title', 'Conecte seu Spotify'))

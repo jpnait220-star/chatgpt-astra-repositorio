@@ -1,7 +1,7 @@
 from __future__ import annotations
 import copy
 from PySide6.QtCore import Qt, QRectF, QTimer, QPointF, QVariantAnimation, QEasingCurve
-from PySide6.QtGui import QPen, QColor, QFont, QPainter, QPixmap, QRadialGradient
+from PySide6.QtGui import QPen, QColor, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsObject,
     QScrollArea,
@@ -21,6 +21,8 @@ from PySide6.QtWidgets import (
 )
 from .widgets import Page, Tip, label, button
 from .hud import NAMES, preset
+from .hud_art import SIZES, paint_artwork, color
+from .color_picker import ColorDialog
 from .visuals import ExpandButton
 from PySide6.QtWidgets import QButtonGroup
 
@@ -31,6 +33,7 @@ class HudItem(QGraphicsObject):
     def __init__(self, model, changed):
         super().__init__()
         self.model = model
+        self.image = QPixmap(model.get('path', '')) if model.get('kind') == 'image' else QPixmap()
         self.changed = changed
         self.setFlags(
             QGraphicsItem.GraphicsItemFlag.ItemIsMovable
@@ -58,9 +61,10 @@ class HudItem(QGraphicsObject):
         if not hasattr(self, '_fold_anim'):
             return
         if not motion_enabled():
-            self._fold_changed(target)
+            self._fold_changed(0)
             return
         self._fold_anim.stop()
+        self._fold_anim.setDuration(180 if target else 650)
         self._fold_anim.setStartValue(self._fold)
         self._fold_anim.setEndValue(target)
         self._fold_anim.start()
@@ -85,7 +89,7 @@ class HudItem(QGraphicsObject):
     def boundingRect(self):
         kind = self.model["kind"]
         if kind == "image":
-            image = QPixmap(self.model.get("path", ""))
+            image = self.image
             return QRectF(
                 0,
                 0,
@@ -94,88 +98,45 @@ class HudItem(QGraphicsObject):
                 if not image.isNull()
                 else 90,
             )
-        dimensions = {
-            "keyboard": (86, 116),
-            "mouse": (61, 48),
-            "clicks": (110, 32),
-            "fps": (132, 28),
-            "timer": (64, 28),
-            "music": (220, 32),
-            "cps": (86, 28),
-        }
-        width, height = dimensions.get(kind, (180, 32))
-        return QRectF(0, 0, width, height)
+        width, height = SIZES.get(kind, (300,42))
+        return QRectF(0, 0, width*.75, height*.75)
 
     def paint(self, p, option, widget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         rect = self.boundingRect()
-        kind = self.model["kind"]
-        p.setPen(
-            QPen(
-                QColor("#eef2f8" if self.isSelected() else "#242b37"),
-                2 if self.isSelected() else 1,
-            )
-        )
-        p.setBrush(QColor("#1b202a"))
-        p.drawRoundedRect(rect, 6, 6)
-        if kind == "music" and self._fold > 0.005:
-            px, py = self._fold_pointer.x(), self._fold_pointer.y()
-            x = max(-1, min(1, 2*px/max(1, rect.width()) - 1))
-            y = max(-1, min(1, 2*py/max(1, rect.height()) - 1))
-            grad = QRadialGradient(self._fold_pointer, max(26, rect.width() * .40))
-            grad.setColorAt(0, QColor(255,255,255,round(32 * self._fold)))
-            grad.setColorAt(1, QColor(255,255,255,0))
-            p.fillRect(rect.adjusted(2,2,-2,-2), grad)
-            p.setPen(QPen(QColor(240,244,255,round(170*self._fold)), 1))
-            p.drawLine(QPointF(rect.width()/2, 1), QPointF(rect.width()/2+3*x, 1))
-            p.drawLine(QPointF(1, rect.height()/2), QPointF(1, rect.height()/2+2*y))
-        p.setFont(QFont("Manrope", 10))
-        if kind in ("keyboard", "mouse"):
-            cells = (
-                [
-                    ("W", 1, 0, 25),
-                    ("A", 0, 1, 25),
-                    ("S", 1, 1, 25),
-                    ("D", 2, 1, 25),
-                    ("SHIFT", 0, 2, 25),
-                    ("CTRL", 2, 2, 25),
-                    ("SPACE", 0, 3, 81),
-                ]
-                if kind == "keyboard"
-                else [("L", 0, 0, 25), ("R", 1, 0, 25)]
-            )
-            for key, column, row, width in cells:
-                x = 2 + column * 28
-                y = 2 + row * 28
-                p.setBrush(QColor("#e6ebf2" if key == "W" else "#252b34"))
-                p.setPen(Qt.PenStyle.NoPen)
-                p.drawRoundedRect(x, y, width, 25, 3, 3)
-                p.setFont(QFont("Manrope", 6 if len(key) > 1 else 9))
-                p.setPen(QColor("#12161d" if key == "W" else "#eee"))
-                p.drawText(QRectF(x, y, width, 25), Qt.AlignmentFlag.AlignCenter, key)
-            if kind == "mouse":
-                p.setFont(QFont("Manrope", 6))
-                p.drawText(
-                    QRectF(2, 29, 58, 16), Qt.AlignmentFlag.AlignCenter, "DuckMouse"
-                )
-        elif kind == "image":
-            pixmap = QPixmap(self.model.get("path", ""))
-            if not pixmap.isNull():
-                p.drawPixmap(rect.toRect(), pixmap)
+        if self.model['kind'] == 'image':
+            image = self.image
+            if not image.isNull():
+                p.drawPixmap(rect.toRect(),image)
         else:
-            p.setPen(QColor("#eeeef0"))
-            text = {
-                "clicks": "◎ Clique visual",
-                "fps": "60 FPS • captura",
-                "timer": "00:30",
-                "music": "♪ Sua música",
-                "cps": "6 CPS",
-            }.get(kind, self.model.get("text") or "DuckCapture")
-            p.drawText(
-                rect.adjusted(5, 2, -5, -2),
-                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-                text,
-            )
+            state = getattr(self.scene(), 'hud_state', {}) or dict(keys=['W'],buttons=['L'],cps=6,capture_fps=60,t=30,
+                music='Sua música favorita',music_artist='Artista · álbum',music_playing=True,music_position=48,music_duration=180,music_phase=25)
+            p.save()
+            if self.model['kind'] == 'music' and self._fold > .001:
+                from .fold_hover import fold_transform, paint_sheen
+                # Paint the glow before the projective transform (Qt raster safety).
+                surface = QPixmap(525,138)
+                surface.fill(Qt.GlobalColor.transparent)
+                canvas = QPainter(surface)
+                canvas.setRenderHint(QPainter.RenderHint.Antialiasing)
+                canvas.scale(2,2)
+                canvas.save()
+                canvas.scale(.75,.75)
+                paint_artwork(canvas,self.model,state)
+                canvas.restore()
+                paint_sheen(canvas,rect,self._fold_pointer,self._fold)
+                canvas.end()
+                p.setWorldTransform(fold_transform(rect,self._fold_pointer,self._fold),True)
+                p.drawPixmap(rect,surface,QRectF(surface.rect()))
+            else:
+                p.scale(.75,.75)
+                paint_artwork(p,self.model,state)
+            p.restore()
+        if self.isSelected():
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(QColor('#e2eaff'),1,Qt.PenStyle.DashLine))
+            p.drawRoundedRect(rect.adjusted(-2,-2,2,2),7,7)
 
     def itemChange(self, change, value):
         if (
@@ -337,6 +298,12 @@ class HudEditor(Page):
         config.addWidget(self.opacity)
         config.addWidget(self.text, 1)
         self.body.addLayout(config)
+        palette = QHBoxLayout()
+        palette.addWidget(label("CORES DO ELEMENTO SELECIONADO", "eyebrow"))
+        for key, title, fallback in [('accent_color','Destaque','#dce7ff'),('text_color','Texto','#f5f7ff'),('background_color','Fundo','#10131c')]:
+            palette.addWidget(button(title, lambda checked=False,k=key,f=fallback: self.choose_item_color(k,f)))
+        palette.addStretch()
+        self.body.addLayout(palette)
         for control in [self.scale, self.opacity]:
             control.valueChanged.connect(self.update_item)
         self.text.textEdited.connect(self.update_item)
@@ -348,6 +315,23 @@ class HudEditor(Page):
         if not settings.hud:
             settings.hud = preset()
         self.render()
+
+    def choose_item_color(self, key, fallback):
+        items = [i for i in self.scene.selectedItems() if isinstance(i,HudItem)]
+        if not items:
+            self.notify("Selecione um elemento na prévia para mudar sua cor.")
+            return
+        selected = ColorDialog.getColor(QColor(color(items[0].model.get(key),fallback)),self,"Cor do HUD")
+        if selected.isValid():
+            for item in items:
+                item.model[key] = selected.name()
+                item.update()
+            self.changed()
+
+    def set_live_state(self, state):
+        self.scene.hud_state = state
+        if self.isVisible():
+            self.scene.update()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

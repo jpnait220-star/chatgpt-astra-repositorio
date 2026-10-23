@@ -90,7 +90,7 @@ class Media:
             ],
             capture_output=True,
             timeout=timeout,
-            creationflags=CREATE_FLAGS,
+            creationflags=CREATE_FLAGS | (subprocess.BELOW_NORMAL_PRIORITY_CLASS if os.name == 'nt' else 0),
             cwd=cwd,
         )
         if result.returncode:

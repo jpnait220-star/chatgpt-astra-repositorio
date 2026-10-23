@@ -158,8 +158,10 @@ def test_upload_rejects_oversize_and_untrusted_response(tmp_path, monkeypatch, u
         stream.truncate(MAX_UPLOAD + 1)
     server, requests = upload_server
     dialog = ShareDialog(path)
+    prepared = []
+    monkeypatch.setattr(dialog, 'prepare_copy', lambda: prepared.append(True))
     dialog.start()
-    assert not requests and '200 MB' in dialog.status.text()
+    assert not requests and prepared == [True]
     path.write_bytes(b'synthetic')
     server.response = b'https://files.catbox.moe.evil.example/a.mp4'
     dialog.start()

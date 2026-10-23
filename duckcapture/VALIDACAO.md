@@ -1,10 +1,10 @@
-# Validação da versão 0.5.1
+# Validação da versão 0.5.2
 
 O pacote foi desenvolvido a partir do ZIP DuckCapture 0.4.8 enviado pelo usuário.
 
 ## Verificações locais
 
-Resultado: **130 testes aprovados** com Python 3.12 e Qt em modo offscreen no Linux.
+Resultado: **141 testes aprovados** com Python 3.12 e Qt em modo offscreen no Linux.
 
 - Testes automatizados de captura sintética com FFmpeg real, exportação MP4, áudio, fila F8, instalação, configurações, HUD, galeria, editor e interface.
 - Casos novos: índice de monitor começando em 1, bloqueio de captura do monitor sem foco, 600 timestamps nativos a 60 FPS sob atraso variável das chamadas Python, cache de imagem e resolução de saída.
@@ -40,3 +40,13 @@ A fonte e os ícones do player web oficial são definidos pelo Spotify. A nova f
 - Regressões de relógio nativo reiniciado, callbacks atrasados da fonte antiga, encerramento nativo lento e prazo de conexão da nova fonte.
 - A seleção de uma nova janela ainda viva exige mesmo processo, mesma classe, tamanho de janela principal e ausência de proprietário; diálogos e outros processos são rejeitados.
 - O jogo e a GPU do usuário ainda precisam de teste no PC real. O teste simula a fronteira do Windows Graphics Capture.
+
+## Novidades verificadas na 0.5.2
+
+- Conversão BGRA → YUV420 com OpenCV real: conferência dos bytes transferidos (1,5 em vez de 4 por pixel) e preservação de cores. O Windows usa o buffer nativo de `windows-capture==2.0.1`, cuja propriedade mantém a memória válida após o callback; produtores alternativos continuam copiando.
+- FFmpeg real: compressão em duas passagens abaixo de um orçamento pequeno de teste, preservando duração, áudio, FPS e bytes do original. Planejamento de bitrate também verificado para o limite de 200 MB. Nenhum arquivo pessoal foi enviado.
+- Papel de parede 4K sintético preparado em 1080p/24 FPS, cache reutilizado, recepção de uma fonte 30 FPS sem a queda indevida para 15 FPS e preservação de pixels acima de 720p.
+- HUD: mesma geometria na prévia Qt e no vídeo exportado com libass, revisados visualmente; cores, dados de faixa/artista/progresso, mouse curvo, timer sem amostras de entrada e compactação de estados idênticos. Card de música com perspectiva e retorno suave.
+- Spotify: falha temporária da timeline não interrompe título e controles. O progresso real depende do que a sessão do Windows disponibiliza.
+- Diagnóstico de instalação ampliado: executa conversão YUV, compressão para compartilhamento, decodificação do wallpaper e abertura da interface. O mesmo diagnóstico roda no executável congelado do Windows antes da publicação.
+- Não foi possível medir desempenho de jogos em RX 580, NVIDIA ou Intel neste ambiente Linux. A redução de 62,5% refere-se apenas aos bytes por quadro no pipe, não a uma promessa de ganho equivalente de FPS.

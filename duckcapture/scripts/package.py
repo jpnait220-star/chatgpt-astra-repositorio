@@ -6,13 +6,13 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.5.1"
+VERSION = "0.5.2"
 TOP = [
     'README.md', 'COMECE-AQUI.txt', 'LEIA-ME.md', 'THIRD-PARTY.md', 'VALIDACAO.md',
     'requirements.txt', 'requirements-dev.txt', 'requirements-build.txt', 'pytest.ini',
     'run.pyw', 'Abrir DuckCapture.py', 'Instalar.py', 'CRIAR-INSTALADOR.bat',
     'FINALIZAR-INSTALADOR.bat', 'INSTALADOR-LEIA-PRIMEIRO.txt',
-    'LICENCAS-E-DISTRIBUICAO.txt', 'ATUALIZACAO-0.5.1.md',
+    'LICENCAS-E-DISTRIBUICAO.txt', 'ATUALIZACAO-0.5.2.md',
 ]
 
 

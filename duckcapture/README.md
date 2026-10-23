@@ -1,12 +1,12 @@
-# DuckCapture 0.5.1
+# DuckCapture 0.5.2
 
 Clipador para Windows 10/11 de 64 bits. Interface em português, tema escuro, fonte Manrope, detalhes claros e menus arredondados.
 
 ## Abrir
 
-O instalador pronto, quando disponível, fica em [Downloads no GitHub](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/DuckCapture-v0.5.1). Instale `DuckCapture-Setup-0.5.1.exe` e abra pelo atalho DuckCapture.
+O instalador pronto, quando disponível, fica em [Downloads no GitHub](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/DuckCapture-v0.5.2). Instale `DuckCapture-Setup-0.5.2.exe` e abra pelo atalho DuckCapture.
 
-Este ZIP contém o projeto e o gerador do instalador. Extraia a pasta inteira. Para gerar o Setup em um Windows com Python 3.12 x64, execute `CRIAR-INSTALADOR.bat`. O resultado fica em `installer_saida/DuckCapture-Setup-0.5.1.exe`. Também é possível executar o projeto com `Abrir DuckCapture.py`; a primeira abertura instala as dependências e o FFmpeg.
+Este ZIP contém o projeto e o gerador do instalador. Extraia a pasta inteira. Para gerar o Setup em um Windows com Python 3.12 x64, execute `CRIAR-INSTALADOR.bat`. O resultado fica em `installer_saida/DuckCapture-Setup-0.5.2.exe`. Também é possível executar o projeto com `Abrir DuckCapture.py`; a primeira abertura instala as dependências e o FFmpeg.
 
 ## O que mudou
 
@@ -17,7 +17,7 @@ Este ZIP contém o projeto e o gerador do instalador. Extraia a pasta inteira. P
 - Som original de clipe de 1,08 s, mais encorpado e com volume ajustável. Ele confirma o pedido de clipe; a conclusão aparece na biblioteca.
 - Correção do índice de monitor usado pelo modo F11; controle de tempo por timestamps nativos e espera precisa no Windows; menos cópias e redimensionamentos por quadro.
 - O limite de resolução selecionado é respeitado, inclusive no perfil Full. Perfis econômicos/modo leve podem reduzir a resolução efetiva, indicada ao iniciar.
-- Taxa de imagens recebidas no topo; o tooltip mostra também os quadros gravados e a meta. Um arquivo marcado como 60 FPS pode repetir quadros se a fonte entregar menos imagens.
+- Taxa de imagens novas gravadas no topo; o tooltip mostra recebidas, repetições, saída e meta. Um arquivo marcado como 60 FPS pode repetir quadros se a fonte entregar menos imagens.
 
 ## Spotify
 
@@ -36,9 +36,14 @@ Na biblioteca, abra um clipe no editor. A prévia mostra o vídeo original com c
 `python -m pip install -r requirements-dev.txt` e `python -m pytest -q`.
 O aplicativo usa Python 3.12, PySide6 e FFmpeg. Captura e controle de sessões Spotify dependem do Windows. As verificações e seus limites estão em [VALIDACAO.md](VALIDACAO.md). Licenças: [THIRD-PARTY.md](THIRD-PARTY.md).
 
-## Novidades da versão 0.5.1
+## Novidades da versão 0.5.2
 
-- Efeito de perspectiva nos botões e seletores, retorno suave de 650 ms e pulso ao clicar. O fade de navegação também cobre Editor e Música.
-- Configurações → Aparência → Escolher vídeo em loop: papel de parede local sem som, com escurecimento ajustável. Pausa durante captura, ao minimizar e com animações desligadas.
-- Todos os clipes → selecionar um MP4 → Criar link: envio manual ao Catbox, com progresso, cancelamento e histórico local do link. Limite conservador de 200 MB por arquivo. O vídeo fica público em serviço externo; não há exclusão remota pelo DuckCapture. A prévia no Discord depende das regras e configurações dele.
-- Configurações → Som do clipe: opção para misturar o som de confirmação no final dos novos clipes, com o volume escolhido e sem aumentar a duração do vídeo. Funciona também sem áudio do PC.
+- Captura: conversão nativa para YUV420 antes do envio ao FFmpeg, com 62,5% menos bytes por quadro no pipe; retenção segura do buffer nativo sem a cópia integral anterior. Mantém seleção automática de NVIDIA NVENC, Intel QSV, AMD AMF ou CPU.
+- Menos concorrência durante a gravação: miniaturas em segundo plano adiadas, prévia suspensa com a janela oculta e FFmpeg de exportação com prioridade menor no Windows. O indicador distingue quadros novos de repetições.
+- Criar link: arquivos acima de 200 MB recebem uma cópia comprimida automaticamente antes do envio manual ao Catbox. Não corta o vídeo e preserva o original. A cópia pode perder qualidade/resolução; vídeos extremamente longos ainda podem exigir divisão. Catbox continua com limite de 200 MB por arquivo e o link é público. A incorporação no Discord depende dele.
+- HUD redesenhado: mouse com formato curvo e botões ativos, teclado arredondado, cartões de FPS/CPS/tempo e música com disco, faixa, artista e progresso. Selecione um elemento e use Destaque, Texto e Fundo para mudar as cores. A prévia e o vídeo usam a mesma geometria.
+- Música no HUD usa a faixa local ou a sessão oficial do Spotify instalado, inclusive fora da aba Música. A animação do disco acompanha o estado de reprodução; o progresso depende dos dados fornecidos pelo Spotify.
+- Papel de parede: preparação em segundo plano e cache de vídeos pesados, dimensionamento conforme a tela (até 1440p), sem a redução fixa para 720p. Pausa durante captura/exportação e ao minimizar. Vídeos preparados usam 24 FPS para reduzir o custo de decodificação.
+- Mantém fade de navegação, perspectiva nos controles, retorno suave, som de confirmação opcional no final do clipe e recuperação de troca de janela/F11.
+
+As otimizações não garantem uma taxa de FPS em qualquer hardware. Consulte [VALIDACAO.md](VALIDACAO.md) para testes e limites.

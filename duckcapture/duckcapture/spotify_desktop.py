@@ -24,10 +24,24 @@ async def query_session(manager, command='status'):
     properties = await session.try_get_media_properties_async()
     playback = session.get_playback_info()
     controls = playback.controls
+    position, duration = 0., 0.
+    if hasattr(session, 'get_timeline_properties'):
+        try:
+            timeline = session.get_timeline_properties()
+            def seconds(value):
+                return value.total_seconds() if hasattr(value, 'total_seconds') else float(value) / 10_000_000
+            start = seconds(timeline.start_time)
+            position = max(0., seconds(timeline.position) - start)
+            duration = max(0., seconds(timeline.end_time) - start)
+        except Exception:
+            # Some Spotify sessions expose metadata before a usable timeline.
+            # Keep the title and playback controls available in that interval.
+            position, duration = 0., 0.
     # Windows enum: Closed=0, Opened=1, Changing=2, Stopped=3, Playing=4, Paused=5.
     return {
         'connected': True, 'title': properties.title or 'Spotify',
         'artist': properties.artist or '', 'playing': int(playback.playback_status) == 4,
+        'position': position, 'duration': duration,
         'toggle': bool(controls.is_play_pause_toggle_enabled),
         'next': bool(controls.is_next_enabled), 'previous': bool(controls.is_previous_enabled),
     }
@@ -90,8 +104,9 @@ class SpotifyDesktop(QObject):
 
     def set_active(self, active):
         if active and not self.closed:
-            self.refresh()
-            self.timer.start()
+            if not self.timer.isActive():
+                self.refresh()
+                self.timer.start()
         else:
             self.timer.stop()
 

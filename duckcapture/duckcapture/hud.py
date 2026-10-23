@@ -85,121 +85,79 @@ def write_title_ass(path, text, w, h, duration):
 
 
 def write_hud(path, items, samples, width, height, duration, fps):
+    from .hud_art import ass_shapes, color
+
     lines = [header(width, height)]
-    samples = sorted(samples, key=lambda x: x["t"])
+    samples = sorted(samples, key=lambda sample: sample["t"])
     if not samples or samples[0]["t"] > 0:
-        samples.insert(
-            0, dict(t=0, keys=[], buttons=[], cursor=[0.5, 0.5], cps=0, music="")
-        )
-    # Compact equal states; no keylogging beyond the fixed gameplay keys.
-    spans = []
-    for i, s in enumerate(samples):
-        end = min(duration, samples[i + 1]["t"] if i + 1 < len(samples) else duration)
-        if end > s["t"]:
-            spans.append((max(0, s["t"]), end, s))
-    base = height / 720
+        samples.insert(0, dict(t=0, keys=[], buttons=[], cps=0, music=""))
     for item in items:
         kind = item.get("kind")
-        x = round(float(item["x"]) * width)
-        y = round(float(item["y"]) * height)
-        scale = max(0.4, min(3, float(item.get("scale", 1)))) * base
+        if kind == "image":
+            continue
+        x, y = round(item["x"] * width), round(item["y"] * height)
+        scale = max(0.4, min(3, float(item.get("scale", 1)))) * height / 720
         alpha = round((1 - max(0.1, min(1, float(item.get("opacity", 1))))) * 255)
-        fs = max(12, round(19 * scale))
-        cell = round(34 * scale)
-        gap = max(2, round(4 * scale))
-
-        def label(a, b, text, px=x, py=y, size=fs):
-            lines.append(
-                dialogue(
-                    a,
-                    b,
-                    rf"{{\pos({px},{py})\fs{size}\alpha&H{alpha:02X}&}}" + escape(text),
-                    1,
-                )
+        spans = []
+        item_samples = (
+            [dict(t=second) for second in range(math.ceil(duration))]
+            if kind == "timer"
+            else samples
+        )
+        for i, sample in enumerate(item_samples):
+            a = max(0, sample["t"])
+            b = min(
+                duration,
+                item_samples[i + 1]["t"] if i + 1 < len(item_samples) else duration,
             )
-
-        def key(a, b, title, px, py, pressed=False, ww=cell):
-            color = "58DFFF" if pressed else "25252D"
-            lines.append(
-                dialogue(
-                    a,
-                    b,
-                    rf"{{\pos({px},{py})\p1\bord0\c&H{color}&\alpha&H{alpha:02X}&}}m 0 0 l {ww} 0 {ww} {cell} 0 {cell}{{\p0}}",
-                )
+            if b <= a:
+                continue
+            state = dict(sample)
+            state["capture_fps"] = round(sample.get("capture_fps", fps))
+            state["music_position"] = round(sample.get("music_position", 0) * 4) / 4
+            state["music_phase"] = (
+                (math.floor(a * 4) * 12) % 360 if sample.get("music_playing") else 0
             )
-            lines.append(
-                dialogue(
-                    a,
-                    b,
-                    rf"{{\an5\pos({px + ww // 2},{py + cell // 2})\fs{max(10, round(14 * scale))}\c&H"
-                    + ("161616" if pressed else "FFFFFF")
-                    + rf"&\alpha&H{alpha:02X}&}}"
-                    + escape(title),
-                    1,
-                )
-            )
-
-        if kind == "title":
-            label(0, duration, item.get("text", "DuckCapture"))
-        elif kind == "fps":
-            label(0, duration, f"{fps} FPS • captura")
-        elif kind == "timer":
-            for second in range(math.ceil(duration)):
-                label(
-                    second,
-                    min(duration, second + 1),
-                    f"{second // 60:02}:{second % 60:02}",
-                )
-        elif kind in ("keyboard", "mouse", "cps", "music", "clicks"):
-            for a, b, s in spans:
-                if kind == "keyboard":
-                    mapping = [
-                        ("W", 1, 0),
-                        ("A", 0, 1),
-                        ("S", 1, 1),
-                        ("D", 2, 1),
-                        ("SHIFT", 0, 2),
-                        ("CTRL", 2, 2),
-                    ]
-                    for k, col, row in mapping:
-                        key(
-                            a,
-                            b,
-                            k,
-                            x + col * (cell + gap),
-                            y + row * (cell + gap),
-                            k in s.get("keys", []),
-                        )
-                    key(
+            keys = {
+                "keyboard": ("keys",),
+                "mouse": ("buttons",),
+                "cps": ("cps",),
+                "fps": ("capture_fps",),
+                "music": (
+                    "music",
+                    "music_artist",
+                    "music_position",
+                    "music_duration",
+                    "music_playing",
+                    "music_phase",
+                ),
+            }.get(kind, ())
+            key = repr([state.get(k) for k in keys])
+            if kind == "timer":
+                key = str(int(a))
+            if kind == "clicks":
+                if not sample.get("click"):
+                    continue
+                px = round(sample.get("cursor", [0.5, 0.5])[0] * width)
+                py = round(sample.get("cursor", [0.5, 0.5])[1] * height)
+                accent = color(item.get("accent_color"), "#dce7ff")
+                accent = accent[5:7] + accent[3:5] + accent[1:3]
+                lines.append(
+                    dialogue(
                         a,
-                        b,
-                        "SPACE",
-                        x,
-                        y + 3 * (cell + gap),
-                        "SPACE" in s.get("keys", []),
-                        cell * 3 + gap * 2,
+                        min(duration, a + 0.25),
+                        rf"{{\an5\pos({px},{py})\fs{round(45 * scale)}\c&H{accent}&\fad(0,220)}}○",
+                        2,
                     )
-                elif kind == "mouse":
-                    key(a, b, "L", x, y, "L" in s.get("buttons", []))
-                    key(a, b, "R", x + cell + gap, y, "R" in s.get("buttons", []))
-                    label(
-                        a, b, "DuckMouse", x, y + cell + gap, max(10, round(13 * scale))
-                    )
-                elif kind == "cps":
-                    label(a, b, f"{s.get('cps', 0)} CPS")
-                elif kind == "music":
-                    label(a, b, "♪ " + s.get("music", "Sem música"))
-                elif s.get("click"):
-                    px = round(s.get("cursor", [0.5, 0.5])[0] * width)
-                    py = round(s.get("cursor", [0.5, 0.5])[1] * height)
-                    lines.append(
-                        dialogue(
-                            a,
-                            min(duration, a + 0.25),
-                            rf"{{\an5\pos({px},{py})\fs{round(45 * scale)}\c&H58DFFF&\fad(0,220)}}○",
-                            2,
-                        )
-                    )
+                )
+                continue
+            if spans and spans[-1][3] == key and abs(spans[-1][1] - a) < 0.001:
+                spans[-1][1] = b
+            else:
+                spans.append([a, b, state, key])
+        for a, b, state, _ in spans:
+            for drawing in ass_shapes(item, state, x, y, scale, alpha):
+                lines.append(dialogue(a, b, drawing))
     Path(path).write_text("".join(lines), encoding="utf-8-sig")
 
 
@@ -207,7 +165,8 @@ def copy_fonts(destination):
     """Keep rendered captions consistent on machines without our UI font installed."""
     import shutil
     from .config import ROOT
-    fonts = Path(destination) / 'fonts'
+
+    fonts = Path(destination) / "fonts"
     fonts.mkdir(exist_ok=True)
-    for source in (ROOT / 'assets/fonts').glob('Manrope-*.ttf'):
+    for source in (ROOT / "assets/fonts").glob("Manrope-*.ttf"):
         shutil.copyfile(source, fonts / source.name)

@@ -8,6 +8,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QProgressBar
 from .config import data_dir, atomic_json
 from .widgets import label, button
+from .media_jobs import MediaJob
 
 MAX_UPLOAD = 200_000_000  # Conservative decimal MB; provider's per-file limit.
 UPLOAD_URL = 'https://catbox.moe/user/api.php'
@@ -31,6 +32,9 @@ class ShareDialog(QDialog):
         self.resize(580, 370)
         self.network = QNetworkAccessManager(self)
         self.reply = None
+        self.preparing = None
+        self.prepared = None
+        self.closing_result = None
         self.timed_out = False
         self.idle = QTimer(self)
         self.idle.setSingleShot(True)
@@ -47,6 +51,7 @@ class ShareDialog(QDialog):
         body.addWidget(label(f'{self.path.name} · {self.path.stat().st_size / 1_000_000:.1f} MB', 'muted', True))
         body.addWidget(label('Ao enviar, o clipe ficará público no Catbox, um serviço externo. Qualquer pessoa com o link poderá assistir ou baixar. Limite: 200 MB por arquivo. Não envie conteúdo privado.', 'muted', True))
         body.addWidget(label('O link abre o MP4 no navegador. O Discord pode exibir o vídeo, conforme os limites e as configurações dele. Envio anônimo: o DuckCapture não oferece exclusão remota nem garante a permanência do arquivo.', 'tiny', True))
+        body.addWidget(label('Clipes acima de 200 MB ganham uma cópia otimizada automaticamente, sem cortar o vídeo nem modificar o original. A preparação pode levar alguns minutos.', 'muted', True))
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
@@ -79,21 +84,25 @@ class ShareDialog(QDialog):
             pass
 
     def start(self):
-        if self.reply:
+        if self.reply or self.preparing:
             return
         try:
             self.signature = clip_signature(self.path)
             size = self.path.stat().st_size
             if self.path.suffix.lower() != '.mp4':
                 raise ValueError('Exporte o clipe em MP4 no editor antes de criar o link.')
-            if not 0 < size <= MAX_UPLOAD:
-                raise ValueError('O limite é 200 MB por arquivo. Reduza o trecho no editor e tente novamente.')
+            if size <= 0:
+                raise ValueError('Este arquivo está vazio.')
+            if size > MAX_UPLOAD and self.prepared is None:
+                self.prepare_copy()
+                return
+            upload_path = self.prepared or self.path
             multipart = QHttpMultiPart(QHttpMultiPart.ContentType.FormDataType)
             request_type = QHttpPart()
             request_type.setHeader(QNetworkRequest.KnownHeaders.ContentDispositionHeader, 'form-data; name="reqtype"')
             request_type.setBody(b'fileupload')
             multipart.append(request_type)
-            file = QFile(str(self.path), multipart)
+            file = QFile(str(upload_path), multipart)
             if not file.open(QIODevice.OpenModeFlag.ReadOnly):
                 multipart.deleteLater()
                 raise OSError('Não foi possível ler este clipe.')
@@ -104,7 +113,7 @@ class ShareDialog(QDialog):
             part.setBodyDevice(file)
             multipart.append(part)
             request = QNetworkRequest(QUrl(UPLOAD_URL))
-            request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, 'DuckCapture/0.5.1')
+            request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, 'DuckCapture/0.5.2')
             request.setAttribute(QNetworkRequest.Attribute.RedirectPolicyAttribute, QNetworkRequest.RedirectPolicy.ManualRedirectPolicy)
             request.setTransferTimeout(90_000)
             self.reply = self.network.post(request, multipart)
@@ -121,6 +130,37 @@ class ShareDialog(QDialog):
             self.status.setText('Enviando ao Catbox…')
         except (OSError, ValueError) as error:
             self.status.setText(str(error))
+
+    def prepare_copy(self):
+        self.send.setEnabled(False)
+        self.cancel.setText('Cancelar preparação')
+        self.status.setText('Preparando cópia abaixo de 200 MB. O arquivo original será preservado…')
+        self.progress.setValue(0)
+        job = MediaJob(self.path, 'share', limit=MAX_UPLOAD, parent=self)
+        self.preparing = job
+        job.progress.connect(lambda value, message: (self.progress.setValue(value), self.status.setText(message)))
+        job.failed.connect(self.preparation_error)
+        job.finished.connect(self.preparation_finished)
+        job.start()
+
+    def preparation_error(self, message):
+        self.status.setText('Não foi possível preparar o clipe: ' + message)
+
+    def preparation_finished(self):
+        job, self.preparing = self.preparing, None
+        self.send.setEnabled(True)
+        self.cancel.setText('Fechar')
+        if self.closing_result is not None:
+            result, self.closing_result = self.closing_result, None
+            job.deleteLater()
+            self.done(result)
+            return
+        if job.result and not job.cancelled.is_set():
+            self.prepared = Path(job.result)
+            job.deleteLater()
+            self.start()
+        else:
+            job.deleteLater()
 
     def upload_progress(self, sent, total):
         if self.reply is None:
@@ -183,6 +223,11 @@ class ShareDialog(QDialog):
             QDesktopServices.openUrl(QUrl(self.link.text()))
 
     def done(self, result):
+        if self.preparing:
+            self.closing_result = result
+            self.status.setText('Cancelando a preparação…')
+            self.preparing.cancel()
+            return
         self.idle.stop()
         self.deadline.stop()
         if self.reply:

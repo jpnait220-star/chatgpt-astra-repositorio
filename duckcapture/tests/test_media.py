@@ -160,7 +160,7 @@ def test_hud_burns_real_keys_and_images(media, tmp_path):
     ass = tmp_path / "hud.ass"
     write_hud(
         ass,
-        preset(),
+        [dict(item,accent_color='#ffdf58') for item in preset()],
         [dict(t=0, keys=["W"], buttons=["L"], cursor=[0.5, 0.5], click=True, cps=1)],
         960,
         540,

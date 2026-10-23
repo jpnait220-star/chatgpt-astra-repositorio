@@ -7,7 +7,7 @@ from duckcapture import __version__
 
 def test_version_and_banners_present_and_small():
     root = Path(__file__).resolve().parents[1]
-    assert __version__ == '0.5.1'
+    assert __version__ == '0.5.2'
     for name in ('jogos', 'editor', 'atalhos', 'captura'):
         path = root / 'duckcapture' / 'assets' / 'banners' / (name + '.webp')
         assert path.is_file() and path.stat().st_size < 120000

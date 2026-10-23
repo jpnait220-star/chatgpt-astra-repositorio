@@ -45,4 +45,4 @@ def test_windows_installer_sources_present():
     assert "[Icons]" in script and "[Run]" in script
     assert (root / "CRIAR-INSTALADOR.bat").is_file()
     assert (root / "scripts" / "build_windows.py").is_file()
-    assert "__version__ = \"0.5.1\"" in (root / "duckcapture" / "__init__.py").read_text()
+    assert "__version__ = \"0.5.2\"" in (root / "duckcapture" / "__init__.py").read_text()

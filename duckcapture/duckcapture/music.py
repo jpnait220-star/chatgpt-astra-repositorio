@@ -34,6 +34,8 @@ class Vinyl(QWidget):
         self.timer.timeout.connect(self.rotate)
 
     def rotate(self):
+        if not self.isVisible():
+            return
         self.angle = (self.angle + 1.2) % 360
         self.update()
 
@@ -474,6 +476,22 @@ class MusicPage(Page):
 
     def spotify_tab_selected(self, index):
         self.spotify_panel.set_browser_active(index == 1)
+
+    def hud_state(self):
+        import time
+        if self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            title = getattr(self, 'current_title', '')
+            return dict(music=title,music_artist='Biblioteca local',music_playing=True,
+                        music_position=self.player.position()/1000,music_duration=self.player.duration()/1000)
+        state = self.spotify_panel.desktop_state
+        if state.get('connected') and state.get('title'):
+            elapsed = max(0,time.monotonic()-getattr(self.spotify_panel,'desktop_updated_at',time.monotonic())) if state.get('playing') else 0
+            duration = state.get('duration',0)
+            position = state.get('position',0)+elapsed
+            return dict(music=state.get('title',''),music_artist=state.get('artist',''),music_playing=state.get('playing',False),
+                        music_position=min(duration,position) if duration else position,music_duration=duration)
+        return dict(music=getattr(self,'current_title',''),music_artist='Biblioteca local',music_playing=False,
+                    music_position=self.player.position()/1000,music_duration=self.player.duration()/1000)
 
     def open_spotify_desktop(self):
         from .spotify import embed_url
