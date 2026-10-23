@@ -1,5 +1,6 @@
 # DuckCapture 0.5.1
 
+- F11 após salvar clipe: reconexão acompanha a nova janela do jogo, reinicializa o relógio dos quadros e não espera indefinidamente a liberação da fonte antiga. Quadros atrasados da fonte anterior são descartados.
 - Animações em mais botões e seletores, retorno lento ao retirar o mouse e onda de brilho ao clicar.
 - Fade entre todas as páginas principais, incluindo Editor e Música.
 - Vídeo local como papel de parede em loop, silencioso, com escurecimento regulável. Pausa durante captura, minimização e com animações desativadas.

@@ -77,6 +77,7 @@ class CaptureEngine:
         self.writer_finished = threading.Event()
         self.writer_finished.set()
         self.restart_thread = None
+        self.retired_sources = []
         self.fitted_source = None
         self.fitted_frame = None
         self.source_fps = 0.0
@@ -90,6 +91,7 @@ class CaptureEngine:
         self.monitor_index = None
         self.target_pid = None
         self._last_mode_check = 0.0
+        self._last_window_check = 0.0
 
     @property
     def elapsed(self):
@@ -123,6 +125,7 @@ class CaptureEngine:
         self.capture_mode = "window"
         self.monitor_index = None
         self._last_mode_check = 0.0
+        self._last_window_check = 0.0
         if self.session and self.session.exists():
             shutil.rmtree(self.session, ignore_errors=True)
         self.done.clear()
@@ -380,7 +383,7 @@ class CaptureEngine:
             self.active = False
             if self.control:
                 try:
-                    self.control.stop()
+                    self._retire_source(self.control, self.source)
                 except Exception:
                     pass
                 self.control = None
@@ -424,14 +427,19 @@ class CaptureEngine:
         return self._last_encoded_bytes
 
     def _open_source(self):
-        self.source_generation += 1
+        self.retired_sources = [thread for thread in self.retired_sources if thread.is_alive()]
+        if len(self.retired_sources) >= 2:
+            raise RuntimeError('O Windows não liberou as fontes anteriores. Reinicie o DuckCapture antes de tentar novamente.')
+        with self.lock:
+            self.source_generation += 1
+            self.frame_queue.clear()
         generation = self.source_generation
+        self.last_source_attempt = time.monotonic()
+        self.last_frame_at = 0.
+        self.source_fps = 0.
         previous, self.control = self.control, None
         if previous:
-            try:
-                previous.stop()
-            except Exception:
-                logging.debug("Captura anterior já encerrada", exc_info=True)
+            self._retire_source(previous, self.source)
         factory = self.source_factory
         if factory is None:
             from windows_capture import WindowsCapture
@@ -481,6 +489,10 @@ class CaptureEngine:
             if pixels.shape[0] < 2 or pixels.shape[1] < 2:
                 return
             with self.lock:
+                # A callback may have started copying just before reconnect.
+                # It must not overwrite the first frame of the new source.
+                if generation != self.source_generation or self.done.is_set():
+                    return
                 self.latest = pixels
                 self.frame_queue.append(pixels)
             self.received.set()
@@ -505,6 +517,23 @@ class CaptureEngine:
             return
         self.control = control
         self.last_source_attempt = time.monotonic()
+
+    def _retire_source(self, control, source):
+        # Native stop() joins the WGC thread. A GPU mode change can delay that
+        # join; the new source must not wait indefinitely for the old session.
+        def stop_previous():
+            _keep_alive = source
+            try:
+                control.stop()
+            except Exception:
+                logging.debug('Captura anterior já encerrada', exc_info=True)
+            finally:
+                del _keep_alive
+        self.retired_sources = [thread for thread in self.retired_sources if thread.is_alive()]
+        thread = threading.Thread(target=stop_previous, daemon=True, name='duck-release-source')
+        self.retired_sources.append(thread)
+        thread.start()
+        thread.join(timeout=.2)
 
     def _source_status(self, message):
         if message != self.state_message:
@@ -538,13 +567,20 @@ class CaptureEngine:
         return True
 
     def _maintain_source(self):
+        now = time.monotonic()
+        new_hwnd = None
         if not self.is_window(self.hwnd):
             new_hwnd = replacement_window(self.hwnd, self.target_pid)
             if not new_hwnd:
                 raise RuntimeError(
                     "A janela selecionada foi fechada. Os clipes salvos foram preservados."
                 )
+        elif now - self._last_window_check >= .35:
+            self._last_window_check = now
+            new_hwnd = replacement_window(self.hwnd, self.target_pid, live=True)
+        if new_hwnd:
             self.hwnd = new_hwnd
+            self._last_mode_check = 0.
             with self.lock:
                 self.frame_queue.clear()
             self.source_closed.set()
@@ -559,7 +595,7 @@ class CaptureEngine:
         finished = (
             switched or self.source_closed.is_set()
             or self.control is None or self.control.is_finished()
-            or (self.last_frame_at and time.monotonic() - self.last_frame_at > 2.5)
+            or now - max(self.last_frame_at, self.last_source_attempt) > 2.5
         )
         if finished:
             if not switched:

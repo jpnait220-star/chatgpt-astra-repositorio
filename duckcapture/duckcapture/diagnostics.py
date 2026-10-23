@@ -65,5 +65,7 @@ def check_installation(app, output):
         result['ok'] = True
     except Exception as error:
         result['error'] = repr(error)
+        import traceback
+        result['traceback'] = traceback.format_exc()
     output.write_text(json.dumps(result, indent=2), encoding='utf-8')
     return 0 if result['ok'] else 1

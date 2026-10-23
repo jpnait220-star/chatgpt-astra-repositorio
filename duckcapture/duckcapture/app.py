@@ -1267,7 +1267,7 @@ class MainWindow(QMainWindow):
             ):
                 event.ignore()
                 return
-        self.wallpaper.player.stop()
+        self.wallpaper.shutdown()
         self.timer.stop()
         self.input_timer.stop()
         self.music.player.stop()

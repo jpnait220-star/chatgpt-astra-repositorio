@@ -16,6 +16,7 @@ class SourceFramePacer:
             raise ValueError("A meta de FPS deve ser maior que zero")
         self.interval = 1.0 / fps
         self.next_due: float | None = None
+        self.last_timestamp: float | None = None
         self.accepted = 0
         self.skipped = 0
 
@@ -26,6 +27,11 @@ class SourceFramePacer:
         the requested output rate *on average* (not every Nth frame). After a
         long pause reset phase so the callback never attempts a catch-up burst.
         """
+        # A recreated WGC frame pool can restart its timestamp epoch after F11.
+        # Do not reject every new frame until the old epoch is reached again.
+        if self.last_timestamp is not None and now < self.last_timestamp - self.interval:
+            self.next_due = None
+        self.last_timestamp = now
         if self.next_due is None:
             self.next_due = now + self.interval
         elif now + self.interval * .5 < self.next_due:

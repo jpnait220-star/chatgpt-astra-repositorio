@@ -4,7 +4,7 @@ O pacote foi desenvolvido a partir do ZIP DuckCapture 0.4.8 enviado pelo usuári
 
 ## Verificações locais
 
-Resultado: **124 testes aprovados** com Python 3.12 e Qt em modo offscreen no Linux.
+Resultado: **130 testes aprovados** com Python 3.12 e Qt em modo offscreen no Linux.
 
 - Testes automatizados de captura sintética com FFmpeg real, exportação MP4, áudio, fila F8, instalação, configurações, HUD, galeria, editor e interface.
 - Casos novos: índice de monitor começando em 1, bloqueio de captura do monitor sem foco, 600 timestamps nativos a 60 FPS sob atraso variável das chamadas Python, cache de imagem e resolução de saída.
@@ -33,3 +33,10 @@ A fonte e os ícones do player web oficial são definidos pelo Spotify. A nova f
 - O acesso HTTPS ao Catbox é bloqueado pelo proxy deste ambiente (403 no túnel); o serviço real e a incorporação no Discord não foram validados aqui.
 - Botões e seletores criados em diálogos recebem animação; retorno gradual não altera o tamanho nem a área clicável.
 - Wallpaper ignora quadros enquanto pausado, mantém áudio mudo e reprodução em loop. O diagnóstico de instalação também decodifica um MP4 real pelo player Qt.
+
+## Recuperação ao salvar e alternar F11
+
+- Teste com FFmpeg real: salvar durante captura em janela, trocar para monitor com o HWND antigo ainda válido, verificar movimento no MP4 exportado e voltar à janela sem encerrar o replay.
+- Regressões de relógio nativo reiniciado, callbacks atrasados da fonte antiga, encerramento nativo lento e prazo de conexão da nova fonte.
+- A seleção de uma nova janela ainda viva exige mesmo processo, mesma classe, tamanho de janela principal e ausência de proprietário; diálogos e outros processos são rejeitados.
+- O jogo e a GPU do usuário ainda precisam de teste no PC real. O teste simula a fronteira do Windows Graphics Capture.

@@ -96,13 +96,30 @@ def monitor_for_fullscreen(hwnd, pid=None):
         return None
 
 
-def replacement_window(hwnd, pid):
+def replacement_window(hwnd, pid, *, live=False):
     """Find a new visible game HWND if F11 recreated the previous one."""
     if not IS_WINDOWS or not pid:
         return None
     current = int(_user32.GetForegroundWindow() or 0)
-    if current and current != hwnd and process_id(current) == pid:
-        return current
+    if current and current != hwnd and process_id(current) == pid and _user32.IsWindowVisible(current):
+        bounds = wintypes.RECT()
+        substantial = (_user32.GetWindowRect(current, ctypes.byref(bounds))
+                       and bounds.right - bounds.left >= 100 and bounds.bottom - bounds.top >= 100)
+        if substantial:
+            if not live:
+                return current
+            # Follow a recreated game render window, never a dialog or tool
+            # window from the same process. GLFW can leave the old HWND alive.
+            old_class, new_class = ctypes.create_unicode_buffer(256), ctypes.create_unicode_buffer(256)
+            _user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+            _user32.GetWindow.argtypes = [wintypes.HWND, wintypes.UINT]
+            _user32.GetWindow.restype = wintypes.HWND
+            _user32.GetClassNameW(hwnd, old_class, 256)
+            _user32.GetClassNameW(current, new_class, 256)
+            if old_class.value and old_class.value == new_class.value and not _user32.GetWindow(current, 4):
+                return current
+    if live:
+        return None
     candidates = []
     callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 

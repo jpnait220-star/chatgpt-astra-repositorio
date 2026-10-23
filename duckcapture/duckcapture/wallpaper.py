@@ -46,6 +46,13 @@ class VideoBackground(QWidget):
             self.blocked = blocked
             self.sync()
 
+    def shutdown(self):
+        self.blocked = True
+        self.player.stop()
+        self.player.setSource(QUrl())  # Release the Windows file handle as well.
+        self.path = ''
+        self.frame = QImage()
+
     def sync(self):
         if self.path and not self.blocked and self.isVisible():
             self.player.play()
