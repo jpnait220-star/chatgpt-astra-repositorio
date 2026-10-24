@@ -1,10 +1,10 @@
-# Validação da versão 0.5.2
+# Validação da versão 0.5.3
 
 O pacote foi desenvolvido a partir do ZIP DuckCapture 0.4.8 enviado pelo usuário.
 
 ## Verificações locais
 
-Resultado: **141 testes aprovados** com Python 3.12 e Qt em modo offscreen no Linux.
+Resultado: **147 testes aprovados** com Python 3.12 e Qt em modo offscreen no Linux.
 
 - Testes automatizados de captura sintética com FFmpeg real, exportação MP4, áudio, fila F8, instalação, configurações, HUD, galeria, editor e interface.
 - Casos novos: índice de monitor começando em 1, bloqueio de captura do monitor sem foco, 600 timestamps nativos a 60 FPS sob atraso variável das chamadas Python, cache de imagem e resolução de saída.
@@ -50,3 +50,12 @@ A fonte e os ícones do player web oficial são definidos pelo Spotify. A nova f
 - Spotify: falha temporária da timeline não interrompe título e controles. O progresso real depende do que a sessão do Windows disponibiliza.
 - Diagnóstico de instalação ampliado: executa conversão YUV, compressão para compartilhamento, decodificação do wallpaper e abertura da interface. O mesmo diagnóstico roda no executável congelado do Windows antes da publicação.
 - Não foi possível medir desempenho de jogos em RX 580, NVIDIA ou Intel neste ambiente Linux. A redução de 62,5% refere-se apenas aos bytes por quadro no pipe, não a uma promessa de ganho equivalente de FPS.
+
+## Novidades verificadas na 0.5.3
+
+- Exportação sem recodificar: corte começando no quadro 37 (fora do keyframe), primeiro e último quadros decodificados idênticos aos do original, duração e som final preservados; nenhuma chamada ao codificador da GPU. Verificado também no executável Windows pelo diagnóstico de instalação.
+- Caso informado pelo usuário: solicitar clipe, alternar F11 enquanto salva e validar movimento no próprio clipe solicitado antes da troca, além de recuperar o replay após um intervalo sem HWND válido. Teste com FFmpeg real e fonte sintética.
+- HUD: exportação mantém movimento e FPS constante usando dois threads de CPU enquanto o replay está ativo.
+- Supervisor independente da escrita e permanência da fonte de monitor ao perder foco; a filtragem de imagens por foco continua ativa.
+- Wallpaper FFV1/MKV convertido para H.264/MP4; imagem estática visível quando pausado e reprodução após liberar. Conferência de pixels verdes no widget, no fundo real da interface e no vídeo decodificado no diagnóstico Windows.
+- Não houve benchmark de jogos, RX 580 ou Medal. A redução de concorrência e a ausência de uma segunda codificação no caminho sem HUD são verificadas pelo código e testes, não constituem medição de ganho de FPS.

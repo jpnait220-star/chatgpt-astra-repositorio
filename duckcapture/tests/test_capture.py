@@ -578,7 +578,7 @@ def test_minimize_restore_and_source_reconnect_preserve_writer(tmp_path, monkeyp
         path = engine.save_clip().result(timeout=12)
         assert engine.media.probe(path).duration > 0.5
         exists[0] = False
-        engine.thread.join(timeout=3)
+        engine.thread.join(timeout=5)
         assert engine.error and "fechada" in engine.error
     finally:
         engine.shutdown()

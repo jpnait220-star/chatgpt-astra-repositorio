@@ -1,12 +1,12 @@
-# DuckCapture 0.5.2
+# DuckCapture 0.5.3
 
 Clipador para Windows 10/11 de 64 bits. Interface em português, tema escuro, fonte Manrope, detalhes claros e menus arredondados.
 
 ## Abrir
 
-O instalador pronto, quando disponível, fica em [Downloads no GitHub](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/DuckCapture-v0.5.2). Instale `DuckCapture-Setup-0.5.2.exe` e abra pelo atalho DuckCapture.
+O instalador pronto, quando disponível, fica em [Downloads no GitHub](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/DuckCapture-v0.5.3). Instale `DuckCapture-Setup-0.5.3.exe` e abra pelo atalho DuckCapture.
 
-Este ZIP contém o projeto e o gerador do instalador. Extraia a pasta inteira. Para gerar o Setup em um Windows com Python 3.12 x64, execute `CRIAR-INSTALADOR.bat`. O resultado fica em `installer_saida/DuckCapture-Setup-0.5.2.exe`. Também é possível executar o projeto com `Abrir DuckCapture.py`; a primeira abertura instala as dependências e o FFmpeg.
+Este ZIP contém o projeto e o gerador do instalador. Extraia a pasta inteira. Para gerar o Setup em um Windows com Python 3.12 x64, execute `CRIAR-INSTALADOR.bat`. O resultado fica em `installer_saida/DuckCapture-Setup-0.5.3.exe`. Também é possível executar o projeto com `Abrir DuckCapture.py`; a primeira abertura instala as dependências e o FFmpeg.
 
 ## O que mudou
 
@@ -47,3 +47,12 @@ O aplicativo usa Python 3.12, PySide6 e FFmpeg. Captura e controle de sessões S
 - Mantém fade de navegação, perspectiva nos controles, retorno suave, som de confirmação opcional no final do clipe e recuperação de troca de janela/F11.
 
 As otimizações não garantem uma taxa de FPS em qualquer hardware. Consulte [VALIDACAO.md](VALIDACAO.md) para testes e limites.
+
+## Correções da versão 0.5.3
+
+- Clipes sem HUD são salvos copiando o vídeo já gravado, sem recodificar e sem abrir uma segunda sessão na GPU. Cortes entre quadros-chave usam um índice temporário e edit list MP4 para manter o início visível correto. Áudio e som de confirmação continuam presentes.
+- Com HUD, a exportação durante o replay usa CPU com dois threads, prioridade menor e leitura limitada a 2×. Pode demorar mais para concluir, mas não disputa uma segunda sessão do codificador da GPU quando o jogo muda para F11. A saída tem FPS constante.
+- A recuperação da fonte roda separada da escrita de vídeo. Há tolerância de três segundos para o jogo recriar sua janela; Alt+Tab não é interpretado como saída do F11.
+- Papéis de parede passam por normalização H.264/MP4, inclusive vídeos pequenos com codecs menos compatíveis. Uma imagem do vídeo aparece durante preparação, gravação ou movimento reduzido. O estado fica visível junto ao seletor.
+
+Não há comparação de desempenho com o Medal medida neste projeto. A validação simula trocas F11 na fronteira da API; o comportamento com o jogo e driver reais precisa ser conferido no PC.

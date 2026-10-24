@@ -134,7 +134,7 @@ class MediaJob(QThread):
             cache.mkdir(exist_ok=True)
             stat = self.source.stat()
             key = hashlib.sha256(
-                f"v2|{self.source.resolve()}|{stat.st_size}|{stat.st_mtime_ns}|{self.operation}|{self.size}|{self.limit}".encode()
+                f"v3|{self.source.resolve()}|{stat.st_size}|{stat.st_mtime_ns}|{self.operation}|{self.size}|{self.limit}".encode()
             ).hexdigest()
             target = cache / (key + ".mp4")
             if (
@@ -143,13 +143,6 @@ class MediaJob(QThread):
                 and (self.operation != "share" or target.stat().st_size <= self.limit)
             ):
                 self.result = str(target)
-            elif (
-                self.operation == "wallpaper"
-                and info.width <= self.size[0]
-                and info.height <= self.size[1]
-                and info.fps <= 30
-            ):
-                self.result = str(self.source.resolve())
             else:
                 with tempfile.TemporaryDirectory(prefix="prepare-", dir=cache) as temp:
                     output = Path(temp) / "ready.mp4"

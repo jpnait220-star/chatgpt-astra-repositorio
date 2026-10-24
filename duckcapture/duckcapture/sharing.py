@@ -113,7 +113,7 @@ class ShareDialog(QDialog):
             part.setBodyDevice(file)
             multipart.append(part)
             request = QNetworkRequest(QUrl(UPLOAD_URL))
-            request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, 'DuckCapture/0.5.2')
+            request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, 'DuckCapture/0.5.3')
             request.setAttribute(QNetworkRequest.Attribute.RedirectPolicyAttribute, QNetworkRequest.RedirectPolicy.ManualRedirectPolicy)
             request.setTransferTimeout(90_000)
             self.reply = self.network.post(request, multipart)

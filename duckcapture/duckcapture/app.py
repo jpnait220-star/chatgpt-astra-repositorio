@@ -615,6 +615,10 @@ class MainWindow(QMainWindow):
         picker.addWidget(label("PAPEL DE PAREDE EM VÍDEO", "eyebrow"))
         self.wallpaper_name = label(Path(self.settings.wallpaper_path).name if self.settings.wallpaper_path else "Nenhum vídeo selecionado", "muted", True)
         picker.addWidget(self.wallpaper_name)
+        self.wallpaper_state = label('Selecione um vídeo para usar como fundo.', 'tiny', True)
+        picker.addWidget(self.wallpaper_state)
+        self.wallpaper.preparing.connect(self.wallpaper_state.setText)
+        self.wallpaper.failed.connect(self.wallpaper_state.setText)
         wallpaper_actions = QHBoxLayout()
         wallpaper_actions.addWidget(button("Escolher vídeo em loop", self.choose_wallpaper))
         wallpaper_actions.addWidget(button("Remover vídeo", lambda: self.set_wallpaper("")))
@@ -681,6 +685,7 @@ class MainWindow(QMainWindow):
         self.settings.wallpaper_path = path
         self.wallpaper.set_video(path)
         self.wallpaper_name.setText(Path(path).name if path else "Nenhum vídeo selecionado")
+        self.wallpaper_state.setText('Carregando a imagem do fundo…' if path else 'Nenhum papel de parede selecionado.')
         self.save_settings()
 
     def save_settings(self):

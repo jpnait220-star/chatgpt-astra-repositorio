@@ -95,6 +95,9 @@ class CaptureEngine:
         self.target_pid = None
         self._last_mode_check = 0.0
         self._last_window_check = 0.0
+        self.source_watch = None
+        self.source_failure = None
+        self.missing_window_since = None
 
     @property
     def elapsed(self):
@@ -109,6 +112,8 @@ class CaptureEngine:
             and self.thread.is_alive()
             or self.restart_thread
             and self.restart_thread.is_alive()
+            or self.source_watch
+            and self.source_watch.is_alive()
         ):
             raise RuntimeError("A captura já está em andamento.")
         if os.name != "nt" and self.source_factory is None:
@@ -129,6 +134,8 @@ class CaptureEngine:
         self.monitor_index = None
         self._last_mode_check = 0.0
         self._last_window_check = 0.0
+        self.source_failure = None
+        self.missing_window_since = None
         if self.session and self.session.exists():
             shutil.rmtree(self.session, ignore_errors=True)
         self.done.clear()
@@ -188,6 +195,8 @@ class CaptureEngine:
                     )
             if self.done.is_set():
                 raise InterruptedError()
+            self.source_watch = threading.Thread(target=self._watch_source, daemon=True, name='duck-source-watch')
+            self.source_watch.start()
             buffer_root = data_dir() / "buffer"
             buffer_root.mkdir(exist_ok=True)
             self.session = Path(tempfile.mkdtemp(prefix="replay-", dir=buffer_root))
@@ -303,7 +312,6 @@ class CaptureEngine:
                     waiter.wait(remaining, self.done)
                 if self.done.is_set():
                     break
-                self._maintain_source()
                 delay = time.monotonic() - target
                 # A short stall while the game loads should not kill the replay.
                 # Keep attempting to catch up with the timeline; report prolonged
@@ -362,6 +370,8 @@ class CaptureEngine:
                             f"{self.encoder} · {out_width}×{out_height} · {self.settings.fps} FPS",
                         )
                     )
+            if self.source_failure:
+                raise RuntimeError(self.source_failure)
         except InterruptedError:
             pass
         except Exception as error:
@@ -393,6 +403,8 @@ class CaptureEngine:
         finally:
             waiter.close()
             self.done.set()
+            if self.source_watch:
+                self.source_watch.join(timeout=2)
             self.starting = False
             self.active = False
             if self.control:
@@ -575,6 +587,10 @@ class CaptureEngine:
         if not force and now - self._last_mode_check < 0.35:
             return False
         self._last_mode_check = now
+        # Losing focus isn't leaving F11. Keep the monitor session alive;
+        # its callback still rejects every frame outside the selected app.
+        if self.capture_mode == 'monitor' and not is_target_foreground(self.hwnd, self.target_pid):
+            return False
         enabled = getattr(self.settings, "fullscreen_compatibility", True)
         monitor = monitor_for_fullscreen(self.hwnd, self.target_pid) if enabled else None
         desired = "monitor" if monitor is not None else "window"
@@ -595,12 +611,28 @@ class CaptureEngine:
             self._source_status("Voltando à captura da janela do jogo…")
         return True
 
+    def _watch_source(self):
+        """Recover WGC independently of pipe writes and clip export work."""
+        while not self.done.wait(.1):
+            try:
+                self._maintain_source()
+            except Exception as error:
+                logging.exception('Falha ao acompanhar a fonte de captura')
+                self.source_failure = str(error)
+                self.done.set()
+                return
+
     def _maintain_source(self):
         now = time.monotonic()
         new_hwnd = None
         if not self.is_window(self.hwnd):
             new_hwnd = replacement_window(self.hwnd, self.target_pid)
             if not new_hwnd:
+                if self.missing_window_since is None:
+                    self.missing_window_since = now
+                if now - self.missing_window_since < 3:
+                    self._source_status('Aguardando o jogo recriar a janela após a troca de modo…')
+                    return
                 raise RuntimeError(
                     "A janela selecionada foi fechada. Os clipes salvos foram preservados."
                 )
@@ -613,6 +645,7 @@ class CaptureEngine:
             with self.lock:
                 self.frame_queue.clear()
             self.source_closed.set()
+        self.missing_window_since = None
         if self.restart_thread and self.restart_thread.is_alive():
             return
         switched = self._detect_fullscreen()
@@ -929,8 +962,14 @@ class CaptureEngine:
             )
             offset = max(0, start - selected[0][1])
             duration = end - start
+            copy_video = not (settings.hud_enabled and settings.hud)
+            # Don't open a second GPU encoding session while a game can reset
+            # its display mode. HUD rendering is offline, bounded to two CPU
+            # threads and below-normal priority; it preserves every frame.
+            export_encoder = 'libx264' if self.active else self.encoder
             args = [
                 "-y",
+                "-threads", "2",
                 "-f",
                 "concat",
                 "-safe",
@@ -938,6 +977,15 @@ class CaptureEngine:
                 "-i",
                 "input.txt",
             ]
+            if copy_video and offset > .5 / settings.fps:
+                # A frozen MKV tail has no seek index. Remux the finite snapshot
+                # first, then seek using MP4's edit list to hide keyframe preroll.
+                # This preserves exact visible start/end without a second encode.
+                self.media.run([*args, '-map', '0:v:0', '-an', '-c:v', 'copy', 'indexed.mkv'], cwd=temp)
+                args = ['-y', '-ss', str(offset), '-threads', '2', '-i', 'indexed.mkv']
+            elif not copy_video and self.active:
+                # Bound competing decoder/encoder work while the replay is live.
+                args[1:1] = ['-readrate', '2']
             if audio:
                 audio.write(temp / "audio.wav", epoch + start, epoch + end)
             chime = settings.clip_end_sound and settings.notification_volume > 0
@@ -993,15 +1041,17 @@ class CaptureEngine:
                     f"[v{len(images)}]",
                 ]
             else:
-                if filters:
+                if filters and not copy_video:
                     args += ["-vf", ",".join(filters)]
                 args += ["-map", "0:v:0"]
             if has_audio:
                 args += ["-map", "1:a:0", "-c:a", "aac", "-b:a", "160k"]
             else:
                 args += ["-an"]
+            if not copy_video:
+                args += ['-r', str(settings.fps), '-fps_mode', 'cfr']
             args += [
-                *self.media.encoding(self.encoder, settings.quality, settings.fps, bitrate_mbps=getattr(settings, "bitrate_mbps", 0)),
+                *(['-c:v', 'copy'] if copy_video else self.media.encoding(export_encoder, settings.quality, settings.fps, bitrate_mbps=getattr(settings, "bitrate_mbps", 0))),
                 "-t",
                 str(duration),
                 "-movflags",
@@ -1027,6 +1077,7 @@ class CaptureEngine:
                     duration=duration,
                     fps=settings.fps,
                     quality=settings.quality,
+                    video_export='copy' if copy_video else export_encoder,
                     audio=has_audio,
                     system_audio=audio is not None,
                     clip_end_sound=chime,

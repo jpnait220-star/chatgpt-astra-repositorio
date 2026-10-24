@@ -1,13 +1,34 @@
 """Silent local wallpaper; decoding stops while recording or out of sight."""
 import time
 from pathlib import Path
-from PySide6.QtCore import QUrl, Signal
+from PySide6.QtCore import QUrl, Signal, QThread
 from PySide6.QtGui import QImage, QPainter, QColor, QRadialGradient
 from PySide6.QtWidgets import QWidget
 from PySide6.QtMultimedia import QMediaPlayer, QVideoSink, QAudioOutput
 from .theme import current_palette
 from .media_jobs import MediaJob
 from .frame_pacer import SourceFramePacer
+from .media import Media
+
+
+class PosterTask(QThread):
+    """Decode one still even while animated wallpaper is paused for capture."""
+    def __init__(self, path, parent=None):
+        super().__init__(parent)
+        self.path = path
+        self.result = QImage()
+        self.error = ''
+
+    def run(self):
+        try:
+            data = Media().run(['-threads', '1', '-i', self.path, '-an',
+                '-vf', 'scale=w=min(iw\\,1920):h=min(ih\\,1080):force_original_aspect_ratio=decrease',
+                '-frames:v', '1', '-c:v', 'png', '-threads', '1', '-f', 'image2pipe', 'pipe:1'], timeout=15).stdout
+            self.result = QImage.fromData(data)
+            if self.result.isNull():
+                self.error = 'O vídeo não contém uma imagem legível.'
+        except Exception as error:
+            self.error = str(error)
 
 
 class VideoBackground(QWidget):
@@ -25,6 +46,8 @@ class VideoBackground(QWidget):
         self.job = None
         self.prepared_path = ''
         self.generation = 0
+        self.poster_job = None
+        self.poster_generation = None
         self.player = QMediaPlayer(self)
         self.sink = QVideoSink(self)
         self.player.setVideoSink(self.sink)
@@ -66,12 +89,16 @@ class VideoBackground(QWidget):
         if self.job:
             self.job.cancel()
             self.job.wait()
+        if self.poster_job:
+            self.poster_job.wait()
         self.player.stop()
         self.player.setSource(QUrl())  # Release the Windows file handle as well.
         self.path = ''
         self.frame = QImage()
 
     def sync(self):
+        if self.path and self.isVisible() and self.poster_job is None and self.poster_generation != self.generation:
+            self.prepare_poster()
         if self.path and not self.blocked and self.isVisible():
             if self.prepared_path:
                 self.player.play()
@@ -79,6 +106,26 @@ class VideoBackground(QWidget):
                 self.prepare()
         elif self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self.player.pause()
+
+    def prepare_poster(self):
+        generation = self.generation
+        self.poster_generation = generation
+        job = PosterTask(self.path, self)
+        self.poster_job = job
+        def ready():
+            self.poster_job = None
+            if generation == self.generation and self.frame.isNull():
+                if not job.result.isNull():
+                    self.frame = job.result
+                    self.update()
+                    if self.blocked:
+                        self.preparing.emit('Papel de parede visível. Animação pausada para priorizar a captura ou reduzir movimento.')
+                elif job.error:
+                    self.failed.emit('Não foi possível ler a imagem do papel de parede: ' + job.error)
+            job.deleteLater()
+            self.sync()
+        job.finished.connect(ready)
+        job.start()
 
     def prepare(self):
         # Prepare for the screen's physical pixels, not a hard-coded 720p frame.
@@ -107,7 +154,7 @@ class VideoBackground(QWidget):
     def on_prepare_error(self, message, generation):
         if generation == self.generation:
             self.path = ''
-            self.failed.emit('Não foi possível preparar o papel de parede: ' + message)
+            self.failed.emit('O fundo permanece estático. Não foi possível preparar a animação: ' + message)
 
     def receive_frame(self, frame):
         now = time.monotonic()
@@ -126,7 +173,6 @@ class VideoBackground(QWidget):
         if self.path:
             self.player.stop()
             self.path = ''
-            self.frame = QImage()
             self.update()
             self.failed.emit('Não foi possível abrir o vídeo de fundo: ' + self.player.errorString())
 

@@ -34,7 +34,7 @@ def check_installation(app, output):
             media = Media()
             media.require()
             clip = Path(tmp) / 'check.mp4'
-            media.run(['-y', '-f', 'lavfi', '-i', 'color=c=black:s=160x90:r=30', '-t', '0.2', '-c:v', 'libx264', str(clip)])
+            media.run(['-y', '-f', 'lavfi', '-i', 'color=c=lime:s=160x90:r=30', '-t', '0.2', '-c:v', 'libx264', str(clip)])
             assert media.probe(clip).duration > 0
             result['ffmpeg_encode'] = True
             from .capture import CaptureEngine
@@ -45,6 +45,20 @@ def check_installation(app, output):
                 payload = engine._frame_payload(np.zeros((90,160,4),dtype=np.uint8),160,90,160,90)
                 assert len(payload) == 160*90*3//2
                 result['yuv_pipe'] = True
+                engine.session = Path(tmp) / 'replay'
+                engine.session.mkdir()
+                moving = engine.session / 'frame-000000000.mkv'
+                media.run(['-y','-f','lavfi','-i','testsrc2=s=160x90:r=30','-t','2','-c:v','libx264','-threads','2','-bf','0','-g','60',str(moving)])
+                (engine.session / 'segments.csv').write_text(f'{moving.name},0,2\n')
+                engine.output_size, engine.encoder = (160,90), 'libx264'
+                settings = Settings(fps=30, clips_dir=str(Path(tmp)/'copy-check'), clip_end_sound=True)
+                copied = engine._save_clip(13/30, 43/30, [], settings, engine.session, 0, None)
+                assert abs(media.probe(copied).duration - 1) < .05
+                def frame(path, offset):
+                    return media.run(['-ss',str(offset),'-i',path,'-frames:v','1','-f','rawvideo','-pix_fmt','rgb24','pipe:1']).stdout
+                assert frame(moving,13/30) == frame(copied,0)
+                assert frame(copied,0) != frame(copied,.8)
+                result['lossless_clip_export'] = True
             finally:
                 engine.shutdown()
             from .media_jobs import MediaJob
@@ -62,13 +76,14 @@ def check_installation(app, output):
                 window.show()
                 window.wallpaper.set_video(str(clip))
                 window.wallpaper.set_blocked(False)
-                for _ in range(150):
+                for _ in range(400):
                     app.processEvents()
                     QThread.msleep(20)
-                    if not window.wallpaper.frame.isNull():
+                    if window.wallpaper.last_frame > 0:
                         break
-                result['wallpaper_decoded'] = not window.wallpaper.frame.isNull()
+                result['wallpaper_decoded'] = window.wallpaper.last_frame > 0
                 assert result['wallpaper_decoded'], 'O vídeo de fundo não produziu imagens.'
+                assert window.wallpaper.frame.pixelColor(80,45).green() > 180, 'O fundo decodificado ficou preto.'
                 window.wallpaper.set_blocked(True)
                 from .sharing import ShareDialog
                 share = ShareDialog(clip, window)
