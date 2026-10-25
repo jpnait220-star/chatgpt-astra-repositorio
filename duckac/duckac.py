@@ -405,10 +405,11 @@ class DuckApp:
         try:
             self.engine.stop()
         finally:
-            for timer in (self.save_timer, self.refresh_timer, getattr(self.tester, 'timer', None)):
+            for owner, timer in ((self.root, self.save_timer), (self.root, self.refresh_timer),
+                                 (getattr(self.tester, 'window', self.root), getattr(self.tester, 'timer', None))):
                 if timer:
                     try:
-                        self.root.after_cancel(timer)
+                        owner.after_cancel(timer)
                     except tk.TclError:
                         pass
             try:
@@ -425,10 +426,11 @@ class DuckApp:
         if event.widget is self.root:
             self.closed = True
             self.engine.stop()
-            for timer in (self.save_timer, self.refresh_timer, getattr(self.tester, 'timer', None)):
+            for owner, timer in ((self.root, self.save_timer), (self.root, self.refresh_timer),
+                                 (getattr(self.tester, 'window', self.root), getattr(self.tester, 'timer', None))):
                 if timer:
                     try:
-                        self.root.after_cancel(timer)
+                        owner.after_cancel(timer)
                     except tk.TclError:
                         pass
 

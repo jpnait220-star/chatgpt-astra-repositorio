@@ -18,7 +18,7 @@ def pump(root,seconds):
         root.update();time.sleep(.01)
 
 if len(sys.argv)==1:
-    for route in ('close','save-error','destroy','tester-gone','callback-error','quit'):
+    for route in ('close','save-error','destroy','tester-gone','tester-open','callback-error','quit'):
         subprocess.run([sys.executable,__file__,route],check=True,timeout=60)
     print('All shutdown subprocesses exited cleanly')
     raise SystemExit(0)
@@ -29,6 +29,8 @@ with tempfile.TemporaryDirectory() as temp,patch.object(duckac,'SETTINGS_PATH',P
         app=duckac.DuckApp(root,engine)
         app.start();pump(root,.35)
         assert b.clicks,route
+        if route=='tester-open':
+            app.open_tester()
         if route=='tester-gone':
             app.open_tester();app.tester.window.destroy();app.start();pump(root,.3)
         if route=='save-error':
