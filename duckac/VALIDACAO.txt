@@ -1,0 +1,8 @@
+DuckAC V9
+
+- Testes unitários: motor, configurações, hotkeys, cancelamento de SendInput simulado, clique do meio, F12 e heartbeat.
+- Interface Tk: seletor, slider, atalhos, CPS, texto dentro do painel e minimizar/restaurar.
+- Encerramento em subprocessos: X, falha ao salvar, janela destruída, teste de CPS destruído, erro de callback e saída do mainloop.
+- Workflow Windows: testes de código e abertura/fechamento do executável empacotado sem injetar cliques reais.
+
+Desempenho de CPS, interações com jogos e entrega real de SendInput dependem do Windows e do aplicativo de destino. Não foram validados em jogos neste ambiente.

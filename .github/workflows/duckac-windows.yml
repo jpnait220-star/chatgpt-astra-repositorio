@@ -1,0 +1,81 @@
+name: DuckAC Windows
+on:
+  push:
+    branches: [duckac-v9]
+    paths: ['duckac/**', '.github/workflows/duckac-windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: duckac
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - run: python -m pip install "pyinstaller>=6,<7" Pillow
+      - name: Testar, compilar e verificar encerramento do EXE
+        shell: python
+        run: |
+          import json, subprocess, sys, traceback
+          from pathlib import Path
+          def run(*args, timeout=120):
+              result = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+              print(result.stdout)
+              if result.returncode:
+                  raise RuntimeError(result.stdout + result.stderr)
+          try:
+              run(sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v')
+              run(sys.executable, 'tests/check_interface.py', '--screenshot')
+              run(sys.executable, 'tests/check_shutdown_ui.py')
+              run(sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed', '--name', 'DuckAC_V9', '--icon', 'assets/duckac.ico', '--add-data', 'assets;assets', 'duckac.py', timeout=480)
+              report = Path('dist/check-installation.json').resolve()
+              run(str(Path('dist/DuckAC_V9.exe').resolve()), '--check-installation', str(report), timeout=60)
+              print(report.read_text(encoding='utf-8'))
+              assert json.loads(report.read_text(encoding='utf-8'))['ok']
+          except Exception:
+              detail = traceback.format_exc()
+              print('::error title=DuckAC Windows::'+detail.replace('%','%25').replace('\r','%0D').replace('\n','%0A'))
+              raise
+      - name: Empacotar
+        shell: python
+        run: |
+          import hashlib, shutil, zipfile
+          from pathlib import Path
+          out=Path('release'); out.mkdir(exist_ok=True)
+          shutil.copy2('dist/DuckAC_V9.exe', out/'DuckAC_V9.exe')
+          shutil.copy2('PREVIA.png', out/'DuckAC-V9-Previa.png')
+          with zipfile.ZipFile(out/'DuckAC-V9-Windows.zip','w',zipfile.ZIP_DEFLATED) as z:
+              z.write('dist/DuckAC_V9.exe','DuckAC_V9.exe')
+              z.write('LEIA-ME.txt','LEIA-ME.txt')
+          with zipfile.ZipFile(out/'DuckAC-V9-Fonte.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for p in Path('.').rglob('*'):
+                  if p.is_file() and not any(x in p.parts for x in ('release','dist','build','__pycache__','.ruff_cache')) and p.suffix not in ('.pyc','.spec'):
+                      z.write(p,str(Path('DuckAC-V9')/p))
+          lines=[hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name for p in sorted(out.iterdir())]
+          (out/'SHA256SUMS.txt').write_text('\n'.join(lines)+'\n')
+      - name: Publicar downloads
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view DuckAC-v9 *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create DuckAC-v9 --target $env:GITHUB_SHA --title "DuckAC V9" --notes-file README.md
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release upload DuckAC-v9 release/* --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckac-windows
+          path: |
+            duckac/release/*
+            duckac/dist/check-installation.json
