@@ -1,0 +1,92 @@
+DUCKCLIENTZ 1.5.28-beta.2.13-fixes.2 — ENTREGA EXPERIMENTAL
+=======================================================
+
+INSTALAÇÃO
+- Feche o jogo e substitua o JAR antigo pelo JAR da MESMA versão do Minecraft.
+- Use apenas UM DuckClientZ na pasta mods de cada instância. Não instale
+  os três JARs juntos. Mantenha Fabric Loader e Fabric API compatíveis.
+- Minecraft 1.20.1: Java 17 ou mais novo. 1.21.1 e 1.21.4: Java 21 ou mais novo.
+- Não é preciso remover sua configuração para instalar esta correção.
+
+GLINT — NAS TRÊS VERSÕES
+- Velocidade e Forca agora são registradas na lista de opções e nos perfis.
+- A textura fica estável. Movimento e RGB usam a matriz de textura por frame,
+  sem destruir/recriar a imagem a cada quatro ticks.
+- A fase acumula tempo decorrido: trocar velocidade não multiplica o relógio
+  absoluto. Velocidade 0 congela o movimento, incluindo o RGB.
+- Forca 0 e opacidade da cor 0 zeram também o RGB da textura. Isso é necessário
+  porque o blend de glint do Minecraft usa a cor, não só o canal alfa.
+  Valores baixos não zerados também evitam o recorte de alfa do shader vanilla.
+- Itens e armaduras/entidades recebem texturas próprias e são restaurados ao
+  desativar o módulo. As opções globais de vídeo do Minecraft são preservadas.
+
+SCOREBOARD / CHAT — NAS TRÊS VERSÕES
+- A transformação agora envolve somente a chamada que desenha o placar.
+- Buffers de HUD anteriores são finalizados antes do deslocamento, e o buffer
+  do placar é finalizado antes de restaurar a matriz.
+- Restauração em finally, inclusive se o módulo for desligado durante o desenho
+  ou houver uma exceção. Não depende de reler o estado no fim da chamada.
+- A posição/escala padrão não cria escopo, não empilha matriz e não força flush.
+- O chat e os outros elementos do HUD não recebem o deslocamento do placar.
+
+OTIMIZAÇÕES APLICADAS NAS TRÊS VERSÕES
+- Glint e RGB não recriam nem enviam textura em cada frame/tick de animação.
+- Removida a criação de stream/lambda de codepoints a cada texto do HUD/menu.
+- Estilos imutáveis de fonte são reutilizados, mantendo componentes de texto
+  separados. Nada de compartilhar texto mutável entre elementos.
+- Scoreboard sem alteração de posição/escala usa o caminho sem alocação/flush extra.
+- São otimizações de trechos concretos; não houve benchmark de FPS no jogo.
+
+CORREÇÕES ESPECÍFICAS
+- 1.21.1 / BlockOverlay: desenhado no evento nativo de outline, usando o bloco
+  que o jogo já selecionou. Removido o segundo raycast da câmera no evento LAST.
+- 1.20.1 / Fullbright: ajuste na escrita dos pixels do lightmap, com atualização
+  ao ligar e desligar. A injeção antiga atingia a opção de escuridão, não gamma.
+- 1.21.4 / ViewModel: a posição/rotação da offhand permanece aplicada quando a
+  opção Afetar comidas está desligada. A exclusão de escala de comida e o
+  comportamento da mão principal continuam independentes. Push/pop balanceados.
+
+POJAV / PERFIL PADRÃO — NAS TRÊS VERSÕES
+- Um novo Default vem do perfil embutido da versão, e não de uma captura das
+  configurações iniciais azul/verde do módulo Interface.
+- O Pojav não força mais a fonte vanilla quando outra fonte está selecionada.
+- Um acento não faz o texto inteiro abandonar a fonte selecionada; os provedores
+  de fonte existentes continuam tendo fallback de glifos para Minecraft.
+- Detecção adicional do ambiente Android mantém perfis na pasta local do jogo,
+  inclusive em launchers cuja JVM não tem Pojav/Android no nome.
+- Perfis já existentes não são substituídos automaticamente.
+
+SE O DEFAULT ANTIGO JÁ ESTÁ AZUL/VERDE
+1. Exporte o perfil ou faça backup antes de restaurá-lo.
+2. No menu Perfis, use o ícone de restaurar ao lado de Default e confirme
+   FORMATAR. Isso restaura esse perfil ao padrão embutido da versão.
+3. Como alternativa, com o jogo FECHADO, copie default.json e active-profile.txt
+   de Perfis_Padrao/<sua-versao>/ para config/duckswords/profiles/ da instância
+   do Pojav. Essa troca manual substitui o Default atual; preserve seu backup.
+4. Não copie um perfil de outra versão. Os caminhos desktop podem ser
+   compartilhados em %APPDATA%/DuckClientZ/profiles ou ~/.duckclientz/profiles.
+
+ROTEIRO PARA CONFERIR NO JOGO
+- Scoreboard: abrir o chat e deslocar/escalar só o placar. Conferir também o HUD
+  com o módulo ligado/desligado e após mudar de tela. Chat/HUD devem ficar no lugar.
+- Glint em item encantado, inventário, item no chão e armadura: alterar velocidade,
+  conferir 0, 1 e 5; mudar Forca entre 0 e 2 e a opacidade da cor entre 0 e 255.
+- 1.21.1: mirar no mesmo bloco e andar lateralmente, girar a câmera e alternar
+  Box/Filled/Both. O overlay deve permanecer no bloco selecionado pelo jogo.
+- 1.20.1: entrar em um local escuro e alternar Fullbright; conferir Gamma 1 e 10,
+  desligando depois para conferir o retorno da iluminação normal.
+- 1.21.4: deslocar a offhand, comer com a mão secundária e alternar Afetar comidas.
+  A posição da mão secundária deve permanecer, sem desequilibrar a matriz.
+- Pojav: testar em instância sem perfis e conferir o Default; em perfil já salvo,
+  conferir que suas cores permanecem. Escolher GeoFont Edge e testar acentos.
+
+VALIDAÇÃO E LIMITES
+- Foram recompiladas as classes de correção e aplicadas alterações pontuais aos
+  JARs enviados; não se trata de um build Gradle do projeto-fonte completo.
+- Bytecode, referências e alvos de injeção conferidos com os JARs reais das três
+  versões do Minecraft, obtidos de fontes oficiais com hash verificado.
+- Testes isolados de lógica e regressão passaram em Java 21/Linux, com stubs
+  de Minecraft. O bytecode do JAR 1.20.1 foi mantido compatível com Java 17.
+- Minecraft/Fabric completo, aparência no jogo, Pojav/Android e renderizadores
+  específicos NÃO foram executados neste ambiente. Esta entrega é experimental.
+- Consulte VALIDACAO_TECNICA.txt e build-report.json para os resultados e hashes.
