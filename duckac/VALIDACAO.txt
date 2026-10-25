@@ -1,4 +1,4 @@
-DuckAC V9
+DuckAC V9.1
 
 - Testes unitários: motor, configurações, hotkeys, cancelamento de SendInput simulado, clique do meio, F12 e heartbeat.
 - Interface Tk: seletor, slider, atalhos, CPS, texto dentro do painel e minimizar/restaurar.

@@ -76,6 +76,23 @@ with tempfile.TemporaryDirectory() as temp, patch.object(duckac,'SETTINGS_PATH',
     assert engine.status().enabled
     click(412,550)
     assert not engine.status().enabled
+    # Drag outside the slider, including over caption buttons.
+    for destination in ((534,23),(490,23),(-100,247),(700,247)):
+        app.canvas.event_generate('<Button-1>',x=150,y=247)
+        for x in range(40,336,7):
+            app.canvas.event_generate('<B1-Motion>',x=x,y=247)
+            root.update()
+        app.canvas.event_generate('<B1-Motion>',x=destination[0],y=destination[1])
+        app.canvas.event_generate('<Button-1>',x=destination[0],y=destination[1])
+        app.canvas.event_generate('<ButtonRelease-1>',x=destination[0],y=destination[1])
+        root.update()
+        assert not app.closed and not app.minimized and root.winfo_exists()
+        assert 1<=engine.settings.cps<=25
+    # Releasing a different control over X must not close the app.
+    app.canvas.event_generate('<Button-1>',x=55,y=195)
+    app.canvas.event_generate('<ButtonRelease-1>',x=534,y=23)
+    root.update()
+    assert not app.closed
     # All canvas text stays within the panel bounds.
     app.hover=None;app.render();root.update()
     for item in app.canvas.find_all():

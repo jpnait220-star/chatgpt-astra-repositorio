@@ -1,4 +1,4 @@
-"""DuckAC V9: compact dark UI, replaceable hotkey and honest CPS meters."""
+"""DuckAC V9.1: compact dark UI, replaceable hotkey and honest CPS meters."""
 from __future__ import annotations
 
 import json
@@ -65,6 +65,7 @@ class DuckApp:
         self.hover = None
         self.actions = []
         self.dragging = False
+        self.pressed_action = None
         self.window_drag = None
         self.capture = False
         self.toast = ''
@@ -78,7 +79,7 @@ class DuckApp:
         self.font = next((families[name.casefold()] for name in
                           (FONT, 'Arial', 'DejaVu Sans', 'Helvetica', 'Nimbus Sans L')
                           if name.casefold() in families), 'TkDefaultFont')
-        root.title('DuckAC V9')
+        root.title('DuckAC V9.1')
         root.geometry(f'{W}x{H}')
         root.resizable(False, False)
         root.configure(bg=BG)
@@ -118,6 +119,7 @@ class DuckApp:
             self.engine.backend.set_app_window(self.root.winfo_id())
 
     def minimize(self):
+        logging.info("Minimizar solicitado")
         if self.capture:
             self.cancel_capture()
         self.minimized = True
@@ -172,7 +174,7 @@ class DuckApp:
         rounded(c, 17, 13, 21, 21, 6, ACCENT)
         self.txt(27, 23, 'D', 14, True, '#151922', 'center')
         self.txt(48, 23, 'DuckAC', 18, True, INK, 'w')
-        self.txt(131, 24, 'V9', 11, True, MUTED, 'w')
+        self.txt(131, 24, 'V9.1', 11, True, MUTED, 'w')
         if self.hover == 'close':
             rounded(c, 514, 6, 39, 33, 7, '#70303D')
         elif self.hover == 'minimize':
@@ -254,7 +256,9 @@ class DuckApp:
         self.update(cps=max(1, min(25, self.engine.settings.cps+delta)))
 
     def cps_slide(self, event):
-        self.update(cps=round(1+(max(40, min(335, event.x))-40)/295*24))
+        cps = round(1+(max(40, min(335, event.x))-40)/295*24)
+        if cps != self.engine.settings.cps:
+            self.update(cps=cps)
 
     def update(self, **values):
         try:
@@ -347,15 +351,21 @@ class DuckApp:
             self.render()
 
     def mouse_click(self, event):
+        if self.closed or self.dragging or self.window_drag or self.pressed_action:
+            return
         name, callback = self.hit(event.x, event.y)
         if callback:
             self.dragging = name == 'slider'
-            if self.dragging: callback(event)
-            else: callback()
-        elif event.y < 45:
+            if self.dragging:
+                self.cps_slide(event)
+            else:
+                self.pressed_action = name
+        elif 0 <= event.y < 45:
             self.window_drag = (event.x_root-self.root.winfo_x(), event.y_root-self.root.winfo_y())
 
     def mouse_drag(self, event):
+        if self.closed:
+            return
         if self.dragging:
             self.cps_slide(event)
         elif self.window_drag:
@@ -363,8 +373,16 @@ class DuckApp:
             self.root.geometry(f'+{max(0,x)}+{max(0,y)}')
 
     def mouse_release(self, event):
+        was_dragging = self.dragging or self.window_drag
+        pressed = self.pressed_action
         self.dragging = False
         self.window_drag = None
+        self.pressed_action = None
+        if self.closed or was_dragging or not pressed or event is None:
+            return
+        name, callback = self.hit(event.x, event.y)
+        if name == pressed and callback:
+            callback()
 
     def schedule_save(self):
         if self.save_timer:
@@ -399,6 +417,7 @@ class DuckApp:
     def close(self):
         if self.closed:
             return
+        logging.info("Fechar solicitado")
         self.closed = True
         # Stop before touching a child window, timers or the configuration file.
         # A Tcl/save error must never leave the input worker armed.
@@ -523,6 +542,10 @@ def main():
     if os.name != 'nt' and not preview:
         print('DuckAC é compatível com Windows 10/11.')
         return 1
+    if not preview:
+        from duckac_logging import configure_logging
+        configure_logging(APPDATA)
+    logging.info('Iniciando DuckAC V9.1')
     guard = SingleInstance() if not preview else None
     engine = root = None
     try:
@@ -543,7 +566,11 @@ def main():
         engine = AutoClickController(backend, load_settings())
         DuckApp(root, engine)
         root.mainloop()
+        logging.info('Loop da interface encerrado')
         return 0
+    except Exception:
+        logging.exception('Falha no aplicativo')
+        raise
     finally:
         try:
             if engine:

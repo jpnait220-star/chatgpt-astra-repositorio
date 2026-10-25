@@ -132,6 +132,11 @@ class WindowsBackend:
         self.u.GetForegroundWindow.restype = wt.HWND
         self.u.GetAncestor.argtypes = (wt.HWND, ctypes.c_uint)
         self.u.GetAncestor.restype = wt.HWND
+        self.u.GetCursorPos.argtypes = (ctypes.POINTER(wt.POINT),)
+        self.u.GetCursorPos.restype = wt.BOOL
+        self.u.WindowFromPoint.argtypes = (wt.POINT,)
+        self.u.WindowFromPoint.restype = wt.HWND
+        self._app_child_hwnd = None
         self._app_hwnd = None
         self.u.GetWindowTextW.argtypes = (wt.HWND, wt.LPWSTR, ctypes.c_int)
         self.u.GetWindowThreadProcessId.argtypes = (wt.HWND, ctypes.POINTER(wt.DWORD))
@@ -179,6 +184,7 @@ class WindowsBackend:
         self._cancelled = threading.Event()
         self._closed = False
         self._pressed = None
+        self._app_child_hwnd = None
 
     def close(self):
         self._closed = True
@@ -218,8 +224,29 @@ class WindowsBackend:
         Reading the foreground window title on every tick can be very slow in
         some full-screen games; comparing the handle itself is cheap.
         """
+        self._app_child_hwnd = int(hwnd)
         root = self.u.GetAncestor(int(hwnd), 2)  # GA_ROOT
         self._app_hwnd = int(root or hwnd)
+
+    def pointer_over_panel(self):
+        """Check current wrapper HWND: Tk can recreate it after minimize/restore.
+
+        Foreground alone is insufficient: moving onto the slider need not focus
+        this window. The CPS tester remains an intentional click target.
+        """
+        child = self._app_child_hwnd
+        if child is None:
+            return False
+        from ctypes import wintypes as wt
+        panel = self.u.GetAncestor(child, 2)
+        if not panel:
+            return True  # Fail closed while the window is being recreated.
+        self._app_hwnd = int(panel)
+        point = wt.POINT()
+        if not self.u.GetCursorPos(ctypes.byref(point)):
+            return True
+        under_pointer = self.u.WindowFromPoint(point)
+        return bool(under_pointer and self.u.GetAncestor(under_pointer, 2) == panel)
 
     def key_down(self, code: int) -> bool:
         return bool(self.u.GetAsyncKeyState(code) & 0x8000)
@@ -255,6 +282,8 @@ class WindowsBackend:
         return is_minecraft_target(*self.foreground_info())
 
     def target_focused(self, minecraft_only: bool) -> bool:
+        if self.pointer_over_panel():
+            return False
         if not minecraft_only:
             # Only a constant-time HWND query on each tick: no title lookup.
             hwnd = self.u.GetForegroundWindow()
@@ -280,7 +309,7 @@ class WindowsBackend:
         down_flag, up_flag = {'left':(0x0002,0x0004), 'right':(0x0008,0x0010),
                               'middle':(0x0020,0x0040)}[mouse_button]
         with self._input_lock:
-            if self._closed or self._cancelled.is_set():
+            if self._closed or self._cancelled.is_set() or self.pointer_over_panel():
                 return False
             if not self._send(down_flag):
                 raise OSError("O Windows não aceitou o pressionamento do mouse")

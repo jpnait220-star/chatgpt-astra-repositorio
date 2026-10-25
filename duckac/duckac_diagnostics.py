@@ -25,6 +25,14 @@ def check_installation(output):
         app = duckac.DuckApp(root, engine)
         errors = []
         root.report_callback_exception = lambda *args: errors.append(str(args))
+        for _ in range(10):
+            app.canvas.event_generate('<Button-1>',x=150,y=247)
+            for x in range(40,336,20):
+                app.canvas.event_generate('<B1-Motion>',x=x,y=247)
+                root.update()
+            app.canvas.event_generate('<ButtonRelease-1>',x=534,y=23)
+            root.update()
+            assert not app.closed and not app.minimized
         app.open_tester()
         root.after(200, app.close)
         root.mainloop()
@@ -32,7 +40,7 @@ def check_installation(output):
         assert not engine._thread.is_alive()
         assert not engine.status().enabled
         assert not any(t.name == 'DuckAC-Input' and t.is_alive() for t in threading.enumerate())
-        report.update(ok=True, middle=True, assets=True, worker_stopped=True)
+        report.update(ok=True, middle=True, assets=True, worker_stopped=True, slider_drag=True)
     except Exception:
         report['error'] = traceback.format_exc()
     finally:
