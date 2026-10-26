@@ -1,0 +1,79 @@
+DUCKCLIENTZ 1.5.28-beta.2.14 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+INSTALAR
+Feche o jogo. Abra somente a pasta da sua versão e copie o conteúdo de mods
+para a pasta mods da mesma instância. Remova o JAR antigo do DuckClientZ.
+Não instale as quatro versões juntas. Mantenha Fabric API e Sodium compatíveis.
+1.20.1: Java 17+. Versões 1.21.x: Java 21+.
+1.21.11: Fabric Loader 0.19.3+; mantenha também offlinenametagicon-3.0.0.jar,
+incluído sem alteração do pacote original. Não é preciso apagar configurações.
+
+CORREÇÕES PEDIDAS
+- Firework Key: padrão e mínimo de 4 ticks (0,2 segundo). Perfis com valores
+  menores são limitados a 4. Proteção também no momento de usar o foguete.
+- 1.20.1/1.21.1/1.21.4: leitura nativa de Sharpness, sem buscar o campo
+  SHARPNESS por reflexão; corrige a causa do crash informado no Firework Key.
+- Free Look/Camera Gravação: controle separado da rotação do jogador,
+  tratamento do mouse e rolagem para zoom de 0,5 a 10 blocos.
+  Ative o módulo e use o bind configurado. Nas três versões anteriores,
+  mantenha Travar câmera ligado para o mouse não girar a cabeça/mira.
+  A câmera para ao abrir um menu e restaura a perspectiva ao desativar.
+- 1.21.11: Ocultar em primeira pessoa passa a permitir cosméticos quando
+  há uma tela aberta, incluindo inventário e prévia do personagem.
+- Busca: fonte vanilla, alinhamento de texto/cursor/seleção e ajuste do clique.
+- Preservadas as correções anteriores de HUD/F11/perfis, fontes, efeitos,
+  glint, Fullbright, Elytra, outline e isolamento da scoreboard.
+
+PERFIS E CONFIGURAÇÕES
+Cada versão grava em config/duckswords/<versão>/config.json e profiles/.
+A primeira execução copia a configuração anterior e mantém os originais.
+A cópia inicial pode ter a mesma aparência em várias versões, mas as próximas
+alterações ficam independentes. Há backup em migration-backup/.
+Nas versões antigas, a origem compartilhada era APPDATA/DuckClientZ no
+Windows ou ~/.duckclientz. A 1.21.11 usava a pasta config da instância.
+
+Códigos novos começam com DZ3: e armazenam as diferenças de uma base congelada.
+O padrão desta atualização gera 12 caracteres. Alterações personalizadas,
+cosméticos e entradas extras aumentam o tamanho. Códigos antigos continuam
+aceitos nos formatos que cada versão já suportava (V1; V2 nas três antigas).
+Compartilhe pelo menu de perfis; não edite o código manualmente.
+
+FUNÇÕES NOVAS
+- Cosméticos: grade responsiva e painel lateral com nuvem e prévia do jogador.
+  É preciso estar em um mundo para visualizar seu personagem.
+- Mouse Icon: cursores de espada, machado, tridente e escova com texturas
+  existentes do Minecraft. Afeta apenas a janela do jogo; desligado por padrão.
+- ViewModel > Modelo: DuckModels mantém os ajustes anteriores. ModernDuck
+  permite posição, rotação, tamanho e esticamento independentes por mão.
+- Swing > ModernDuck: Swipe, Down, Smooth, Power, Feast e Custom; intensidade,
+  velocidade e controles customizados separados do ViewModel.
+- TargetHUD: estilo atual e painéis ModernDuck Default/Round, mantendo dados
+  e posições do HUD existente.
+- Visuals: partículas de hit/ambiente, oito texturas, cores, tamanhos, duração,
+  física opcional e target render Legacy/Circle/Ghosts/Crystals.
+- Sons: nove opções ModernDuck para cliques/ativação e hit sound.
+- Performance: ícone de escova e limites opcionais por distância para itens,
+  criaturas e jogadores; limites de distância/quantidade de partículas do jogo.
+  Soma-se aos controles de partículas extras do client. Os controles que afetam
+  o jogo ficam desligados por padrão. Ative e ajuste conforme sua preferência:
+  podem ocultar entidades distantes ou reduzir a quantidade de partículas.
+  Jogador local e entidades fora dessas categorias não são cortados por distância.
+  São controles complementares; não substituem o trabalho do Sodium.
+
+ESTILOS E REFERÊNCIAS
+ModernDuck é uma implementação inspirada nas referências fornecidas, sem
+embutir as classes dos mods de referência. Não houve comparação visual no jogo.
+O arquivo enviado como soupapi-1.20.1.jar era Cloth Config; portanto esta beta
+não reproduz exatamente a interface/estilo antigo do Soup por Mod Menu.
+O estilo Classico das partículas usa iluminação do mundo; ModernDuck usa brilho
+próprio. Ambos estão disponíveis nas quatro versões. Recursos de áudio/imagem
+selecionados dos arquivos fornecidos conservam sua autoria; consulte CREDITOS.
+
+VALIDAÇÃO E LIMITES
+Compilação das quatro versões; CRC/SHA-256/metadados; referências às APIs reais
+por versão; pontos exatos dos novos mixins; testes isolados de perfil/migração,
+busca, câmera, Sharpness, partículas, modelos/swing, limites de desempenho e
+regressão das correções anteriores. Relatórios incluídos em validacao/.
+Minecraft, modpack, Pojav e renderização real em GPU não foram iniciados neste
+ambiente. Não há medição de FPS nem confirmação visual no jogo. Esta é uma beta
+para testar na sua instância, mantendo seu conjunto de mods e recursos.
