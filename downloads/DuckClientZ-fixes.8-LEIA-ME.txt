@@ -1,0 +1,33 @@
+DUCKCLIENTZ — fixes.8 (1.20.1 / 1.21.1 / 1.21.4) + opt.1 (1.21.11)
+
+INSTALAÇÃO
+Feche o jogo. Abra APENAS a pasta da sua versão do Minecraft e copie o
+conteúdo de mods para a pasta mods da mesma instância. Remova o JAR antigo
+do DuckClientZ; nunca coloque as quatro versões juntas. Mantenha o Fabric API.
+1.20.1 exige Java 17 ou superior; as versões 1.21.x exigem Java 21 ou superior.
+1.21.11 exige Fabric Loader >= 0.19.3 e os DOIS JARs fornecidos naquela pasta.
+O offlinenametagicon-3.0.0.jar foi preservado do pacote original do usuário.
+Não é preciso apagar configs nem copiar manualmente outro perfil.
+
+NOVIDADES
+fixes.8: TargetHighlight com busca espacial e seleção limitada, desenho na
+etapa correta de buffers do Fabric, precisão de caixas longe do centro do
+mapa e direção correta das linhas. Block Outline usa o alvo nativo nas três
+versões. Círculos/esferas reutilizam geometria e reduzem chamadas repetidas.
+HitRange usa o tempo de interpolação do próprio frame. Mantém as funções,
+cores, filtros de alvo, fade e configurações anteriores.
+
+Todas as quatro versões: HUD adaptado à janela/F11 sem gravar a posição
+projetada no perfil; posições estáveis ao salvar/reiniciar/trocar perfil.
+Effects/Potion HUD mostra o ícone real de cada efeito. Fonte padrão Minecraft.
+
+1.21.11 opt.1: otimizações de consulta de proximidade, geometria circular,
+cores e formatação; Swing > Descer com cooldown disponível e desligado por
+padrão. As cinco animações originais foram preservadas. NÃO recebeu as
+mudanças de renderização fixes.8 das três versões antigas.
+
+VALIDAÇÃO
+JARs/CRC, metadados Fabric, referências às APIs reais de cada Minecraft e
+testes isolados de lógica/renderização/HUD/perfis aprovados. Relatórios e
+fontes das correções incluídos. Minecraft, modpack e Pojav não foram iniciados
+neste ambiente. Não houve medição de FPS/GPU nem confirmação visual no jogo.
