@@ -1,0 +1,139 @@
+DUCKCLIENTZ 1.5.28-beta.2.13-fixes.4 — ENTREGA EXPERIMENTAL
+=======================================================
+
+INSTALAÇÃO
+- Feche o jogo e substitua o JAR antigo pelo JAR da MESMA versão do Minecraft.
+- Use apenas UM DuckClientZ na pasta mods de cada instância. Não instale
+  os três JARs juntos. Mantenha Fabric Loader e Fabric API compatíveis.
+- Minecraft 1.20.1: Java 17 ou mais novo. 1.21.1 e 1.21.4: Java 21 ou mais novo.
+- Não é preciso remover sua configuração para instalar esta correção.
+
+GLINT — NAS TRÊS VERSÕES
+- Velocidade e Forca agora são registradas na lista de opções e nos perfis.
+- A textura fica estável. Movimento e RGB usam a matriz de textura por frame,
+  sem destruir/recriar a imagem a cada quatro ticks.
+- A fase acumula tempo decorrido: trocar velocidade não multiplica o relógio
+  absoluto. Velocidade 0 congela o movimento, incluindo o RGB.
+- Forca 0 e opacidade da cor 0 zeram também o RGB da textura. Isso é necessário
+  porque o blend de glint do Minecraft usa a cor, não só o canal alfa.
+  Valores baixos não zerados também evitam o recorte de alfa do shader vanilla.
+- Itens e armaduras/entidades recebem texturas próprias e são restaurados ao
+  desativar o módulo. As opções globais de vídeo do Minecraft são preservadas.
+
+SCOREBOARD / CHAT — NAS TRÊS VERSÕES
+- A transformação agora envolve somente a chamada que desenha o placar.
+- Buffers de HUD anteriores são finalizados antes do deslocamento, e o buffer
+  do placar é finalizado antes de restaurar a matriz.
+- Restauração em finally, inclusive se o módulo for desligado durante o desenho
+  ou houver uma exceção. Não depende de reler o estado no fim da chamada.
+- A posição/escala padrão não cria escopo, não empilha matriz e não força flush.
+- O chat e os outros elementos do HUD não recebem o deslocamento do placar.
+
+DESEMPENHO — REVISÃO fixes.3
+- As rotinas compartilhadas de vértice/cor, normal e rotação agora chamam
+  diretamente a API da versão. Foram removidas as varreduras por reflexão,
+  criação de streams, arrays de parâmetros e boxing de números desses caminhos.
+  Isso beneficia Hit Range, anéis, caixas preenchidas, linhas, esferas e outros
+  efeitos que usam MinecraftCompat, sem reduzir os segmentos ou apagar efeitos.
+- Hit Range mantém os 64 segmentos, espessura e faces dos dois lados. Os pontos
+  do círculo unitário são calculados uma vez por resolução e reutilizados.
+- A detecção de alvos usa a consulta espacial do Minecraft numa caixa local,
+  em até 10 consultas por segundo no tick. Não percorre todas as entidades do
+  mundo no render. A troca de cor pode levar até aproximadamente 100 ms;
+  o movimento e o desenho continuam atualizados em cada frame.
+- Delta de tick, FPS e camada de quads usam chamadas diretas, sem descoberta
+  reflexiva por frame. Não há cache de valores de FPS/delta que atrase o HUD.
+- HSB do seletor de cor é calculado uma vez por cor; mudar cor, resetar ou
+  carregar perfil invalida o valor automaticamente. Não aloca arrays por pixel.
+- Formatação dos HUDs de coordenadas, vida, alvo, sessão e poções reutiliza
+  resultados enquanto os argumentos não mudam. O cache é limitado, respeita
+  mudanças de locale e ignora objetos mutáveis.
+- Fullbright 1.20.1 lê a configuração uma vez por atualização do lightmap e
+  usa uma tabela de 256 níveis, preservando a saída pixel a pixel.
+- Teste sintético comparou os corpos reais da função antiga e da nova com
+  um consumidor de vértices substituto. Demonstra redução de custo de CPU
+  nesse caminho, NÃO mede FPS, GPU, Android ou o jogo completo. Consulte
+  VALIDACAO_TECNICA.txt. Nenhum aumento de FPS específico é prometido.
+
+CRASH REPORTADO NA 1.21.1
+- A imagem enviada está com a causa da exceção cortada pela rolagem horizontal.
+  Ainda não foi possível identificar nem afirmar que esse crash foi corrigido.
+- O JAR fixes.2 da 1.21.1 passou localmente no parser real de metadados do
+  Fabric Loader 0.16.10 e na leitura/CRC de todas as entradas via Java ZipFile.
+  Os três JARs fixes.3 passam nessas mesmas verificações. Isso não é um teste
+  de inicialização com todos os mods nem reproduz o dispositivo do usuário.
+- Para diagnosticar, é necessário o texto completo de Copy error ou latest.log.
+
+OTIMIZAÇÕES APLICADAS NAS TRÊS VERSÕES
+- Glint e RGB não recriam nem enviam textura em cada frame/tick de animação.
+- Removida a criação de stream/lambda de codepoints a cada texto do HUD/menu.
+- Estilos imutáveis de fonte são reutilizados, mantendo componentes de texto
+  separados. Nada de compartilhar texto mutável entre elementos.
+- Scoreboard sem alteração de posição/escala usa o caminho sem alocação/flush extra.
+- São otimizações de trechos concretos; não houve benchmark de FPS no jogo.
+
+CORREÇÕES ESPECÍFICAS
+- 1.21.1 / BlockOverlay: desenhado no evento nativo de outline, usando o bloco
+  que o jogo já selecionou. Removido o segundo raycast da câmera no evento LAST.
+- 1.20.1 / Fullbright: ajuste na escrita dos pixels do lightmap, com atualização
+  ao ligar e desligar. A injeção antiga atingia a opção de escuridão, não gamma.
+- 1.21.4 / ViewModel: a posição/rotação da offhand permanece aplicada quando a
+  opção Afetar comidas está desligada. A exclusão de escala de comida e o
+  comportamento da mão principal continuam independentes. Push/pop balanceados.
+
+POJAV / PERFIL PADRÃO — NAS TRÊS VERSÕES
+- Um novo Default vem do perfil embutido da versão, e não de uma captura das
+  configurações iniciais azul/verde do módulo Interface.
+- O Pojav não força mais a fonte vanilla quando outra fonte está selecionada.
+- Um acento não faz o texto inteiro abandonar a fonte selecionada; os provedores
+  de fonte existentes continuam tendo fallback de glifos para Minecraft.
+- Detecção adicional do ambiente Android mantém perfis na pasta local do jogo,
+  inclusive em launchers cuja JVM não tem Pojav/Android no nome.
+- O Default azul/verde existente é migrado automaticamente; outros perfis são preservados.
+
+MIGRAÇÃO AUTOMÁTICA DO DEFAULT — fixes.4
+- Basta substituir o JAR antigo pela versão correspondente e abrir o jogo.
+  Não é necessário importar arquivo, restaurar pelo menu ou confirmar FORMATAR.
+- O perfil fornecido pelo usuário agora está embutido nas três versões. Seus
+  valores substituem o preset anterior, mantendo apenas entradas adicionais de
+  compatibilidade da versão e os novos controles de glint quando ausentes.
+- O construtor de Interface e o reset individual também começam com os valores
+  vermelhos e GeoFont Edge do perfil enviado, sem passar pelo antigo azul/verde.
+- Ao iniciar, antes de carregar o perfil ativo, o mod detecta default.json com
+  o par azul/verde antigo (ou sem configurações de Interface) e substitui sua
+  configuração inteira pelo novo Default. O perfil ativo Default é carregado
+  já corrigido na mesma inicialização.
+- Antes da substituição, salva cópia exata em default-azul-verde-<id>.bak na
+  própria pasta de perfis. Backup e marcador não aparecem na lista de perfis.
+- A operação é marcada por default-red-v1.applied e ocorre uma única vez.
+  Mudanças intencionais feitas depois, mesmo voltar a azul/verde, permanecem.
+- Outros perfis e a seleção de perfil ativo são preservados. Defaults já
+  personalizados com outras cores não são sobrescritos automaticamente.
+- Se um arquivo estiver inválido, não o sobrescreve nem marca a migração como
+  concluída; a falha fica no log de inicialização de perfis.
+
+ROTEIRO PARA CONFERIR NO JOGO
+- Scoreboard: abrir o chat e deslocar/escalar só o placar. Conferir também o HUD
+  com o módulo ligado/desligado e após mudar de tela. Chat/HUD devem ficar no lugar.
+- Glint em item encantado, inventário, item no chão e armadura: alterar velocidade,
+  conferir 0, 1 e 5; mudar Forca entre 0 e 2 e a opacidade da cor entre 0 e 255.
+- 1.21.1: mirar no mesmo bloco e andar lateralmente, girar a câmera e alternar
+  Box/Filled/Both. O overlay deve permanecer no bloco selecionado pelo jogo.
+- 1.20.1: entrar em um local escuro e alternar Fullbright; conferir Gamma 1 e 10,
+  desligando depois para conferir o retorno da iluminação normal.
+- 1.21.4: deslocar a offhand, comer com a mão secundária e alternar Afetar comidas.
+  A posição da mão secundária deve permanecer, sem desequilibrar a matriz.
+- Pojav: testar em instância sem perfis e conferir o Default; em Default azul/verde antigo,
+  conferir a troca automática pelo vermelho e o backup. Em perfil personalizado,
+  conferir que suas cores permanecem. Escolher GeoFont Edge e testar acentos.
+
+VALIDAÇÃO E LIMITES
+- Foram recompiladas as classes de correção e aplicadas alterações pontuais aos
+  JARs enviados; não se trata de um build Gradle do projeto-fonte completo.
+- Bytecode, referências e alvos de injeção conferidos com os JARs reais das três
+  versões do Minecraft, obtidos de fontes oficiais com hash verificado.
+- Testes isolados de lógica e regressão passaram em Java 21/Linux, com stubs
+  de Minecraft. O bytecode do JAR 1.20.1 foi mantido compatível com Java 17.
+- Minecraft/Fabric completo, aparência no jogo, Pojav/Android e renderizadores
+  específicos NÃO foram executados neste ambiente. Esta entrega é experimental.
+- Consulte VALIDACAO_TECNICA.txt e build-report.json para os resultados e hashes.
