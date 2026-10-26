@@ -29,7 +29,7 @@ with tempfile.TemporaryDirectory() as temp, patch.object(duckac,'SETTINGS_PATH',
     root.report_callback_exception=lambda *error:callback_errors.append(error)
     engine._heartbeat = None  # Deterministic engine clock for synthetic keys.
     root.update()
-    assert root.overrideredirect()
+    assert not root.overrideredirect()
     assert (root.winfo_width(),root.winfo_height())==(duckac.W,duckac.H)
     # Hit-test actual vector controls instead of invoking all their methods directly.
     def click(x,y):
@@ -102,7 +102,7 @@ with tempfile.TemporaryDirectory() as temp, patch.object(duckac,'SETTINGS_PATH',
     if '--screenshot' in sys.argv:
         from PIL import ImageGrab
         root.geometry('+20+20');root.update()
-        ImageGrab.grab(bbox=(20,20,20+duckac.W,20+duckac.H),**({'xdisplay':root.winfo_screen()} if os.name!='nt' else {})).save(
+        ImageGrab.grab(bbox=(root.winfo_rootx(),root.winfo_rooty(),root.winfo_rootx()+duckac.W,root.winfo_rooty()+duckac.H),**({'xdisplay':root.winfo_screen()} if os.name!='nt' else {})).save(
             Path(__file__).resolve().parents[1]/'PREVIA.png')
     # Tester receives real Tk event callbacks independently of the engine.
     click(440,466)
@@ -128,7 +128,7 @@ with tempfile.TemporaryDirectory() as temp, patch.object(duckac,'SETTINGS_PATH',
     root.deiconify();root.update()
     app.restore_window(SimpleNamespace(widget=root))
     root.update()
-    assert root.overrideredirect()
+    assert not root.overrideredirect()
     # Dragging uses only the header and preserves internal positions.
     app.mouse_click(SimpleNamespace(x=200,y=22,x_root=220,y_root=42))
     app.mouse_drag(SimpleNamespace(x_root=270,y_root=92))

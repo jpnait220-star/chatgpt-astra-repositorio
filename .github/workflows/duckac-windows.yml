@@ -35,9 +35,9 @@ jobs:
               run(sys.executable, 'tests/check_interface.py', '--screenshot')
               run(sys.executable, 'tests/check_shutdown_ui.py')
               run(sys.executable, 'tests/check_windows_panel.py')
-              run(sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed', '--name', 'DuckAC_V9_1', '--icon', 'assets/duckac.ico', '--add-data', 'assets;assets', 'duckac.py', timeout=480)
+              run(sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed', '--name', 'DuckAC_V9_2', '--icon', 'assets/duckac.ico', '--add-data', 'assets;assets', 'duckac.py', timeout=480)
               report = Path('dist/check-installation.json').resolve()
-              run(str(Path('dist/DuckAC_V9_1.exe').resolve()), '--check-installation', str(report), timeout=60)
+              run(str(Path('dist/DuckAC_V9_2.exe').resolve()), '--check-installation', str(report), timeout=60)
               print(report.read_text(encoding='utf-8'))
               assert json.loads(report.read_text(encoding='utf-8'))['ok']
           except Exception:
@@ -50,15 +50,15 @@ jobs:
           import hashlib, shutil, zipfile
           from pathlib import Path
           out=Path('release'); out.mkdir(exist_ok=True)
-          shutil.copy2('dist/DuckAC_V9_1.exe', out/'DuckAC_V9_1.exe')
-          shutil.copy2('PREVIA.png', out/'DuckAC-V9.1-Previa.png')
-          with zipfile.ZipFile(out/'DuckAC-V9.1-Windows.zip','w',zipfile.ZIP_DEFLATED) as z:
-              z.write('dist/DuckAC_V9_1.exe','DuckAC_V9_1.exe')
+          shutil.copy2('dist/DuckAC_V9_2.exe', out/'DuckAC_V9_2.exe')
+          shutil.copy2('PREVIA.png', out/'DuckAC-V9.2-Previa.png')
+          with zipfile.ZipFile(out/'DuckAC-V9.2-Windows.zip','w',zipfile.ZIP_DEFLATED) as z:
+              z.write('dist/DuckAC_V9_2.exe','DuckAC_V9_2.exe')
               z.write('LEIA-ME.txt','LEIA-ME.txt')
-          with zipfile.ZipFile(out/'DuckAC-V9.1-Fonte.zip','w',zipfile.ZIP_DEFLATED) as z:
+          with zipfile.ZipFile(out/'DuckAC-V9.2-Fonte.zip','w',zipfile.ZIP_DEFLATED) as z:
               for p in Path('.').rglob('*'):
                   if p.is_file() and not any(x in p.parts for x in ('release','dist','build','__pycache__','.ruff_cache')) and p.suffix not in ('.pyc','.spec'):
-                      z.write(p,str(Path('DuckAC-V9.1')/p))
+                      z.write(p,str(Path('DuckAC-V9.2')/p))
           lines=[hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name for p in sorted(out.iterdir())]
           (out/'SHA256SUMS.txt').write_text('\n'.join(lines)+'\n')
       - name: Publicar downloads
@@ -66,12 +66,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view DuckAC-v9.1 *> $null
+          gh release view DuckAC-v9.2 *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create DuckAC-v9.1 --target $env:GITHUB_SHA --title "DuckAC V9.1" --notes-file README.md
+            gh release create DuckAC-v9.2 --target $env:GITHUB_SHA --title "DuckAC V9.2" --notes-file README.md
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          gh release upload DuckAC-v9.1 release/* --clobber
+          gh release upload DuckAC-v9.2 release/* --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()

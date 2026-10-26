@@ -1,4 +1,4 @@
-"""DuckAC V9.1: compact dark UI, replaceable hotkey and honest CPS meters."""
+"""DuckAC V9.2: compact dark UI, replaceable hotkey and honest CPS meters."""
 from __future__ import annotations
 
 import json
@@ -11,7 +11,7 @@ from pathlib import Path
 
 from duckac_engine import (AutoClickController, ClickMeter, ClickSettings, WindowsBackend,
                            virtual_key)
-from duckac_platform import SingleInstance, enable_dpi_awareness, show_in_taskbar
+from duckac_platform import SingleInstance, enable_dpi_awareness
 
 BASE = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 APPDATA = Path(os.getenv('APPDATA') or Path.home()) / 'DuckAC'
@@ -79,11 +79,11 @@ class DuckApp:
         self.font = next((families[name.casefold()] for name in
                           (FONT, 'Arial', 'DejaVu Sans', 'Helvetica', 'Nimbus Sans L')
                           if name.casefold() in families), 'TkDefaultFont')
-        root.title('DuckAC V9.1')
+        root.title('DuckAC V9.2')
         root.geometry(f'{W}x{H}')
         root.resizable(False, False)
         root.configure(bg=BG)
-        root.overrideredirect(True)  # Custom title bar on Windows 10 and 11.
+        root.overrideredirect(False)  # Native top-level: Windows owns taskbar visibility.
         try:
             self.icon_image = tk.PhotoImage(file=str(BASE/'assets'/'duckac.png'))
             root.iconphoto(True, self.icon_image)
@@ -114,7 +114,6 @@ class DuckApp:
         self.refresh_timer = root.after(100, self.refresh)
 
     def register_window(self):
-        show_in_taskbar(self.root)
         if hasattr(self.engine.backend, 'set_app_window'):
             self.engine.backend.set_app_window(self.root.winfo_id())
 
@@ -129,7 +128,6 @@ class DuckApp:
     def restore_window(self, event):
         if event.widget is self.root and self.minimized and self.root.state() == 'normal':
             self.minimized = False
-            self.root.overrideredirect(True)
             self.root.after_idle(self.register_window)
 
     def txt(self, x, y, text, size=14, bold=False, color=INK, anchor='nw'):
@@ -174,7 +172,7 @@ class DuckApp:
         rounded(c, 17, 13, 21, 21, 6, ACCENT)
         self.txt(27, 23, 'D', 14, True, '#151922', 'center')
         self.txt(48, 23, 'DuckAC', 18, True, INK, 'w')
-        self.txt(131, 24, 'V9.1', 11, True, MUTED, 'w')
+        self.txt(131, 24, 'V9.2', 11, True, MUTED, 'w')
         if self.hover == 'close':
             rounded(c, 514, 6, 39, 33, 7, '#70303D')
         elif self.hover == 'minimize':
@@ -399,6 +397,10 @@ class DuckApp:
     def refresh(self):
         if self.closed:
             return
+        if self.root.state() == 'withdrawn':
+            logging.error('Janela principal oculta; encerrando motor e aplicativo')
+            self.close()
+            return
         self.engine.heartbeat()
         current = (repr(self.engine.settings), repr(self.engine.status()), self.capture, self.hover, self.toast)
         if current != self.last_state:
@@ -545,7 +547,7 @@ def main():
     if not preview:
         from duckac_logging import configure_logging
         configure_logging(APPDATA)
-    logging.info('Iniciando DuckAC V9.1')
+    logging.info('Iniciando DuckAC V9.2')
     guard = SingleInstance() if not preview else None
     engine = root = None
     try:

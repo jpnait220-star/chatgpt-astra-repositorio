@@ -18,7 +18,7 @@ def pump(root,seconds):
         root.update();time.sleep(.01)
 
 if len(sys.argv)==1:
-    for route in ('close','save-error','destroy','tester-gone','tester-open','callback-error','quit'):
+    for route in ('close','save-error','destroy','tester-gone','tester-open','callback-error','withdrawn','quit'):
         subprocess.run([sys.executable,__file__,route],check=True,timeout=60)
     print('All shutdown subprocesses exited cleanly')
     raise SystemExit(0)
@@ -33,6 +33,10 @@ with tempfile.TemporaryDirectory() as temp,patch.object(duckac,'SETTINGS_PATH',P
             app.open_tester()
         if route=='tester-gone':
             app.open_tester();app.tester.window.destroy();app.start();pump(root,.3)
+        if route=='withdrawn':
+            root.withdraw()
+            app.refresh()
+            assert app.closed
         if route=='save-error':
             with patch.object(app,'save',side_effect=OSError('simulated disk failure')):app.close()
         elif route=='destroy':root.destroy()

@@ -7,10 +7,10 @@ if not errorlevel 1 (set "DUCKAC_PY=py -3") else set "DUCKAC_PY=python"
 if errorlevel 1 goto :err
 %DUCKAC_PY% -m pip install "pyinstaller>=6,<7"
 if errorlevel 1 goto :err
-%DUCKAC_PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name DuckAC_V9_1 --icon assets\duckac.ico --add-data "assets;assets" duckac.py
+%DUCKAC_PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name DuckAC_V9_2 --icon assets\duckac.ico --add-data "assets;assets" duckac.py
 if errorlevel 1 goto :err
 echo.
-echo PRONTO: dist\DuckAC_V9_1.exe
+echo PRONTO: dist\DuckAC_V9_2.exe
 start "" "%~dp0dist"
 pause
 exit /b 0
