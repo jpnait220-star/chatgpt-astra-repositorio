@@ -1,7 +1,9 @@
 # Duck Connect
 
-API de cosméticos compatível com DuckClientZ beta.2.17, mais página responsiva
+API de cosméticos compatível com DuckClientZ beta.2.17 e beta.2.18, mais página responsiva
 com status real e instruções de conexão. Sem dependências de execução.
+
+Serviço de produção: https://duck-connect.vercel.app. Redis conectado e testado com os clientes das quatro versões. Na beta.2.18 o endereço fica fixo no mod; basta ativar a feature e as opções de mostrar/compartilhar. Compartilhar fica desligado por padrão.
 
 ## Vercel
 
@@ -50,5 +52,4 @@ escuta127.0.0.1, para uso atrás de proxy HTTPS.
 - Credenciais Redis ficam exclusivamente nas variáveis privadas do servidor.
 
 A frequência da consulta/renderização continua sendo controlada pelo client;
-esta API não acrescenta trabalho por frame. A latência pública e o comportamento
-visual no Minecraft ainda precisam de teste depois da implantação.
+esta API não acrescenta trabalho por frame. Envio, consulta e limpeza foram testados no serviço público pelos métodos HTTP dos quatro JARs. O comportamento visual dentro do Minecraft ainda precisa de teste.

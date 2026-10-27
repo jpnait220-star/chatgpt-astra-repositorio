@@ -1,0 +1,93 @@
+DUCKCLIENTZ 1.5.28-beta.2.18 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+INSTALAÇÃO
+Feche o jogo, extraia o ZIP e copie somente os mods da pasta da sua versão para
+a instância. Remova o JAR antigo do client. Não misture as quatro versões.
+Mantenha Fabric API e Sodium compatíveis. Java 17+ na 1.20.1; Java 21+ nas 1.21.x.
+Na 1.21.11, mantenha o offlinenametagicon-3.0.0.jar incluído sem alteração.
+
+HUD E INTERFACE
+- Ativar fundo foi mantido, com painel mais escuro e cantos arredondados. Fundo
+  e conteúdo agora usam a mesma transformação de posição/escala do HUD, inclusive
+  ao alternar F11. Redimensionar não regrava as coordenadas salvas dos perfis.
+- Inventory HUD fica sem painel geral e sem Fundo Dark; os slots e destaques ficam.
+- TargetHUD tem rosto arredondado, barras suaves e mais partículas na frente do
+  rosto, com dispersão além do painel e pool limitado a 64 partículas.
+- HealthBar usa sempre a fonte Minecraft. A vida adicional mantém o sinal +.
+  O glifo de coração incompatível no texto de vida do TargetHUD foi removido.
+- “−” aparece após selecionar um HUD no editor; clicar fora limpa a seleção.
+- Vestiário usa Duck Client. Chapéu chinês e coroas descem um pixel do modelo.
+- Corrigidos resíduos claros nas bordas dos ícones TargetHighlight, SprintKeeper,
+  HitParticles, CustomKills, TargetHUD, Watermark, SessionTimer, CustomGlint e
+  HealthBar, preservando transparência e detalhes brancos internos.
+- Jaula Cooldown removida. Texture Maker continua removido.
+
+MÃOS, EFEITOS E DESEMPENHO
+- ViewModel mantém ajustes independentes de posição, rotação, escala e tamanho
+  para cada mão. Afetar comidas não transporta ajustes da principal para a off-hand.
+  DuckModels e ModernDuck continuam disponíveis, com matrizes isoladas por mão.
+- Visual Ratio estica a visão do mundo, preservando a projeção dos itens e do HUD.
+- HitParticles restaura a velocidade de explosão alterada por construtores vanilla.
+- Visuals espalha os hits radialmente: sem física não há queda; com física há
+  dispersão e gravidade. Estrelas usam o recurso da referência 1.21.11 nas quatro.
+- Target Render aproxima o efeito da frente da entidade para reduzir sobreposição
+  com os braços. A distância é limitada para não atravessar a câmera.
+- Partículas de HUD usam máscaras preparadas e retângulos mesclados em cache;
+  cantos dos painéis usam geometria em cache, sem upload de imagens por frame.
+  O ambiente gera duas partículas por tick em vez de três, mantendo os limites.
+- Dentro da teia, o Block Outline pode continuar a seleção visual além da própria
+  teia, dentro do alcance vanilla. Linhas Duck usam material próprio nessa condição.
+  A seleção real, os ataques e a interação do Minecraft não são modificados.
+
+AUTO CLIQUE, FOGUETE, CÂMERA E SONS
+- AutoClicker pausa em menus e retoma ao fechar. No modo Segurar, só retoma se a
+  tecla continuar pressionada. No Toggle, mantém a intenção de execução.
+- A hotkey do AutoClicker aceita somente teclado. Cliques fora do menu não viram
+  atalhos; binds antigos de mouse são limpos. O botão dos cliques continua editável.
+- Enquanto em execução no botão esquerdo, impede mineração contínua, mantendo os
+  pulsos normais de clique. Uma quebra já iniciada é cancelada uma única vez.
+- FireworkKey: mínimo de 5 ticks, limite adicional de tempo real contra rajadas
+  por ticks acumulados, uma troca pendente e retorno ao slot após 55 ms.
+  Uso aceito aciona o feedback normal de mão/equipar. Recuperação após morte,
+  troca de mundo e proteção contra sobrescrever uma troca manual foram mantidas.
+- Câmera de gravação cancela ao abrir inventário/menu ou mudar perspectiva com F5,
+  inclusive se o menu pausar os ticks. Exige soltar a tecla antes de rearmar.
+- Ao trocar opções de som no menu, há prévia com volume/pitch selecionados.
+  Hit Metal, Hit Madeira e Clique 5 saem da lista do HitSound. O prefixo ModernDuck
+  sai dos nomes de sons exibidos; os modos de modelo/swing continuam disponíveis.
+- Totem Blocos usa brick.ogg da referência Soup enviada, no lugar do impacto de madeira.
+
+CONFIGURAÇÃO PADRÃO
+Baseada na config.json enviada, com o mesmo tema vermelho/escuro e fonte Minecraft.
+Mudanças pedidas depois: Totem pop 2,35; Mouse Icon ligado com espada de diamante;
+Som do AutoClicker ligado, mas o módulo desligado; FireworkKey com delay 5.
+HitMarker/ClickSounds/Watermark/Interface continuam ligados conforme o arquivo enviado.
+As demais features novas ficam desligadas. Config/perfis separados em
+config/duckswords/<versão>/.
+O Padrão é atualizado uma vez nesta revisão, com backup em
+migration-backup/profiles/default-before-update-v218.json e marcador
+profiles/default-uploaded-v218.applied. Perfis personalizados e a seleção de um
+perfil personalizado são preservados. Edições posteriores do Padrão são mantidas.
+Bases antigas dos códigos DZ3 continuam imutáveis; u/v são as novas bases.
+
+COSMÉTICOS ONLINE
+Serviço público: https://duck-connect.vercel.app
+O endereço agora é fixo no mod: menus e perfis não alteram o destino.
+Ative Cosmeticos Online, Mostrar cosmeticos dos outros e Compartilhar meus cosmeticos.
+Os outros jogadores precisam usar o Duck e compartilhar pelo mesmo serviço.
+Compartilhar permanece desligado por padrão. Só envia UUID e IDs de cosméticos,
+sem chat nem IP do servidor Minecraft. Consulta em segundo plano; não há rede por frame.
+Redis expira registros em 120 segundos. O plano gratuito não tem upgrade automático.
+A API usa UUID autodeclarado, sem verificar posse da conta; serve para sincronizar
+visuais, não para conceder compras ou permissões.
+Fontes: github.com/jpnait220-star/chatgpt-astra-repositorio/tree/asasa/duck-cosmetics
+
+VALIDAÇÃO E LIMITES
+Compilação das quatro versões, checagem das assinaturas reais e alvos de mixins,
+testes isolados de mãos/matrizes, F11/posições/perfis, câmera, cliques, foguete,
+partículas, fontes, recursos e migração. Comparação de ícones pixel a pixel com
+canal alfa preservado. CRC e SHA256 dos pacotes, fontes e relatórios incluídos.
+A API pública foi testada com os métodos HTTP reais dos quatro JARs e UUIDs
+sintéticos, depois limpos; a página foi verificada em desktop e celular.
+Não houve execução de Minecraft/Pojav, confirmação visual em GPU, medição de FPS
+ou teste com anticheat. Esses resultados ainda precisam ser conferidos no jogo.
