@@ -1,0 +1,105 @@
+DUCKCLIENTZ 1.5.28-beta.2.17 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+INSTALAÇÃO
+Feche o jogo. Extraia o ZIP e copie somente os mods da pasta da sua versão
+para a instância, removendo o JAR antigo do client. Mantenha Fabric API e
+Sodium compatíveis. Java17+ na1.20.1; Java21+ nas1.21.x.
+Na1.21.11, mantenha o offlinenametagicon-3.0.0.jar incluído, sem alteração.
+Não instale JARs de versões diferentes juntos.
+
+PADRÃO ENVIADO PELO USUÁRIO
+O config.json fornecido é uma configuração Duck válida e foi incorporado ao
+Padrão das quatro versões: tema vermelho/escuro, fonte Minecraft e Totem0,65.
+HitMarker, ClickSounds, Watermark e Interface ficam ligados, conforme o arquivo.
+Os demais valores fornecidos também são mantidos; opções novas começam de fábrica.
+migration-v1.complete é apenas um marcador, não contém configurações.
+Configurações ficam em config/duckswords/<versão>/.
+O Padrão anterior recebe backup em migration-backup/profiles/
+default-before-uploaded-v217.json. A atualização do Padrão ocorre uma vez;
+edições posteriores persistem. Perfis personalizados e o perfil ativo
+personalizado são preservados. Se um perfil personalizado estiver ativo,
+a nova configuração aparece ao selecionar Padrão.
+Códigos DZ3 antigos permanecem compatíveis. Novos padrões têm código de12 caracteres.
+
+INTERFACE E HUD
+- Campos de texto recebem clique/foco e usam tamanho compatível com o menu;
+  campos de regras adicionais existem mesmo quando inicialmente escondidos.
+- Barra de rolagem arrastável nos ajustes; busca com letra10% maior e elevada.
+- Botão pequeno “−” ao lado dos HUDs e textos no editor, reduzindo escala0,05.
+  Escala mínima0,25; textos preservam a escala no perfil.
+- Opção Ativar fundo para HUDs. Add Item saiu do editor; entradas antigas ficam.
+- Vestiário com menos espaço superior e deslocamento à esquerda.
+
+MIRA E EFEITOS
+Crosshair Editor mantém desenho33x33, desfazer, limpar, cores/RGB e prévia.
+Tamanho da mira regula a escala geral. Legacy desenha um anel suave, com duas
+cores alternadas opcionais. Mudar cor ao mirar em mob usa o alvo atual do jogo;
+a cor de alvo prevalece sobre a alternância enquanto o alvo estiver na mira.
+Visuals permite ajustar quantidade de Crystals e Ghosts. TargetHUD recebe
+partículas ao atacar e ambientes, com formas dos Visuals e quantidade limitada.
+Partículas de GUI usam máscaras preparadas, sem decodificar imagens por frame.
+Resíduos claros externos foram corrigidos em ícones inspecionados, preservando
+integralmente o canal alfa e os detalhes brancos internos.
+
+SONS E AUTOCLICKER
+HitSound adiciona um efeito ao evento local de ataque, mantendo áudio vanilla.
+Aliases Soup dos áudios já fornecidos também aparecem na seleção de HitSound.
+Instakill usa o hit forte original a pitch1x, com intervalo mínimo equivalente
+ao cooldown local dividido por1,5. Essa opção altera a cadência do som, não o
+cooldown, dano, ataques aceitos ou regras do servidor. Volume continua funcionando.
+67 arquivos Vorbis foram decodificados e verificados quanto a silêncio/formato.
+AutoClicker usa o fluxo normal do mouse do Minecraft, respeitando tela, foco,
+comida/bebida, rebind e mudança de mundo/jogador. Eventos rápidos de atalho ficam
+registrados entre ticks; modificadores extras não bloqueiam a tecla configurada.
+CPS mede entradas locais, não dano aceito pelo servidor. Não há bypass de cooldown.
+
+JAULA E INVENTÁRIO
+Jaula suporta até32 grupos, com nome, item, botão, servidor, duração e cooldown.
+Servidor vazio vale para qualquer servidor E singleplayer. O HUD só aparece após
+uso compatível; até4 contagens simultâneas são exibidas. Morte/troca de mundo
+limpam as contagens. É um temporizador local: não confirma aceitação pelo plugin.
+InventoryHUD mostra27slots, sem hotbar; estilos Vanilla/Dark e até12 regras de
+cor por item, também aplicáveis ao inventário aberto. Use IDs minecraft:item.
+
+HEALTH BAR
+Nova feature com coração: substitui os corações da vida do próprio jogador por
+barra numérica, com absorção e cor da vida editável. Cores de veneno/wither/gelo
+são opcionais. Desligada, preserva os corações vanilla. Não é barra sobre mobs.
+Não use simultaneamente outro mod que substitua a mesma barra vanilla.
+Sprites CC0 dos JARs Simple Health Bar fornecidos pelo usuário; créditos incluídos.
+
+CÂMERA E COSMÉTICOS
+Travar cabeça ligado move só a câmera; desligado, a câmera acompanha a cabeça.
+Zoom com rolagem pode ser desativado separadamente.
+Geometria customizada Duck usa emissores vanilla para evitar caches de UV/posição
+de terceiros após a criação do modelo. A correção é restrita aos modelos Duck;
+o caminho normal dos demais modelos continua intacto. Removido deslocamento
+inferior adicional da máscara customizada. Não houve confirmação visual em GPU
+com Sodium; as orelhas do coelho possuem ângulos no próprio modelo original.
+
+COSMÉTICOS DOS OUTROS — OPCIONAL
+Cosmeticos Online oferece Mostrar cosméticos dos outros e Compartilhar os meus.
+Não há servidor público configurado ou implantado: endpoint vazio, compartilhamento
+desligado, nenhuma conexão por padrão. É necessário hospedar e configurar um relay.
+O protótipo em cosmetics-relay/ nas fontes serve para testes/uso privado; UUIDs
+são autodeclarados. Uso público precisa de autenticação de contas e proxy HTTPS.
+Consulta em segundo plano, jogadores próximos limitados a32, timeout e expiração.
+Só compartilha UUID e IDs de cosméticos, sem chat ou endereço do servidor do jogo.
+
+PERFORMANCE
+Mais10controles independentes, desligados por padrão: ocultar feixes de beacon,
+feixes de crystal, raios visuais, banners, livro de encantamento, miniatura de mob
+do spawner, cabeças de blocos, projéteis presos, superfície do portal End e coleiras.
+Somam-se aos limites de distância/detalhes, nuvens, fogo, sombras e partículas
+já existentes. Afetam desenho do cliente; não removem spawn, ticks ou mecânicas
+do servidor. Ganho depende da cena e das opções ativadas; não há medição de FPS.
+TextureMaker permanece removido; Profiles e Theme seguem no fim da lista.
+
+VALIDAÇÃO
+Compilação das4versões, APIs reais e alvos exatos dos mixins, testes isolados de
+entrada/CPS/atalhos, HUD/escala, perfis/migração/backup, mira, efeitos, áudio,
+vida/status, câmera, renderização, ciclo Firework e regressões. Comparação de
+emissores de geometria com os métodos vanilla, CRC/hash e assets. Relatórios
+atuais e fontes incluídos; fixtures de compilação nunca entram nos JARs.
+Não houve execução de Minecraft, Pojav ou GPU. Faltam teste visual/sonoro real,
+medição de FPS e validação no conjunto de mods do usuário.
