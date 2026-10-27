@@ -1,0 +1,127 @@
+DUCKCLIENTZ 1.5.28-beta.2.16 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+INSTALAR
+Feche o jogo, extraia o ZIP e abra SOMENTE a pasta da sua versão.
+Copie o conteúdo de mods para a mesma instância e remova o JAR antigo do client.
+Mantenha Fabric API e Sodium compatíveis. Não misture as quatro versões.
+Java 17+ na 1.20.1; Java 21+ nas 1.21.x.
+1.21.11: Fabric Loader 0.19.3+ e offlinenametagicon-3.0.0.jar incluído sem alteração.
+
+DESTA ATUALIZAÇÃO
+- Texture Maker removido do menu, classes, ícone e descrição do mod nas quatro
+  versões. Nenhum pack que você já criou é apagado. Os esquemas antigos dos
+  códigos de perfil permanecem imutáveis para permitir importar códigos antigos.
+- Vestiário com personagens maiores, personagem principal centralizado e armor
+  stands laterais maiores. Piso e atril preservados.
+- Correção localizada do resíduo sob a seta do AutoClicker. No No Hurt Cam, só
+  os pixels claros externos inspecionados foram recoloridos: toda a transparência
+  original da câmera foi preservada. Não houve remoção global da cor branca.
+- ViewModel preserva posição E escala da mão secundária independentemente de
+  Afetar comidas; esse filtro continua funcionando para comida na mão principal.
+  DuckModels/ModernDuck e guardas de módulo desligado permanecem funcionando.
+- Target render Legacy menor por padrão (0,42), ancorado à frente do peito e
+  deslocado na direção de quem vê; não fica no centro do corpo. Ajustes salvos
+  de tamanho continuam sendo respeitados. Circle usa 32 segmentos em vez de64.
+- Visuals mantém limites de partículas, transparência, marcador persistente e
+  liberação de contagem ao morrer/recarregar. Ghosts emite duas partículas por
+  tick em vez de três. Não foram aumentados os limites de efeitos.
+- Ícones das três novas features incluídos. Profiles continua em penúltimo e
+  Theme/Interface por último no menu.
+
+CROSSHAIR EDITOR
+Ative a feature e escolha Editar desenho > Abrir nos ajustes dela.
+Desenhe numa grade 33x33: esquerdo pinta, direito apaga, arrastar liga os pontos.
+Há desfazer, limpar, mira padrão, paleta, prévia e botão RGB. Cor, opacidade,
+contorno e tamanho do pixel também são configuráveis nos ajustes da feature.
+SALVAR E VOLTAR salva o desenho na configuração e no compartilhamento por perfil.
+CANCELAR/Esc descarta o desenho e as mudanças de cor feitas nessa janela.
+A mira substitui a vanilla apenas quando a feature está ligada e em primeira
+pessoa, fora das telas. Ao desligar, a mira vanilla volta normalmente.
+
+JAULA COOLDOWN
+HUD arrastável com ícone de iron bars. Configure:
+- Item da jaula: ID, por exemplo minecraft:glass_pane.
+- Servidor: IP/domínio exato; vazio permite qualquer servidor.
+- Botão esquerdo, direito ou do meio para iniciar.
+- Cooldown: tempo para usar novamente, em segundos.
+- Duração da jaula: tempo estimado para estourar; zero esconde a contagem.
+- Cores do texto, fundo e estado pronto; escala e posição no editor de HUDs.
+
+O temporizador começa numa nova pressão física do botão, com o item numa das
+mãos e o servidor correspondente, fora de menus. Não reinicia ao segurar o botão
+nem durante o cooldown. É uma ESTIMATIVA LOCAL: não detecta se o servidor aceitou
+ou cancelou a jaula, nem sincroniza os tempos do plugin. Não usa itens ou envia
+pacotes automaticamente. Morte, respawn, troca de mundo ou desligamento reiniciam
+o temporizador. Desligue/ligue a feature para corrigir uma ativação cancelada.
+
+INVENTORY HUD
+Mostra somente os 27 slots do inventário, sem hotbar, armadura ou mão secundária.
+Estilo Vanilla: slots com relevo de pedra. Dark: painel escuro com fundo editável.
+Ative Destacar itens e configure Item1/Cor do item1 etc. Há até12 regras.
+Use IDs como minecraft:totem_of_undying ou golden_apple; o prefixo minecraft:
+é opcional. A regra do totem começa amarela. Regras vazias não destacam nada;
+a próxima regra aparece conforme você preenche a anterior.
+Destacar no inventário aplica as mesmas cores atrás dos itens nos inventários
+abertos, além do HUD. Cada regra tem cor/opacidade/RGB independentes. Desativar
+a feature remove tanto o HUD quanto os destaques dos slots normais.
+
+DEZ CONTROLES ADICIONAIS EM PERFORMANCE
+1. Limitar armor stands distantes.
+2. Limitar orbes de XP distantes.
+3. Limitar projéteis vanilla distantes.
+4. Limitar molduras distantes.
+5. Limitar pinturas distantes.
+6. Limitar barcos distantes.
+7. Limitar carrinhos distantes.
+8. Limitar entidades display distantes.
+9. Ocultar nuvens.
+10. Ocultar fogo desenhado em entidades.
+
+As oito categorias usam Alcance dos detalhes secundários, padrão32 blocos.
+São opções independentes, desativadas por padrão, atuando SOMENTE no desenho.
+Não alteram spawn, ticks, física, coleta, redstone, regras ou funcionamento do
+servidor. Objetos fora do alcance continuam existindo e funcionando. Ocultar
+fogo das entidades não remove o estado de queimadura nem o dano.
+Permanecem os cinco controles anteriores (sombras, precipitação, nomes, blocos
+especiais e cópias de itens), limites de entidades e orçamentos de partículas.
+Ative Performance e escolha os detalhes que aceita reduzir. A redução de trabalho
+depende da cena; não há promessa ou medição de ganho de FPS nesta atualização.
+
+SONS
+21 efeitos reais baixados dos pacotes CC0 Kenney:11 cliques,5 impactos e5 opções
+de totem. Soft1–5, Switch1–4, Mecânico/Release, Metal/Madeira/Grave/Cristal/Sino,
+Totem Bong/Blocos/Confirmação/Gota/Vidro. Fontes e licenças estão no pacote.
+Totem Blocos é uma alternativa de impacto de peças; não é o áudio meme de LEGO.
+
+Instakill usa os arquivos originais de hit forte do Minecraft baixados do servidor
+de assets oficial, a1,5x de velocidade/pitch. A velocidade é fixa e não calcula
+CPS. Os hits continuam sendo acionados pelo evento local de dano confirmado.
+Pitch da feature não muda o multiplicador fixo do Instakill; Volume funciona.
+Sons vanilla de crítico, sweep, sino e mace também têm arquivos presentes no
+pacote para funcionar nas quatro versões, inclusive mace na1.20.1.
+A reprodução de cliques/hits usa uma chamada local com volume e pitch na ordem
+correta. Sons antigos de clique, hit e totem foram preservados. Os áudios foram
+decodificados integralmente e verificados quanto a formato e silêncio.
+O volume geral do Minecraft e Volume0 continuam podendo silenciar o som.
+
+PERFIS E CORREÇÕES PRESERVADAS
+Configurações/perfis separados em config/duckswords/<versão>/.
+Padrão: mesmo tema vermelho fornecido, fonte Minecraft, features desligadas e
+ajustes de fábrica, com Escala do pop do Totem Editor0,65 APENAS no Padrão de cada
+versão. Perfis personalizados não são substituídos. Migração antiga mantém seu
+backup e não se repete sobre um Padrão que você editou depois.
+Compartilhamento compacto DZ3 continua compatível com códigos antigos.
+Mantidas as correções de Firework após morrer na1.21.11, delay mínimo4ticks,
+HUD/F11, cosméticos no inventário, Free Look, glint, Fullbright e efeitos.
+
+VALIDAÇÃO
+Compilação das quatro versões, verificação de APIs e alvos exatos dos mixins,
+testes isolados de crosshair/UI, slots/destaques, temporizador e ciclo de sessão,
+limites de desenho, áudio/pitch/volume, marcador/partículas, mão secundária,
+perfis e regressões anteriores. Ícones comparados pixel a pixel fora das áreas
+corrigidas; transparência da câmera preservada integralmente.
+Relatórios técnicos e fontes estão incluídos.
+
+Não houve execução real de Minecraft, Pojav, GPU ou teste com SoupVisuals neste
+ambiente. Não há medição de FPS nem confirmação visual/sonora dentro do jogo.
+Esta revisão ainda precisa ser validada na sua instância e conjunto de mods.
