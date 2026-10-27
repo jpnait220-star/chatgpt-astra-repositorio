@@ -1,0 +1,104 @@
+DUCKCLIENTZ 1.5.28-beta.2.15 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+INSTALAR
+Feche o jogo, extraia o ZIP e abra SOMENTE a pasta da sua versão.
+Copie o conteúdo de mods para a mesma instância e remova o JAR antigo do client.
+Mantenha Fabric API e Sodium compatíveis. Não misture as quatro versões.
+Java 17+ na 1.20.1; Java 21+ nas 1.21.x.
+1.21.11: Fabric Loader 0.19.3+ e offlinenametagicon-3.0.0.jar incluído sem alteração.
+
+PERFIL PADRÃO: SOMENTE O TEMA PERSONALIZADO
+O Padrão conserva o mesmo tema fornecido e a fonte Minecraft. Todas as features
+começam desligadas e seus ajustes voltam aos valores de fábrica, com a escala
+do pop do Totem Editor em 0,65. Essa escala é apenas do Padrão de cada versão;
+os perfis personalizados não são alterados. Cosméticos
+começam desequipados e entradas extras do TextHUD ficam vazias.
+O Padrão existente é atualizado uma única vez, com backup em
+config/duckswords/<versão>/migration-backup/profiles/default-before-theme-only-v215.json.
+Os outros perfis são preservados. Se outro perfil estiver ativo, ele continua ativo.
+Alterações feitas no Padrão depois desta atualização continuam sendo salvas.
+
+Configurações e perfis permanecem separados por versão:
+config/duckswords/<versão>/config.json e profiles/.
+Importação/exportação usa códigos compactos DZ3:, com tamanho variável conforme
+as alterações. Bases dos códigos antigos foram preservadas, inclusive a base
+imutável do V2. Não é preciso copiar configurações manualmente.
+
+CORREÇÕES E AJUSTES
+- Partículas com transparência real; fundos pretos removidos dos sprites usados.
+  Sprites menores (64px; marcador 128px) reduzem espaço no atlas nativo.
+- Target render usa a cor escolhida. O Legacy mantém um marcador ancorado,
+  sem renascer/desbotar a cada tick. A limpeza/reload de partículas reinicia seu estado.
+- Visuals cria partículas diretamente no gerenciador nativo, mantendo os limites
+  do client. Evita a passagem de qualidade/supressão do spawn pelo mundo na 1.21.4.
+- Partículas ao sofrer dano em Visuals, usando seus controles de partículas de hit.
+- Partícula Classico usa o mascote Duck no lugar do símbolo do Soup.
+- Cursores Minecraft espelhados, exceto o machado; seis opções Bibata da internet.
+  A seleção é reaplicada no final do frame para resistir à troca por mão/seta nas telas.
+- Resetar configurações preserva a seleção DuckModels/ModernDuck e estilo do Swing.
+  Carregar o Padrão limpo volta aos valores de fábrica, mantendo apenas o tema.
+- Rótulos mais curtos nos ajustes; chaves salvas e códigos continuam compatíveis.
+- TargetHUD voltou a um único layout, sem os modos adicionados na beta anterior.
+- Prévia de vestiário: dois armor stands com armaduras, atril e piso, sem a nuvem
+  brilhante. Os objetos existem apenas no menu e são liberados ao fechá-lo.
+- Ícones para as features novas e correção do ícone de 2D Items na 1.21.11.
+- Tema fica por último e Profiles em penúltimo no menu de features.
+- 1.21.11: Firework Key reinicia delay/tecla/slot ao morrer, renascer ou trocar
+  de sessão. Não restaura o slot temporário no inventário do jogador novo.
+- Mantidas as correções anteriores de Firework Key (mínimo 4 ticks), Sharpness,
+  Free Look, cosméticos no inventário, HUD/F11, fontes, efeitos, glint e Fullbright.
+
+CINCO NOVOS CONTROLES EM PERFORMANCE
+1. Desativar sombras de entidades.
+2. Ocultar o desenho de chuva e neve.
+3. Limitar o desenho de nomes distantes.
+4. Limitar a distância de desenho de blocos especiais (baús, placas etc.).
+5. Simplificar pilhas de itens no chão para uma cópia visual.
+
+Essas opções atuam no desenho do cliente. Não alteram spawn, ticks, quantidade
+real de itens, funcionamento de blocos ou regras do servidor. Podem reduzir
+trabalho de renderização ao custo dos detalhes visuais descritos. São opcionais,
+começam desligadas e complementam o Sodium. Permanecem os limites anteriores
+por categoria de entidade, partículas extras e partículas do jogo.
+Ative Performance e escolha os controles que deseja usar.
+
+TEXTURE MAKER
+Abra Texture Maker no menu de features. O editor permite:
+- Pesquisar texturas ativas e texturas de packs ZIP/pastas instalados.
+- Editar itens, blocos e outras imagens PNG sem alterar o pack original.
+- Usar pincel, borracha, balde, conta-gotas, simetria, espelhamento, paleta e RGBA.
+- Desfazer/refazer, grade, zoom, deslocamento e prévia lateral.
+- Juntar várias texturas em um pack próprio; salvar o projeto e aplicar no jogo.
+
+Escolha uma textura na lista. Desenhe ou use NOVA para criar uma imagem 16/32/64
+para esse recurso. ADICIONAR AO PACK inclui a imagem; a primeira pincelada também
+inclui a textura selecionada. NO PACK mostra as texturas incluídas; botão direito na lista remove uma delas
+do projeto, sem alterar o pack original.
+SALVAR grava o projeto. Use SALVAR antes de sair do editor.
+EXPORTAR grava o projeto e cria resourcepacks/DuckMaker-Local-<formato>.zip.
+APLICAR ativa o pack gerado e recarrega os recursos, mantendo os outros packs.
+Cada versão exporta seu formato: 15, 34, 46 ou 75, sem sobrescrever o das outras.
+O rascunho fica em config/duckswords/<versão>/texturemaker/draft.json.
+
+ESQ pinta; DIR pega a cor; roda sobre a tela altera zoom; setas movem a região.
+Ctrl+Z desfaz; Ctrl+Y ou Ctrl+Shift+Z refaz. A lateral tem rolagem e UP/DOWN.
+A lista aceita pesquisa por nome/recurso/pack. Canais RGBA podem ser arrastados.
+O editor limita memória de histórico e projeto. PNGs até 2048x2048 são aceitos;
+em imagens grandes, use zoom/deslocamento para editar a região desejada.
+Leitura de arquivos e compressão ficam no worker do editor. A prévia usa cache
+de trechos visíveis; não há upload de imagem a cada frame nem trabalho do editor
+rodando continuamente durante o jogo.
+
+VALIDAÇÃO
+Compilação e checagem das APIs/mixins reais das quatro versões; testes isolados
+de transparência, estabilidade de partículas, modelos, reset/persistência,
+Padrão limpo/backup, perfis/códigos, controles de desempenho e UI do editor em
+quatro tamanhos de janela. Incluída regressão das correções anteriores.
+Relatórios e fontes estão no ZIP.
+
+Minecraft, Pojav, renderização real em GPU e a convivência com SoupVisuals não
+foram executados neste ambiente. Não há medição de FPS nem confirmação visual
+no jogo. Esta beta precisa ser testada na sua instância e conjunto de mods.
+O antigo arquivo enviado como soupapi-1.20.1 era Cloth Config; não se reivindica
+reprodução exata daquele estilo antigo do Soup por Mod Menu.
+Consulte CREDITOS para as referências e artes existentes utilizadas.
