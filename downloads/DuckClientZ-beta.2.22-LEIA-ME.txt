@@ -1,0 +1,181 @@
+DUCK CLIENT 1.5.28-beta.2.22 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+NOVIDADES — BETA.2.22
+- Compartilhar tag Duck ativado por padrão nas quatro versões. A tag amarela
+  aparece DEPOIS do nome: Nome [ ᴅ ], no nick e TAB, preservando as cores do nome.
+  A atualização do perfil Padrão altera somente esse compartilhamento; conserva
+  os demais ajustes e perfis pessoais, com backup em migration-backup/profiles/.
+  Alterações feitas depois dessa migração são respeitadas. Cada jogador precisa
+  do Duck e da conexão com o serviço oficial. Compartilhar tag anuncia presença;
+  para enviar os MODELOS equipados, ligue também Compartilhar meus cosmeticos.
+  Não há dependência de offlinenametagicon; remova o companion antigo.
+- 28 cosméticos do game.zip: 7 máscaras, 7 punhos, 7 auras e 7 acessórios de
+  costas sem asas. Todos disponíveis nas quatro versões, com miniaturas, modelos
+  e texturas originais. Animações de ossos e de atlas foram preservadas quando
+  presentes. Frames e materiais são reutilizados; modelos não são refeitos a
+  cada quadro. Novos cosméticos começam desequipados no Padrão.
+- Máscara de palhaço: modelo completo centralizado e atlas original, removendo
+  um fragmento coplanar sobre a bochecha direita que causava sobreposição. Sobe
+  1 pixel e recua 2 pixels do modelo. Sombrero sobe 1 pixel. Ajuste anterior da
+  aura de dinheiro preservado.
+- Cleaner: painel redesenhado com quatro cartões de intensidade, status, resumo
+  de controles e botões de aplicar/desativar. Low/Medium/High/Ultra High mantêm
+  escolha separada da aplicação e salvamento por perfil/versão. Os JARs Cleaner
+  atualizados foram analisados; integração inclui limites de distância de blocos
+  com renderização própria (Medium 48, High 32, Ultra High 24 blocos), além dos
+  cortes de entidades, partículas do jogo, sombras, nuvens e detalhes secundários.
+  Não altera spawn, IA, pacotes, cooldown de ataque, FOV ou opções globais do jogo;
+  não força GC/limite de FPS. Desativar retira os limites do painel.
+- Entidades protegidas em F5, Free Look e câmeras desacopladas. Partículas próprias
+  do Duck continuam protegidas; HUDs, mira e posições das mãos permanecem sob os
+  controles do client. Remova o cleaner-1.0.0.jar separado para que a integração
+  possa controlar os cortes sem interferência do mod externo.
+- Fundos gerais de HUD só aparecem quando há conteúdo: Effects sem efeitos,
+  texto vazio, CPS sem texto visível e EnderChest fechado não deixam um painel
+  flutuando. Inventory HUD mantém a moldura própria Vanilla/Dark da beta.2.17.
+- AutoClicker: além dos bloqueios no gerenciador de interação, o callback de
+  segurar ataque do Minecraft agora é interrompido enquanto o auto estiver
+  clicando. Cada pulso esquerdo libera o botão sintético mesmo com o botão físico
+  segurado. Para minerar, pare o AutoClicker. Pausa e retorno em menus mantidos.
+- HitRange: malha circular em coordenadas do mundo, reutilizada por raio/espessura.
+  A 1.21.11 usa quadriláteros em vez de expansão de linhas pela tela, corrigindo
+  a deformação ao mudar F11/tamanho da janela. Consulta de alvos nessa versão
+  reutilizada por tick, cobrindo o trajeto de interpolação do jogador.
+- Custom Glint: cálculos de cores reutilizados entre pixels/texturas; nas três
+  versões anteriores, fase e matrizes reutilizadas dentro de cada quadro, com
+  cópia de despacho para que o reset do renderizador não modifique o cache.
+  Na 1.21.11, cache das diagonais e da configuração de intensidade. Mantidos os
+  controles de velocidade/intensidade e o desenho das texturas.
+- Perfis: formato D5 com codificação mais densa e dicionário congelado, escolhendo
+  automaticamente o menor entre D5, D4 e DZ3. Padrão continua com 4 caracteres.
+  Códigos antigos continuam importáveis. D5 requer beta.2.22 ou posterior nos
+  dois lados; pode ser usado entre as quatro versões. A redução depende dos
+  ajustes: exemplo validado de 343 para 317 caracteres; não há tamanho fixo.
+- Mod Menu: descrição Duck Client, versão Minecraft e créditos Dawn Client,
+  SoupVisuals e Cleaner, preservando as licenças de cada recurso.
+
+CORREÇÕES E OTIMIZAÇÕES — BETA.2.20
+- Mantém as correções de inicialização NativeImage/Mixin da beta.2.19.
+- Menu: chamadas nativas para ícones e renderização da tela, cache limitado de
+  texto e listas, invalidado ao trocar fonte, favoritos, busca ou recursos.
+- Renderização: busca espacial de alvos com cache por tick, ângulo atualizado com
+  a câmera; poses cosméticas reutilizadas no mesmo instante; cantos mais baratos.
+- Cosméticos compartilhados: identidade do perfil do servidor e vínculo do estado
+  de renderização ao jogador; envio com erro não impede recebimento; consulta sem
+  cache HTTP; respostas comprimidas; status e erros visíveis no serviço oficial.
+  São correções defensivas para conflitos como o relatado com Dawn. Testadas com
+  simulações de identidades alteradas e falhas HTTP, não com o Dawn executando.
+
+INSTALAÇÃO
+Feche o jogo, extraia o ZIP e copie somente os mods da pasta da sua versão para
+a instância. Remova o JAR antigo do client. Não misture as quatro versões.
+Mantenha Fabric API e Sodium compatíveis. Java 17+ na 1.20.1; Java 21+ nas 1.21.x.
+Na 1.21.11, offlinenametagicon não é necessário. Não copie o companion antigo.
+
+HUD E INTERFACE
+- Ativar fundo foi mantido, com painel mais escuro e cantos arredondados. Fundo
+  e conteúdo agora usam a mesma transformação de posição/escala do HUD, inclusive
+  ao alternar F11. Redimensionar não regrava as coordenadas salvas dos perfis.
+- Inventory HUD recupera a moldura própria Vanilla/Dark da beta.2.17, com 27 slots
+  e destaques. Não recebe o painel escuro geral dos outros HUDs.
+- TargetHUD tem rosto arredondado, barras suaves e mais partículas na frente do
+  rosto, com dispersão além do painel e pool limitado a 64 partículas.
+- HealthBar usa sempre a fonte Minecraft. A vida adicional mantém o sinal +.
+  O glifo de coração incompatível no texto de vida do TargetHUD foi removido.
+- O botão “−” foi removido. Textos curtos, incluindo CPS, centralizados no painel.
+- Fundo padrão mais escuro. TargetHUD tem só um painel opcional: desligado, não
+  sobra fundo próprio. Rosto completo recortado por UV, sem scissors repetidos.
+- Vestiário usa Duck Client. Chapéu chinês e coroas descem um pixel do modelo.
+- Corrigidos resíduos claros nas bordas dos ícones TargetHighlight, SprintKeeper,
+  HitParticles, CustomKills, TargetHUD, Watermark, SessionTimer, CustomGlint e
+  HealthBar, preservando transparência e detalhes brancos internos.
+- Jaula Cooldown removida. Texture Maker continua removido.
+
+MÃOS, EFEITOS E DESEMPENHO
+- ViewModel mantém ajustes independentes de posição, rotação, escala e tamanho
+  para cada mão. Na 1.21.4, cada ajuste envolve somente o desenho do item da mão correspondente;
+  Afetar comidas não transporta os ajustes da principal para a off-hand.
+  DuckModels e ModernDuck continuam disponíveis, com matrizes isoladas por mão.
+- Visual Ratio estica a visão do mundo, preservando a projeção dos itens e do HUD.
+- HitParticles restaura a velocidade de explosão alterada por construtores vanilla.
+- Visuals espalha os hits radialmente: sem física não há queda; com física há
+  dispersão e gravidade. Estrelas usam o recurso da referência 1.21.11 nas quatro.
+- Target Render aproxima o efeito da frente da entidade para reduzir sobreposição
+  com os braços. A distância é limitada para não atravessar a câmera.
+- Partículas de HUD usam máscaras preparadas e retângulos mesclados em cache;
+  cantos dos painéis usam geometria em cache, sem upload de imagens por frame.
+  O ambiente gera duas partículas por tick em vez de três, mantendo os limites.
+- Dentro da teia, o Block Outline pode continuar a seleção visual além da própria
+  teia, dentro do alcance vanilla. Linhas Duck usam material próprio nessa condição.
+  A seleção real, os ataques e a interação do Minecraft não são modificados.
+
+AUTO CLIQUE, FOGUETE, CÂMERA E SONS
+- AutoClicker pausa em menus e retoma ao fechar. No modo Segurar, só retoma se a
+  tecla continuar pressionada. No Toggle, mantém a intenção de execução.
+- A hotkey do AutoClicker aceita somente teclado. Cliques fora do menu não viram
+  atalhos; binds antigos de mouse são limpos. O botão dos cliques continua editável.
+- No botão esquerdo, mantém pulsos de CPS e bloqueia mineração enquanto executa.
+  Esta revisão segue a solicitação mais recente: desligue o AutoClicker para minerar.
+- FireworkKey: mínimo de 5 ticks, limite adicional de tempo real contra rajadas
+  por ticks acumulados, uma troca pendente e retorno ao slot após 55 ms.
+  Uso aceito aciona o feedback normal de mão/equipar. Recuperação após morte,
+  troca de mundo e proteção contra sobrescrever uma troca manual foram mantidas.
+- Câmera de gravação cancela ao abrir inventário/menu ou mudar perspectiva com F5,
+  inclusive se o menu pausar os ticks. Exige soltar a tecla antes de rearmar.
+- Ao trocar opções de som no menu, há prévia com volume/pitch selecionados.
+  Hit Metal, Hit Madeira e Clique 5 saem da lista do HitSound. O prefixo ModernDuck
+  sai dos nomes de sons exibidos; os modos de modelo/swing continuam disponíveis.
+- Totem Blocos usa brick.ogg da referência Soup enviada, no lugar do impacto de madeira.
+
+CONFIGURAÇÃO PADRÃO
+Baseada na config.json enviada, com o mesmo tema vermelho/escuro e fonte Minecraft.
+Mudanças pedidas depois: Totem pop 2,35; Mouse Icon ligado com espada de diamante;
+Som do AutoClicker ligado, mas o módulo desligado; FireworkKey com delay 5.
+HitMarker/ClickSounds/Watermark/Interface continuam ligados conforme o arquivo enviado.
+As demais features novas ficam desligadas. Config/perfis separados em
+config/duckswords/<versão>/.
+Na beta.2.18, o Padrão foi atualizado uma vez, com backup em
+migration-backup/profiles/default-before-update-v218.json e marcador
+profiles/default-uploaded-v218.applied. Perfis personalizados e a seleção de um
+perfil personalizado são preservados. Edições posteriores do Padrão são mantidas.
+Na 2.20, atualização pontual do Padrão liga Cosmeticos Online, mantendo os outros
+valores e perfis personalizados. Backup default-before-update-v220.json e marcador
+default-online-v220.applied. Compartilhar permanece uma escolha do usuário.
+Códigos D4 usam diferenças indexadas, compressão e CRC; o Padrão ocupa 4 caracteres.
+Mantém importação antiga e escolhe DZ3 quando for menor. Funciona entre as quatro
+versões atualizadas; recursos exclusivos só se aplicam onde disponíveis. Bases
+a-v são imutáveis; w/x são as novas bases. Códigos D4 exigem client atualizado.
+
+COSMÉTICOS ONLINE
+Serviço público: https://duck-connect.vercel.app
+O endereço agora é fixo no mod: menus e perfis não alteram o destino.
+Cosmeticos Online vem ligado no Padrão, com Mostrar cosmeticos dos outros.
+Para aparecer aos outros, ative Compartilhar meus cosmeticos nos dois jogadores.
+Os outros jogadores precisam usar o Duck e compartilhar pelo mesmo serviço.
+Compartilhar permanece desligado por padrão. Só envia UUID e IDs de cosméticos,
+sem chat nem IP do servidor Minecraft. Consulta em segundo plano; não há rede por frame.
+Redis expira registros em 120 segundos. O plano gratuito não tem upgrade automático.
+A API usa UUID autodeclarado, sem verificar posse da conta; serve para sincronizar
+visuais, não para conceder compras ou permissões.
+Fontes: github.com/jpnait220-star/chatgpt-astra-repositorio/tree/asasa/duck-cosmetics
+
+VALIDAÇÃO E LIMITES
+Compilação das quatro versões, checagem das assinaturas reais e alvos de mixins,
+testes isolados de mãos/matrizes, F11/posições/perfis, câmera, cliques, foguete,
+partículas, fontes, recursos e migração. Comparação de ícones pixel a pixel com
+canal alfa preservado. CRC e SHA256 dos pacotes, fontes e relatórios incluídos.
+A API pública e a página foram verificadas em revisões anteriores. Nesta revisão,
+o worker real dos quatro JARs foi testado com conexões HTTP simuladas, incluindo
+erros de envio, timeout, cache, recuperação e respostas comprimidas.
+Não houve execução de Minecraft/Pojav, confirmação visual em GPU, medição de FPS
+ou teste com anticheat. Esses resultados ainda precisam ser conferidos no jogo.
+
+Não houve teste com Dawn instalado. A meta de perder no máximo 5–9 FPS com tudo
+ligado ainda não foi medida; o impacto depende da cena, hardware e configurações.
+Chapéu de coelho: correção anterior de UV preservada. Máscara de palhaço usa agora o modelo completo e o atlas original do pacote fornecido.
+Ícones FullBright/Scoreboard: resíduos à direita corrigidos, alpha preservado.
+
+Cleaner: testes de quatro modos/desativação, F5/câmeras, proteção de partículas,
+CPS/mineração e interface em três tamanhos. Mixins aplicados às classes reais
+remapeadas. Sem execução gráfica de Minecraft/Pojav; não foi medido ganho de
+100 FPS nem foi garantido limite de perda de FPS. Confira o resultado no aparelho.
