@@ -1,0 +1,51 @@
+Duck Client beta.2.32 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+Nova rodada de otimizacao no proprio client, mantendo Cleaner Ultra inicial,
+configuracoes, perfis, a descricao curta do Mod Menu e correcoes anteriores.
+Nao ativa de novo o Cleaner de quem ja escolheu desativar apos a migracao231.
+
+COSMETICOS LOCAIS E REMOTOS
+A interpolacao dos ossos criava tres arrays de valores padrao e ate tres de
+interpolacao a cada atualizacao de cada osso. Agora usa um buffer temporario
+por thread e captura imediatamente os nove componentes em variaveis primitivas
+antes de aplicar a pose. Mantidos os mesmos calculos e ordem de operacoes.
+Nao reduz ossos, modelos, quadros, distancia, quantidade ou taxa de animacao.
+Os arquivos de animacao e textura nao foram alterados nesta revisao.
+93600 componentes de pose por versao comparados bit a bit com a2.31, incluindo
+canais ausentes/vazios, quadros duplicados, limites, tempos negativos/NaN/infinitos
+e chamadas aninhadas. O indice de busca de modulos existente foi preservado.
+
+HEALTH BAR
+A arte original foi preparada em um atlas fixo com mascaras separadas para
+recolorir vida e absorcao. Um trecho usa no maximo duas chamadas de desenho,
+em vez de ate532 retangulos. Nao gera nem envia texturas novas a cada frame.
+Recortes, transparencia, estados de efeitos, cores, absorcao e rastro de dano
+mantidos.1120 combinacoes por versao comparadas ao renderizador2.31; cores
+recoloridas podem diferir em ate1 unidade por canal devido a multiplicacao
+na GPU, sem diferenca na mascara ou opacidade. O caminho anterior continua
+como fallback se o contexto de desenho nao fornecer o blit nativo.
+
+MANTIDO DAS REVISOES ANTERIORES
+Menu/layout/fade em cache; caches de texto e HUD; HitRange com geometria de
+mundo e detalhe adaptativo; glint com calculos/matrizes em cache; vetores dos
+cubos reutilizados; cache de cosmeticos remotos; particulas HUD em atlas;
+Cleaner com culling otimizado e protecoes de F5, Free Look e cameras.
+Sem mudancas em simulacao, pacotes, regras do servidor ou combate.
+
+VALIDACAO
+Passaram testes das quatro APIs reais, aplicacao dos mixins, comportamento dos
+HUDs e caches, geometria de HitRange/F11 e glint, Cleaner e migracao, cosmeticos,
+vertices/poses, assets/CRC/hashes e atualizador assinado com os JARs finais.
+Nao houve execucao grafica de Minecraft/Pojav/Dawn ou medicao de FPS.
+Os numeros de chamadas/arrays nao equivalem a ganho de FPS medido.
+Nenhuma garantia de desempenho total para todas as combinacoes de mods.
+
+ATUALIZAR
+Na2.29 ou posterior, abrir o jogo, aguardar download, fechar e abrir novamente.
+Antes disso, trocar manualmente o JAR uma vez pela versao correta desta entrega.
+Use somente um JAR Duck da sua versao. Nao apague configuracoes ou perfis.
+O updater confere assinatura Ed25519, SHA256, tamanho, mod e versao; faz backup
+e substitui o arquivo somente apos encerrar o processo do jogo.
+Ainda sem teste real do instalador no Windows/Pojav.
+Servico: https://duck-connect.vercel.app
+VALIDACAO.txt contem os relatorios desta revisao.1.19.2 nao esta incluida.

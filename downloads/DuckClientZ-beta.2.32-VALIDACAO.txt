@@ -1,0 +1,94 @@
+Duck Client beta.2.32 — validacao tecnica
+
+Sem teste grafico de Minecraft, Pojav, Dawn ou medicao de FPS.
+Testes de bytecode/API real e JVM com endpoints de desenho substituidos por gravadores.
+Os testes do updater usam os helpers publicados da2.29 e os quatro JARs finais desta entrega.
+
+
+native232-check.log
+Note: /workspace/duckclientz-expansion/CheckAddedApi.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS: 1664 bodies; 7793 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1681 bodies; 7792 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1689 bodies; 7802 actual MC/mod/Fabric references; 71 exact native injection/shadow/callsite checks.
+PASS: 1600 bodies; 7458 actual MC/mod/Fabric references; 66 exact native injection/shadow/callsite checks.
+
+startup232-check.log
+Note: /workspace/duckclientz-expansion/TestMixinService219.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /workspace/duckclientz-expansion/TestMixinApply230.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.20.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.21.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 18 render/GUI/hand target classes using actual remapped game bytecode 1.21.4
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 17 render/GUI/hand target classes using actual remapped game bytecode 1.21.11
+
+artifact232-check.log
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.20.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.4
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.11
+
+animation232-check.log
+PASS 93600 bit-exact native pose components vs beta.2.31; missing/empty/single/duplicate channels, keyframe edges, negative/NaN/infinite time, nested pose callbacks 1.20.1
+PASS 93600 bit-exact native pose components vs beta.2.31; missing/empty/single/duplicate channels, keyframe edges, negative/NaN/infinite time, nested pose callbacks 1.21.1
+PASS 93600 bit-exact native pose components vs beta.2.31; missing/empty/single/duplicate channels, keyframe edges, negative/NaN/infinite time, nested pose callbacks 1.21.4
+PASS 93600 bit-exact native pose components vs beta.2.31; missing/empty/single/duplicate channels, keyframe edges, negative/NaN/infinite time, nested pose callbacks 1.21.11
+
+health232-check.log
+PASS 1120 actual health sprite comparisons: original clip/alpha, health and absorption recolor/shading within1 channel unit; status and damage-trail artwork retained; max submissions 532 -> 2 1.20.1
+PASS 1120 actual health sprite comparisons: original clip/alpha, health and absorption recolor/shading within1 channel unit; status and damage-trail artwork retained; max submissions 532 -> 2 1.21.1
+PASS 1120 actual health sprite comparisons: original clip/alpha, health and absorption recolor/shading within1 channel unit; status and damage-trail artwork retained; max submissions 532 -> 2 1.21.4
+PASS 1120 actual health sprite comparisons: original clip/alpha, health and absorption recolor/shading within1 channel unit; status and damage-trail artwork retained; max submissions 532 -> 2 1.21.11
+
+runtime232-check.log
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.20.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.4
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.11
+
+cosmetics232-check.log
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.20.1
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.20.1
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.20.1
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.20.1
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.1
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.1
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.1
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.1
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.4
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.4
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.4
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.4
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.11
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.11
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.11
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.11
+PASS all source animation bytes and source texture frames/timings preserved 1.20.1
+PASS all source animation bytes and source texture frames/timings preserved 1.21.1
+PASS all source animation bytes and source texture frames/timings preserved 1.21.4
+PASS all source animation bytes and source texture frames/timings preserved 1.21.11
+
+render232-check.log
+PASS 764378 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.20.1
+PASS 764378 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.21.1
+PASS 764378 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.21.4
+PASS 646746 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.21.11
+
+cleaner232-check.log
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.20.1
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.21.1
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.21.4
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.21.11
+
+remote232-check.log
+PASS 10000 repeated remote draws use one UUID lookup and one profile-map lookup; snapshot replacement, same-ID new entity, empty/expired data, visibility switches, local equipment, world reset and bounded cache 1.20.1
+PASS 10000 repeated remote draws use one UUID lookup and one profile-map lookup; snapshot replacement, same-ID new entity, empty/expired data, visibility switches, local equipment, world reset and bounded cache 1.21.1
+PASS 10000 repeated remote draws use one UUID lookup and one profile-map lookup; snapshot replacement, same-ID new entity, empty/expired data, visibility switches, local equipment, world reset and bounded cache 1.21.4
+PASS 10000 repeated remote draws use one UUID lookup and one profile-map lookup; snapshot replacement, same-ID new entity, empty/expired data, visibility switches, local equipment, world reset and bounded cache 1.21.11
+
+transition232-check.log
+PASS published2.29 helpers accept signed232 metadata and install actual new 1.20.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed232 metadata and install actual new 1.21.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed232 metadata and install actual new 1.21.4 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed232 metadata and install actual new 1.21.11 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
