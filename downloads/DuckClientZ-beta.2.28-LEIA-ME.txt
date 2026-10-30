@@ -1,0 +1,20 @@
+Duck Client beta.2.28 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+Remova o JAR antigo e use somente o JAR correspondente a sua versao.
+Nao e necessario resetar configuracoes ou perfis.
+
+Corrige o crash de inicializacao na 1.21.11: VerifyError em
+class_332.duck$marker225. O adaptador do Target Render Legacy agora
+converte a textura para Identifier antes de chamar a API nativa.
+
+As auras de gelo/brilho ampliadas da2.27 foram preservadas.
+Nas outras tres versoes, apenas o numero da versao foi atualizado;
+todas as demais classes e recursos permanecem identicos a2.27.
+
+Validacao: erro original reproduzido no verificador real da JVM;
+bridge corrigido executado com -Xverify:all nas quatro versoes,
+substituindo somente endpoints de GPU por gravadores de argumentos.
+Tambem passaram verificacoes de APIs, aplicacao de mixins e arquivos.
+Nao houve execucao grafica do Minecraft/Pojav nem medicao de FPS.
+
+Duck Connect continua em https://duck-connect.vercel.app.
