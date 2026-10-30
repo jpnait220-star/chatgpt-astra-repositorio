@@ -1,0 +1,43 @@
+Duck Client beta.2.29 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+Instale somente o JAR da sua versao e remova o anterior.
+Nao apague suas configuracoes/perfis.
+
+MENU: cantos suaves agora usam um atlas fixo. Um painel passa de325
+para15 chamadas de desenho, com cobertura comparada pixel a pixel.
+Nao e uma medicao de FPS no Minecraft.
+
+COSMETICOS: nas1.20.1/1.21.1/1.21.4, modelos proprios usam dispatch
+direto, incluindo filhos e cubos; evita renderizadores que interceptam
+a entrada e usam copias antigas dos UVs. O caminho adiado da1.21.11 foi
+preservado. Sem teste com a combinacao exata de mods do jogador.
+Foice roxa original disponivel: cabo vertical no centro das costas,
+com folga atras do corpo, UVs/tamanhos e sete quadros originais intactos.
+
+CRASH: mantem a correcao VerifyError1.21.11 e normaliza os membros
+singulares de Redirect/ModifyArgs para o MixinExtras0.5.4. Correcoes
+dos JARs enviados pelo usuario preservadas.
+
+ANUNCIOS: /anunciarclient mensagem (ate160 caracteres).
+Somente a conta ORIGINAL DuckTheKiller pode enviar; a posse e
+comprovada pela Mojang, nao apenas pelo nick. Os demais jogadores
+com esta atualizacao recebem Duckzin falou: no titulo e no chat.
+Entrega em ate20 segundos; nao reexibe o aviso antigo na inicializacao.
+O token Microsoft/Minecraft nao e enviado ao Duck Connect.
+
+UPDATER: esta e a primeira instalacao manual com o atualizador.
+As proximas versoes publicadas com o manifesto assinado sao detectadas
+na abertura, baixadas em segundo plano e conferidas por Ed25519,
+SHA256, tamanho, ID do mod e versao. A janela mostra o progresso.
+A troca ocorre apos fechar o jogo, para valer na proxima abertura.
+Nao ha recarga de classes dentro do jogo. O instalador preserva uma
+copia anterior e recusa sobrescrever um JAR alterado manualmente.
+Dados: config/duckclientz/<versao>/updater/. Ultimos dois backups em
+backups/; install.log registra a instalacao. Para desligar a busca,
+crie settings.properties nessa pasta contendo automatic=false.
+O instalador usa um processo Java separado; se o launcher nao permitir,
+tenta aplicar ao encerrar a JVM. Ainda nao houve teste em Windows/Pojav.
+
+Servico: https://duck-connect.vercel.app
+VALIDACAO.txt registra testes reais de JVM/HTTP/processos e fixtures.
+Nao houve execucao grafica de Minecraft, Dawn, Pojav ou medicao de FPS.

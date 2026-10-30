@@ -23,6 +23,22 @@
     {
       "source": "/chat",
       "destination": "/api/relay?route=chat"
+    },
+    {
+      "source": "/announcements",
+      "destination": "/api/relay?route=announcements"
+    },
+    {
+      "source": "/announcement-challenge",
+      "destination": "/api/relay?route=announcement-challenge"
+    },
+    {
+      "source": "/announce",
+      "destination": "/api/relay?route=announce"
+    },
+    {
+      "source": "/updates",
+      "destination": "https://raw.githubusercontent.com/jpnait220-star/chatgpt-astra-repositorio/asasa/downloads/DuckClientZ-update.json"
     }
   ],
   "headers": [

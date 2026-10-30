@@ -1,3 +1,4 @@
+import {Announcements,validOwner,validAnnouncement} from './announcements.mjs';
 import { Community, validPresence, validMessage } from './community.mjs';
 import { createHash } from 'node:crypto';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -22,13 +23,13 @@ async function body(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new BadRequest(); }
 }
 export function createHandler(store) {
-  const community=store?new Community(store):null;
+  const community=store?new Community(store):null;const announcements=store?new Announcements(store):null;
   return async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
       const route = url.pathname === '/api/relay' ? url.searchParams.get('route') : url.pathname.slice(1);
-      if (!['health', 'profile', 'profiles', 'community', 'chat'].includes(route)) return reply(res, 404, { error: 'Not found' });
-      const expected = ['profile','community','chat'].includes(route) ? 'POST' : 'GET';
+      if (!['health', 'profile', 'profiles', 'community', 'chat','announcements','announcement-challenge','announce'].includes(route)) return reply(res, 404, { error: 'Not found' });
+      const expected = ['profile','community','chat','announcement-challenge','announce'].includes(route) ? 'POST' : 'GET';
       if (req.method !== expected) { res.setHeader('Allow', expected); return reply(res, 405, { error: 'Method not allowed' }); }
       if (!store) return reply(res, 503, { status: 'unconfigured', service: 'duck-cosmetics' });
       const ip = String(req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
@@ -36,6 +37,17 @@ export function createHandler(store) {
       if (route === 'health') {
         const ok = await store.health();
         return reply(res, ok ? 200 : 503, { status: ok ? 'online' : 'unavailable', service: 'duck-cosmetics', protocol: 1 });
+      }
+      if(route==='announcements')return reply(res,200,await announcements.read());
+      if(route==='announcement-challenge'){
+        const value=await body(req);if(!validOwner(value))return reply(res,403,{error:'Only DuckTheKiller can announce'});
+        const result=await announcements.challenge(value,createHash('sha256').update(ip).digest('hex').slice(0,32));
+        return reply(res,result?200:429,result||{error:'Wait before retrying'});
+      }
+      if(route==='announce'){
+        const value=await body(req);if(!validAnnouncement(value))throw new BadRequest();
+        const result=await announcements.publish(value);
+        return reply(res,result===false?401:result===null?429:200,{ok:result===true});
       }
       if(route==='community'){
         const value=await body(req);if(!validPresence(value))throw new BadRequest();
