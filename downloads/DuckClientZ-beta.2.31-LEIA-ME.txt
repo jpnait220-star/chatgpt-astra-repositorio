@@ -1,0 +1,45 @@
+Duck Client beta.2.31 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+Cleaner ja aplicado em Ultra High. Na primeira abertura desta revisao,
+a configuracao existente e migrada uma vez por versao do Minecraft.
+Depois de desativar ou mudar o modo, sua escolha e preservada.
+Outros ajustes e perfis nao sao resetados.
+
+Mod Menu: Duck Client / Mod de customizacao para PvP / Minecraft <versao>.
+Creditos dos recursos continuam no arquivo CREDITOS.txt e metadados.
+
+Otimizacoes adicionais desta entrega:
+- Entidades proximas saem antes da verificacao completa de camera.
+- Foguetes reconhecidos pelo tipo nativo, sem consultar/criar seu nome
+  de registro em cada verificacao. Mantidas protecoes F5/Free Look/cameras.
+- Cleaner: detalhe adaptativo dos circulos. No Ultra, HitRange usa no
+  maximo64 segmentos mantendo raio, espessura e coordenadas do mundo.
+  A opcao pode ser desligada para voltar ao detalhe anterior.
+- Cleaner: nomes alem de32blocos deixam de ser desenhados no Ultra;
+  opcao independente e reversivel. Nao altera dados ou simulacao.
+- Cosmeticos locais/remotos: selecao de quadros de textura reutiliza o
+  intervalo corrente; saltos e trocas de quadro usam busca binaria.
+  Preservados arquivos, animacoes, duracoes e todas as texturas.
+- Menu: nao cria uma nova chave de cache a cada consulta repetida.
+- Mantidas as otimizacoes2.30 de layout/fade, vetores dos modelos,
+  cache remoto, particulas HUD, tipos de particulas, HitRange e glint.
+
+Os testes desta entrega incluem as quatro APIs nativas e aplicacao dos
+mixins reais; culling e protecoes de cameras; migracao Ultra e posterior
+escolha do usuario; limites reversiveis; tempos/limites de todos os quadros
+animados; geometria de HitRange/F11 e glint; caches do menu/HUD;
+vertices/UVs/cores de cosmeticos locais/remotos e particulas do TargetHUD.
+Nao houve execucao grafica de Minecraft, Pojav, Dawn ou medicao de FPS.
+Nao e possivel garantir uma queda maxima de FPS com estes testes.
+Esta revisao reduz custo conhecido do mod; nao e um diagnostico completo
+para todas as combinacoes de mods relatadas.
+
+Ja na2.29/2.30: abrir o jogo, aguardar download, fechar e abrir novamente.
+Em versoes anteriores, substitua o JAR manualmente uma vez pelo desta
+entrega. Use apenas o arquivo da versao correta e remova o JAR antigo.
+Nao apague configuracoes. Atualizacao assinada, backup do JAR anterior;
+a troca ocorre apos o processo do jogo encerrar. Ainda sem teste real
+no Windows/Pojav. Servico: https://duck-connect.vercel.app
+
+VALIDACAO.txt contem os testes tecnicos desta entrega.
+1.19.2 continua fora desta entrega.
