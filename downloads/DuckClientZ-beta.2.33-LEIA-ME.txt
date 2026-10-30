@@ -1,0 +1,65 @@
+Duck Client beta.2.33 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+HUD, INVENTARIO E INTERFACE
+- Texto em degrade: reutiliza caracteres, posicoes e medidas; cores continuam
+  sendo calculadas ao desenhar. Cache limitado a256 textos, invalidado na troca
+  de fonte/recarregamento. Mantidos emojis, caracteres combinados e alinhamento.
+- Inventory HUD: painel Vanilla de82 chamadas de desenho para1; Dark de28 para2.
+  Slots estaticos usam atlas. Os27 itens, quantidades e cores por item continuam
+  vivos, sem mostrar hotbar. Fundo Dark e cores/transparencia preservados.
+- Controle dos HUDs reutiliza entradas ThreadLocal, restaurando o contexto mesmo
+  em desenhos aninhados e falhas; nao mantem referencias a modulos ao terminar.
+- Particulas do TargetHUD sem efeitos ativos saem antes de percorrer o pool.
+  Coordenadas e tamanho sao lidos uma vez por desenho. Mantido o limite64,
+  tempo de vida, dispersao, transparencia, efeitos ja ativos e reposicao.
+
+MENU DE FEATURES E CONFIGURACOES
+- Removidos gradiente de selecao, quadrado de hover e brilho dos cards de
+  features. Abertura pelo P preservada. Estado ligado aparece por borda/texto;
+  controles continuam clicaveis e a animacao de abertura nao foi modificada.
+- O menu de features nao cria/atualiza mais os estados de hover por card/frame.
+- Seletores de cor agora usam gradientes nativos da GUI em faixas: de229 para31
+  chamadas por seletor de74px, incluindo marcadores/previa. Reduz tambem as
+  conversoes RGB/HSB repetidas em cada coluna. Sem uploads de textura por frame.
+  Valores editados, hitboxes e marcadores mantidos; a interpolacao visual pode
+  arredondar ate1 unidade RGB nos testes. Sem shader customizado novo.
+- Mudancas aplicadas nas quatro versoes, incluindo a1.20.1. Testes tecnicos
+  nao substituem medicao real em uma GPU integrada ou num aparelho Pojav.
+
+JOGADORES, ENTIDADES E PARTICULAS
+O Cleaner reutiliza somente o resultado matematico de uma orientacao identica
+  da camera, evitando calcular novamente interpolacao/remainder para cada
+  entidade, jogador, nome ou particula processada. O cache considera os seis
+  angulos anteriores/atuais/interpolados e e separado por thread. Mudancas na
+  camera invalidam o resultado imediatamente.
+Os testes de mundo, tela aberta, primeira pessoa, F5, Free Look e camera
+  alternativa continuam vivos. Nao altera alcance, simulacao, pacotes ou
+  selecao de alvos; nao congela a camera nem esconde o player no inventario.
+Mantidas as otimizacoes anteriores de cosmeticos locais/remotos, interpolacao
+  sem arrays por osso, geometria, Health Bar, HitRange e glint.
+
+AVISO DO ATUALIZADOR
+A janela inclui a orientacao de reiniciar depois do download e informa que,
+sem reiniciar, voce continua na versao antiga. Nao e anuncio global ou chat.
+O novo texto pertence a janela desta versao; clientes anteriores ainda usam
+sua janela anterior ate instalar esta atualizacao. O mecanismo de download,
+assinatura, backup e substituicao nao foi alterado.
+
+INSTALACAO
+Na2.29 ou posterior: aguarde o download, feche e abra o Minecraft novamente.
+Antes disso: substitua o JAR manualmente uma vez pelo da sua versao correta.
+Use um unico JAR Duck e preserve as configuracoes. Cleaner Ultra e as escolhas
+salvas permanecem; nao existe uma nova migracao forcando ajustes do usuario.
+
+VALIDACAO
+Comparados os pixels, itens, quantidades e destaques do Inventory HUD com a2.32;
+comparados os caracteres/cores/posicoes do degrade com o bytecode anterior;
+360000 predicados de camera por versao, incluindo wrap, NaN/infinito e threads;
+ciclo de vida das particulas e restauracao de contextos HUD; testes das quatro
+APIs reais/mixins, layout/HUD/F11, Cleaner, geometria/glint, cosmeticos e updater
+assinado com os quatro JARs finais. Downloads validados por SHA256 e CRC.
+Nao houve execucao grafica de Minecraft, Pojav ou Dawn, nem medicao de FPS.
+A queda ao abrir inventario pode ter outros custos no jogo/mods: estes testes
+nao demonstram que todo gargalo relatado foi removido nem prometem ganho de FPS.
+Servico: https://duck-connect.vercel.app
+1.19.2 nao incluida. Relatorios tecnicos completos em VALIDACAO.txt.

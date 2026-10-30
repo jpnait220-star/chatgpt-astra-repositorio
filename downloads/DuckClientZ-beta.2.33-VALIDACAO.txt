@@ -1,0 +1,151 @@
+Duck Client beta.2.33 — validacao tecnica
+
+Sem teste grafico de Minecraft, Pojav, Dawn ou medicao de FPS.
+Testes de bytecode/API real e JVM com endpoints de desenho substituidos por gravadores.
+Os testes do updater usam os helpers publicados da2.29 e os quatro JARs finais desta entrega.
+
+
+native233-check.log
+Note: /workspace/duckclientz-expansion/CheckAddedApi.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS: 1696 bodies; 7892 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1713 bodies; 7891 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1721 bodies; 7901 actual MC/mod/Fabric references; 71 exact native injection/shadow/callsite checks.
+PASS: 1632 bodies; 7557 actual MC/mod/Fabric references; 66 exact native injection/shadow/callsite checks.
+
+startup233-check.log
+Note: /workspace/duckclientz-expansion/TestMixinService219.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /workspace/duckclientz-expansion/TestMixinApply230.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.20.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.21.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 18 render/GUI/hand target classes using actual remapped game bytecode 1.21.4
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 17 render/GUI/hand target classes using actual remapped game bytecode 1.21.11
+
+artifact233-check.log
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.20.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.4
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.11
+
+gradient233-check.log
+PASS 144 exact native gradient glyph/color/position cases incl Unicode/empty/long; 1000 cached draws avoid width scans; font/reload invalidation and 256-entry bound 1.20.1
+PASS 144 exact native gradient glyph/color/position cases incl Unicode/empty/long; 1000 cached draws avoid width scans; font/reload invalidation and 256-entry bound 1.21.1
+PASS 144 exact native gradient glyph/color/position cases incl Unicode/empty/long; 1000 cached draws avoid width scans; font/reload invalidation and 256-entry bound 1.21.4
+PASS 144 exact native gradient glyph/color/position cases incl Unicode/empty/long; 1000 cached draws avoid width scans; font/reload invalidation and 256-entry bound 1.21.11
+
+menugpu233-check.log
+PASS native feature hover/selection gradients removed; original P opening fade and all mouse handlers bytecode unchanged 1.20.1
+PASS 120 actual native color slider comparisons: HSV tracks within1 channel units, exact alpha/markers/preview and restored matrix; submissions 229 -> 31 1.20.1
+PASS native feature hover/selection gradients removed; original P opening fade and all mouse handlers bytecode unchanged 1.21.1
+PASS 120 actual native color slider comparisons: HSV tracks within1 channel units, exact alpha/markers/preview and restored matrix; submissions 229 -> 31 1.21.1
+PASS native feature hover/selection gradients removed; original P opening fade and all mouse handlers bytecode unchanged 1.21.4
+PASS 120 actual native color slider comparisons: HSV tracks within1 channel units, exact alpha/markers/preview and restored matrix; submissions 229 -> 31 1.21.4
+PASS native feature hover/selection gradients removed; original P opening fade and all mouse handlers bytecode unchanged 1.21.11
+PASS 120 actual native color slider comparisons: HSV tracks within1 channel units, exact alpha/markers/preview and restored matrix; submissions 229 -> 31 1.21.11
+
+menu233-check.log
+PASS180 cards x8 frames match original positions/scroll bounds; exactly180 row-height evaluations per frame; live expansion, filtering, column/viewport changes and empty layout
+
+inventory233-check.log
+PASS Vanilla panel submissions 82 -> 1 1.20.1
+PASS Vanilla panel submissions 82 -> 1 1.20.1
+PASS Vanilla panel submissions 82 -> 1 1.20.1
+PASS Vanilla panel submissions 82 -> 1 1.20.1
+PASS Dark panel submissions 28 -> 2 1.20.1
+PASS Dark panel submissions 28 -> 2 1.20.1
+PASS Dark panel submissions 28 -> 2 1.20.1
+PASS Dark panel submissions 28 -> 2 1.20.1
+PASS 16 exact actual Inventory HUD pixel/item/count comparisons: 27 live slots without hotbar, both styles, dynamic alpha and highlights 1.20.1
+PASS Vanilla panel submissions 82 -> 1 1.21.1
+PASS Vanilla panel submissions 82 -> 1 1.21.1
+PASS Vanilla panel submissions 82 -> 1 1.21.1
+PASS Vanilla panel submissions 82 -> 1 1.21.1
+PASS Dark panel submissions 28 -> 2 1.21.1
+PASS Dark panel submissions 28 -> 2 1.21.1
+PASS Dark panel submissions 28 -> 2 1.21.1
+PASS Dark panel submissions 28 -> 2 1.21.1
+PASS 16 exact actual Inventory HUD pixel/item/count comparisons: 27 live slots without hotbar, both styles, dynamic alpha and highlights 1.21.1
+PASS Vanilla panel submissions 82 -> 1 1.21.4
+PASS Vanilla panel submissions 82 -> 1 1.21.4
+PASS Vanilla panel submissions 82 -> 1 1.21.4
+PASS Vanilla panel submissions 82 -> 1 1.21.4
+PASS Dark panel submissions 28 -> 2 1.21.4
+PASS Dark panel submissions 28 -> 2 1.21.4
+PASS Dark panel submissions 28 -> 2 1.21.4
+PASS Dark panel submissions 28 -> 2 1.21.4
+PASS 16 exact actual Inventory HUD pixel/item/count comparisons: 27 live slots without hotbar, both styles, dynamic alpha and highlights 1.21.4
+PASS Vanilla panel submissions 82 -> 1 1.21.11
+PASS Vanilla panel submissions 82 -> 1 1.21.11
+PASS Vanilla panel submissions 82 -> 1 1.21.11
+PASS Vanilla panel submissions 82 -> 1 1.21.11
+PASS Dark panel submissions 28 -> 2 1.21.11
+PASS Dark panel submissions 28 -> 2 1.21.11
+PASS Dark panel submissions 28 -> 2 1.21.11
+PASS Dark panel submissions 28 -> 2 1.21.11
+PASS 16 exact actual Inventory HUD pixel/item/count comparisons: 27 live slots without hotbar, both styles, dynamic alpha and highlights 1.21.11
+
+view233-check.log
+PASS 360000 camera predicates vs native2.32 including yaw wrapping, jitter, NaN/infinity and three concurrent threads; guards remain tested in Cleaner suite 1.20.1
+PASS 360000 camera predicates vs native2.32 including yaw wrapping, jitter, NaN/infinity and three concurrent threads; guards remain tested in Cleaner suite 1.21.1
+PASS 360000 camera predicates vs native2.32 including yaw wrapping, jitter, NaN/infinity and three concurrent threads; guards remain tested in Cleaner suite 1.21.4
+PASS 360000 camera predicates vs native2.32 including yaw wrapping, jitter, NaN/infinity and three concurrent threads; guards remain tested in Cleaner suite 1.21.11
+
+pool233-check.log
+PASS particle idle path, capacity64, transparent live particles, expiry, respawn and clear; no stale active count 1.20.1
+PASS particle idle path, capacity64, transparent live particles, expiry, respawn and clear; no stale active count 1.21.1
+PASS particle idle path, capacity64, transparent live particles, expiry, respawn and clear; no stale active count 1.21.4
+PASS particle idle path, capacity64, transparent live particles, expiry, respawn and clear; no stale active count 1.21.11
+
+notice233-check.log
+PASS restart warning at 0/50/100 percent and 320/640 viewport; Escape retained; 1000 nested failing HUD draws restore context without retained modules 1.20.1
+PASS restart warning at 0/50/100 percent and 320/640 viewport; Escape retained; 1000 nested failing HUD draws restore context without retained modules 1.21.1
+PASS restart warning at 0/50/100 percent and 320/640 viewport; Escape retained; 1000 nested failing HUD draws restore context without retained modules 1.21.4
+PASS restart warning at 0/50/100 percent and 320/640 viewport; Escape retained; 1000 nested failing HUD draws restore context without retained modules 1.21.11
+
+runtime233-check.log
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.20.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.4
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.11
+
+cleaner233-check.log
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.20.1
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.21.1
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.21.4
+PASS Ultra default, one-time version migration + later disable preserved; 1284 entity cull comparisons; F5/free/detached/menu guards; rockets; reversible circle/name options 1.21.11
+
+render233-check.log
+PASS 764378 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.20.1
+PASS 764378 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.21.1
+PASS 764378 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.21.4
+PASS 646746 render222 checks: native world-space annulus/camera/30 viewport cycles; unchanged 64x64 glint pixels vs beta.2.21; native diagonal cache exact math; one phase per frame and immutable templates under backend reset 1.21.11
+
+cosmetics233-check.log
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.20.1
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.20.1
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.20.1
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.20.1
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.1
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.1
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.1
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.1
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.4
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.4
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.4
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.4
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.11
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.11
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.11
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.11
+PASS all source animation bytes and source texture frames/timings preserved 1.20.1
+PASS all source animation bytes and source texture frames/timings preserved 1.21.1
+PASS all source animation bytes and source texture frames/timings preserved 1.21.4
+PASS all source animation bytes and source texture frames/timings preserved 1.21.11
+
+transition233-check.log
+PASS published2.29 helpers accept signed233 metadata and install actual new 1.20.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed233 metadata and install actual new 1.21.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed233 metadata and install actual new 1.21.4 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed233 metadata and install actual new 1.21.11 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
