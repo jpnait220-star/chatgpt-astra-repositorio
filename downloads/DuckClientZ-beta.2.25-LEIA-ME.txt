@@ -1,0 +1,70 @@
+DUCK CLIENT 1.5.28-beta.2.25
+Minecraft Fabric: 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+NOVIDADES
+- Cantos mais arredondados e bordas com suavização de cobertura/alfa,
+  especialmente no botão de configurar. Menu, perfis e cosméticos usam a mesma
+  forma. A faixa superior acompanha os dois cantos e liga ao gradiente central,
+  sem a linha solta só no meio. Botões de ativar/desativar preservados.
+- AUTOCLICKER: ligar a FEATURE não impede mais o clique/ataque/mineração manual.
+  O bloqueio só atua enquanto o automático estiver executando cliques ESQUERDOS.
+  Parar pelo atalho, soltar Segurar, pausar ou desligar devolve o botão físico
+  ao Minecraft. Com Direito/Meio, o ataque manual continua livre.
+  Menus e consumo pausam a interferência. CPS conta ações emitidas, respeitando
+  as regras de dano do Minecraft. Não altera alcance, pacotes ou cooldown de dano.
+- Cabeça/máscara de cavaleiro demoníaco removida. IDs de perfis antigos ficam
+  inertes; nenhum perfil é resetado e as bases dos códigos continuam congeladas.
+- Pet ceifador: rede completa da textura original no capuz/corpo/membros,
+  membros em pose neutra, cabo da foice encaixado no punho e afastado do rosto.
+  Miniatura trazida dois pixels para dentro e três para baixo. PNG e animação
+  idle originais preservados; não foram criadas novas animações para o pet.
+- Vestiário: área de desenho ampliada para cima e para os lados. A escala da
+  prévia considera os limites reais dos chapéus para evitar cortes. Tamanho
+  normal retorna ao retirar o acessório alto; seleção continua centralizada.
+- Luva de boxe e garra Spring mantêm o ajuste de largura/encaixe para Alex/Steve.
+  As animações originais dos punhos fogo, sangue, gelo e corrompido da 2.24
+  continuam presentes (3/3/3/8 quadros do pack).
+
+MANTIDO
+- Auras acompanham a posição do jogador, sem a torção de bater/colocar blocos.
+- Ghost com tampas e lâmpada corrigidas; raposa/axolote nos ombros.
+- China Hat sem estrelas; posições e remoções cosméticas da 2.24 preservadas.
+- Perfil Padrão com a configuração enviada e ajustes posteriores; tema/fonte,
+  compartilhamento e dados por versão mantidos. Códigos antigos continuam aceitos.
+
+INSTALAÇÃO
+Feche o jogo. Extraia o ZIP e copie SOMENTE o JAR da sua versão para mods.
+Remova o JAR antigo do Duck Client. Não misture os quatro JARs na mesma instância.
+Mantenha Fabric API/Sodium compatíveis. Java17+ na 1.20.1; Java21+ nas 1.21.x.
+Não precisa instalar Cleaner separado ou offlinenametagicon na 1.21.11.
+
+VALIDAÇÃO
+Compilação das quatro versões, APIs/alvos nativos e Mixin aplicado ao bytecode
+real, matrizes/posições, entrada manual e automática, CPS/pausas, fontes/recursos,
+perfis e worker de cosméticos testados com fixtures. CRC/SHA256 verificados.
+Relatórios completos e fontes incrementais acompanham o pacote.
+Não houve execução gráfica de Minecraft/Pojav, teste com Dawn/anticheat ou medição
+de FPS. A aparência e o comportamento precisam ser conferidos no jogo.
+
+ADICOES DESTA MESMA REVISAO
+- Posicoes das mascaras: palhaco desce1pixel, japonesa recua1, coruja sobe1,
+  corvo avanca1. Luvas/garras aumentam20%, mantendo o encaixe Alex/Steve.
+- Gemas das coroas, face superior da helice/bone, tampas dos fones espaciais,
+  punhos de anjo/dragao revisados. Punhos cyber removidos.
+- Auras de brilho e gelo do pacote original; animacoes originais preservadas.
+- Punhos na primeira pessoa aparecem apenas no braco com a mao vazia,
+  usando os mesmos modelos/quadros animados da terceira pessoa.
+- Fade horizontal restaurado. Slots do TargetHUD arredondados.
+- Somente Target Render Legacy usa uma camada sobre as entidades,
+  centralizada no alvo. Os outros estilos preservam o caminho de mundo.
+- Autoclick nao compensa atraso com rajadas de cliques. Nao existe garantia
+  de aceitacao por todo anticheat; use somente onde automacao e permitida.
+- Cleaner nao corta o desenho de entidades de foguete. Nao altera voo/elytra.
+- Comunidade: botao pequeno abaixo de Tema; nick, rosto, historico limitado
+  e contador real. Presenca expira65s apos ultima atualizacao; consulta
+  a cada25s ou4s com chat aberto, sempre fora da renderizacao.
+  Desative Comunidade Duck em Cosmeticos Online para interromper a conexao.
+  Nick/UUID sao informados pelo cliente; nao ha selo de conta autenticada.
+  Nenhuma mensagem do chat global e enviada ao servidor de Minecraft.
+- Servico precisa da atualizacao de producao do Duck Connect para o contador
+  e chat; enquanto indisponivel, o menu informa o estado sem inventar numeros.
