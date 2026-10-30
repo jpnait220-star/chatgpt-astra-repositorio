@@ -53,3 +53,21 @@ escuta127.0.0.1, para uso atrás de proxy HTTPS.
 
 A frequência da consulta/renderização continua sendo controlada pelo client;
 esta API não acrescenta trabalho por frame. Envio, consulta e limpeza foram testados no serviço público pelos métodos HTTP dos quatro JARs. O comportamento visual dentro do Minecraft ainda precisa de teste.
+
+
+## Comunidade Duck (beta.2.25)
+
+POST /community recebe UUID, nick e token opcional; devolve token opaco, numero
+de UUIDs ativos nos ultimos65segundos e no maximo40mensagens dos ultimos15minutos.
+O cliente envia heartbeat a cada25s, ou4s enquanto o chat esta aberto. O token de
+sessao expira em180s e o cliente pode desativar Comunidade Duck.
+POST /chat recebe token e texto (1–160caracteres, sem controles de formatacao).
+O remetente vem da sessao, nunca do payload de mensagem. Intervalo minimo3s por
+origem, alem do limite geral. Os nicks/UUIDs sao informados pelo cliente, sem
+validacao de conta Microsoft/Minecraft. Nao e um selo de identidade autenticada.
+Redis guarda presenca em conjunto ordenado, sessoes com TTL e lista limitada;
+nenhum inventario, IP do servidor de jogo ou mensagem de chat do servidor e enviado.
+O backend existente de cosmeticos /profile e /profiles permanece compativel.
+Testes: npm test. NODE_ENV=production exige Redis; sem fallback em memoria.
+
+Producao atualizada: https://duck-connect.vercel.app (presenca/chat e protocolo de cosmeticos validados publicamente).

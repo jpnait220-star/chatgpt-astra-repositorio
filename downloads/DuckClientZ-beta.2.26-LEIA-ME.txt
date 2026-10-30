@@ -1,0 +1,37 @@
+Duck Client — beta.2.26 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+Instalacao: remova o JAR antigo do Duck e coloque somente o novo JAR que
+corresponde a sua versao do Minecraft. Nao misture versoes na pasta mods.
+
+CORRECOES DESTA REVISAO
+- Auras de brilho e gelo elevadas para envolver o corpo. O ajuste considera
+  todo o ciclo da animacao original; antes o deslocamento da animacao
+  deixava os efeitos concentrados perto dos pes.
+- Luvas de boxe e garras mantem exatamente o tamanho aumentado da2.25 e o
+  ajuste Alex/Steve. As coordenadas originais da textura foram fixadas por
+  face para o aumento do modelo nao ler pixels transparentes de outras
+  regioes do atlas. Nenhuma textura ou animacao dos punhos foi redesenhada.
+- Face superior da base do chapeu colorido corrigida para usar a regiao
+  opaca original. A transparencia intencional nas pontas da helice foi
+  preservada.
+- Botao pequeno do chat reduzido de28x26 para20x18, com icone e area de
+  clique ajustados juntos. O contador permanece legivel.
+- Fechadas as pequenas aberturas entre a faixa superior e os cantos
+  arredondados dos menus. A cor/tema configurados continuam os mesmos.
+
+COMUNIDADE
+O servico https://duck-connect.vercel.app ja esta publicado e atualizado.
+O botao de chat fica abaixo de Tema. Contador e mensagens usam consultas
+assincronas com limites/cache; as skins tambem carregam em segundo plano.
+O compartilhamento de cosmeticos existente continua compativel.
+
+Todas as configuracoes/perfis, entradas, demais modelos, texturas e
+animacoes foram preservados da2.25. Nao e necessario resetar a config.
+
+VALIDACAO
+Compilacao e verificacao das APIs/mixins das quatro versoes; comparacao de
+arquivos para limitar a alteracao; amostragem das duas auras com o baker e
+animador reais durante todo o ciclo; vertices UV nativos das luvas/garras;
+opacidade do topo do chapeu; menu com gradiente nativo e area de clique.
+Nao houve execucao do Minecraft, teste em GPU/Pojav ou medicao de FPS.
+A aparencia final ainda precisa ser conferida dentro do jogo.

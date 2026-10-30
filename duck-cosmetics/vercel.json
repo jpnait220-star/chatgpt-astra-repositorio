@@ -4,13 +4,44 @@
   "buildCommand": "npm test",
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/profile", "destination": "/api/relay?route=profile" },
-    { "source": "/profiles", "destination": "/api/relay?route=profiles" },
-    { "source": "/health", "destination": "/api/relay?route=health" }
+    {
+      "source": "/profile",
+      "destination": "/api/relay?route=profile"
+    },
+    {
+      "source": "/profiles",
+      "destination": "/api/relay?route=profiles"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/relay?route=health"
+    },
+    {
+      "source": "/community",
+      "destination": "/api/relay?route=community"
+    },
+    {
+      "source": "/chat",
+      "destination": "/api/relay?route=chat"
+    }
   ],
-  "headers": [{ "source": "/(.*)", "headers": [
-    { "key": "X-Content-Type-Options", "value": "nosniff" },
-    { "key": "Referrer-Policy", "value": "no-referrer" },
-    { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" }
-  ]}]
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+        }
+      ]
+    }
+  ]
 }
