@@ -1,0 +1,103 @@
+Duck Client beta.2.34 — validacao tecnica
+
+Sem teste grafico de Minecraft, Pojav, Dawn ou medicao de FPS.
+Testes de bytecode/API real e JVM com endpoints de desenho substituidos por gravadores.
+Os testes do updater usam os helpers publicados da2.29 e os quatro JARs finais desta entrega.
+
+
+native234-check.log
+Note: /workspace/duckclientz-expansion/CheckAddedApi.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS: 1754 bodies; 8093 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1771 bodies; 8091 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1779 bodies; 8101 actual MC/mod/Fabric references; 71 exact native injection/shadow/callsite checks.
+PASS: 1690 bodies; 7757 actual MC/mod/Fabric references; 66 exact native injection/shadow/callsite checks.
+
+startup234-check.log
+Note: /workspace/duckclientz-expansion/TestMixinService219.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /workspace/duckclientz-expansion/TestMixinApply230.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.20.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.21.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 18 render/GUI/hand target classes using actual remapped game bytecode 1.21.4
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 17 render/GUI/hand target classes using actual remapped game bytecode 1.21.11
+
+artifact234-check.log
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.20.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.4
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.11
+
+sodium234-check.log
+Note: /workspace/duckclientz-expansion/TestMixinService219.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /workspace/duckclientz-expansion/TestSodium230.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS actual Sodium0.5.13 + Duck mixin APPLY on native1.20.1 ModelPart/Cuboid; native Sodium caches present and Duck direct geometry bodies retain their bypass
+
+sodiumbulk234-check.log
+PASS 2400 native cube vertices byte-exact against real Sodium ModelVertex.write/NormI8; 24 calls ->1 push; live remapped UVs, nested batches, error cleanup, tint and unsupported-writer fallback 1.20.1
+PASS 2400 native cube vertices byte-exact against real Sodium EntityVertex.write/NormI8; 24 calls ->1 push; live remapped UVs, nested batches, error cleanup, tint and unsupported-writer fallback 1.21.1
+PASS 2400 native cube vertices byte-exact against real Sodium EntityVertex.write/NormI8; 24 calls ->1 push; live remapped UVs, nested batches, error cleanup, tint and unsupported-writer fallback 1.21.4
+PASS 2400 native cube vertices byte-exact against real Sodium EntityVertex.write/NormI8; 24 calls ->1 push; live remapped UVs, nested batches, error cleanup, tint and unsupported-writer fallback 1.21.11
+
+scratch234-check.log
+PASS 19200 exact native cube vertex/UV/color/normal comparisons; nested consumer rendering and 4 concurrent threads; zero vector NEW in optimized body 1.20.1
+PASS 19200 exact native cube vertex/UV/color/normal comparisons; nested consumer rendering and 4 concurrent threads; zero vector NEW in optimized body 1.21.1
+PASS 19200 exact native cube vertex/UV/color/normal comparisons; nested consumer rendering and 4 concurrent threads; zero vector NEW in optimized body 1.21.4
+PASS 19200 exact native cube vertex/UV/color/normal comparisons; nested consumer rendering and 4 concurrent threads; zero vector NEW in optimized body 1.21.11
+
+dispatch234-check.log
+Note: /workspace/duckclientz-expansion/dispatch234-runtime/1.20.1/Dispatch234Tests.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS actual old/new managers preserve live enable state/order/inherited overrides/HUD-only panels; skip empty wrappers; late registration/removal 1.20.1
+Note: /workspace/duckclientz-expansion/dispatch234-runtime/1.21.1/Dispatch234Tests.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS actual old/new managers preserve live enable state/order/inherited overrides/HUD-only panels; skip empty wrappers; late registration/removal 1.21.1
+Note: /workspace/duckclientz-expansion/dispatch234-runtime/1.21.4/Dispatch234Tests.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS actual old/new managers preserve live enable state/order/inherited overrides/HUD-only panels; skip empty wrappers; late registration/removal 1.21.4
+Note: /workspace/duckclientz-expansion/dispatch234-runtime/1.21.11/Dispatch234Tests.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS actual old/new managers preserve live enable state/order/inherited overrides/HUD-only panels; skip empty wrappers; late registration/removal 1.21.11
+
+probe234-check.log
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.20.1
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.21.1
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.21.4
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.21.11
+
+runtime234-check.log
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.20.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.4
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.11
+
+cosmetics234-check.log
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.20.1
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.20.1
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.20.1
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.20.1
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.1
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.1
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.1
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.1
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.4
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.4
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.4
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.4
+PASS native demon2024DemonScythe 1 visible samples, boundsY 7.72..38.93 Z 3.260..5.636 1.21.11
+PASS native medalScythe 240 visible samples, boundsY 7.17..38.51 Z 3.263..13.871 1.21.11
+PASS native halloween2024SkullScythe 1 visible samples, boundsY 7.66..37.07 Z 3.250..6.688 1.21.11
+PASS native sharkilzBubblesAura 240 visible samples, boundsY -9.47..38.96 Z -10.566..10.674 1.21.11
+PASS all source animation bytes and source texture frames/timings preserved 1.20.1
+PASS all source animation bytes and source texture frames/timings preserved 1.21.1
+PASS all source animation bytes and source texture frames/timings preserved 1.21.4
+PASS all source animation bytes and source texture frames/timings preserved 1.21.11
+
+transition234-check.log
+PASS published2.29 helpers accept signed234 metadata and install actual new 1.20.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed234 metadata and install actual new 1.21.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed234 metadata and install actual new 1.21.4 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed234 metadata and install actual new 1.21.11 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop

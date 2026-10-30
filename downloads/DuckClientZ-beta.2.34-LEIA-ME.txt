@@ -1,0 +1,57 @@
+Duck Client beta.2.34 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+FOCO: CUSTO CONTINUO DOS COSMETICOS DOS JOGADORES
+Quando a API publica do Sodium e o consumidor de vertices sao compativeis,
+os cosmeticos usam envio em lote: um cubo completo envia seus24 vertices em
+uma chamada de transferencia, em vez de24 chamadas individuais. A geometria,
+as animacoes e os UVs atuais de cada face sao preservados; nao usa a copia de
+UVs que o Sodium guarda no construtor do cubo. Isso preserva a correcao das
+texturas desmanchadas das versoes anteriores.
+
+O formato de vertices, os offsets e a disponibilidade da API sao verificados.
+Sem essa API, com consumidor incompativel ou cor tingida, continua usando o
+caminho anterior. Nao remove cubos, reduz textura nem altera distancia de
+visibilidade. A memoria do lote e reutilizada por thread e suporta desenhos
+aninhados. Nao inclui Sodium no JAR; a dependencia continua opcional.
+
+Os eventos de desenho vazios herdados por features que nao desenham HUD/mundo
+sao filtrados. Features da categoria HUD preservam o painel mesmo quando nao
+possuem texto proprio. Ligado/desligado, ordem dos eventos e novos modulos
+continuam sendo considerados. As otimizacoes de menu, HUDs, interpolacao e
+particulas da2.33 foram mantidas. Nao ha nova migracao de configuracoes.
+
+MEDIR NO SEU JOGO: /duckperf
+Dentro do mundo, digite /duckperf. Durante10 segundos, olhe para os jogadores
+com cosmeticos e mova a camera como faz normalmente. Ao terminar aparece o
+caminho do arquivo local:
+  .minecraft/config/duckclientz/<versao>/render-profile.txt
+
+Se o FPS continuar menor, envie esse arquivo. Ele mostra o tempo de CPU dos
+componentes medidos, intervalos entre callbacks HUD e se os cosmeticos usaram
+a API em lote ou o caminho anterior. Os tempos sao inclusivos, nao se somam.
+Nao mede tempo de GPU nem identifica todo custo de outros mods. A medicao
+adiciona trabalho durante a captura; nao fica ligada por padrao, termina
+sozinha e nao envia dados para um site. O comando e consumido localmente.
+
+INSTALACAO / ATUALIZADOR
+Na2.29 ou posterior: aguarde o download do atualizador, feche e reabra o
+Minecraft. Sem reiniciar, voce continua na versao anterior. O instalador
+preserva as configuracoes e faz backup do JAR anterior. Nao coloque dois
+JARs Duck na mesma pasta mods. Usuarios de antes da2.29 precisam substituir
+manualmente uma vez. Baixe somente o JAR da sua versao do Minecraft.
+
+VALIDACAO E LIMITES
+Testes JVM nas quatro versoes compararam os bytes dos vertices com a API real
+do Sodium0.5.13/0.6.13 e o caminho nativo anterior: posicao, UV, cor, luz,
+overlay e normais; tambem UV alterado, desenho aninhado, excecao, tint e fallback.
+A API0.6.13 foi usada como fixture nas versoes modernas; isso nao comprova
+compatibilidade com todas as versoes de Sodium, sobretudo as mais recentes.
+Testadas APIs/mixins reais do jogo, carregamento dos modelos/animacoes,
+despacho de eventos, HUDs, geracao do relatorio e atualizador assinado com os
+quatro JARs finais. Consulte VALIDACAO.txt para os resultados exatos.
+
+Nao houve execucao grafica de Minecraft, Pojav ou Dawn, nem medicao de FPS.
+A reducao de chamadas nao e uma medicao de ganho de FPS. O relatorio local
+ajuda a investigar o custo que continuar no computador do usuario.
+Servico: https://duck-connect.vercel.app
+1.19.2 nao incluida nesta entrega.
