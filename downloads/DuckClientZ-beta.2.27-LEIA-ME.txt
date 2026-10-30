@@ -1,0 +1,23 @@
+Duck Client beta.2.27 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+Remova o JAR antigo e use somente o JAR correspondente a sua versao.
+Nao e necessario resetar configuracoes ou perfis.
+
+Auras de GELO e BRILHO ampliadas para envolver o personagem inteiro,
+com largura, altura e profundidade proximas a aura de MONEY. O centro
+acompanha o jogador; os efeitos nao ficam restritos ao tronco.
+
+O ajuste usa a matriz de desenho das duas auras. As texturas, modelos,
+animacoes originais e a quantidade de elementos foram preservados.
+Nao ha criacao extra de particulas nem reconstrucao dos modelos por frame.
+Os demais cosmeticos e recursos da2.26 foram preservados.
+
+O servico https://duck-connect.vercel.app continua publicado e disponivel
+para contador, chat e compartilhamento de cosmeticos.
+
+Validacao tecnica: compilacao/APIs e mixins das quatro versoes,720amostras
+por versao com o baker/animador e a matriz de desenho reais (Money + gelo
++ brilho), comparacao do alcance nos tres eixos e independencia do golpe.
+Tambem foi verificado que todos os recursos/configuracoes sao identicos
+aos da2.26. Nao houve execucao do Minecraft/GPU ou medicao de FPS.
+Confira o visual dentro do jogo.
