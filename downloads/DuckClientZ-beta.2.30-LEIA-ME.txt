@@ -1,0 +1,67 @@
+Duck Client beta.2.30 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+Atualizacao de desempenho. Instale somente o JAR da sua versao.
+Quem ja usa a beta.2.29 pode abrir o Minecraft, aguardar o download,
+fechar o jogo e abrir novamente. Versoes anteriores precisam da troca
+manual uma vez. Nao apague suas configuracoes ou perfis.
+
+OTIMIZACOES NAS QUATRO VERSOES
+- Menu de features: calcula as alturas das linhas uma vez por frame,
+  em vez de repetir a varredura para cada card. Mantem as posicoes,
+  expansao, pesquisa, cliques e limites de rolagem.
+- Fade do menu: usa um atlas fixo; exemplo de 72 para 19 envios de
+  desenho, mantendo o contorno e a progressao da transparencia.
+- Cosmeticos locais E DOS OUTROS jogadores: reutiliza os vetores
+  temporarios dos cubos. Na 1.20.1 elimina ate 30 criacoes de vetores
+  por cubo de seis faces; nas outras, uma por cubo. Nao reduz modelos,
+  quantidade de cosmeticos, texturas, animacoes ou distancia de exibicao.
+- Cosmeticos online: reaproveita a lista por entidade enquanto a
+  resposta do servidor nao muda. Dados vazios nao procuram entidades.
+  O cache considera troca de entidade, nova resposta e troca de mundo.
+- Particulas do TargetHUD: as mesmas mascaras de 12px passam de
+  23–67 retangulos para um unico quad por particula. Opacidade e cores
+  comparadas com o renderizador anterior. Invisiveis nao enviam desenho.
+- Visuals: consulta os tipos registrados por indice, sem criar o nome
+  de registro toda vez que procura uma particula. Limites, dispersao,
+  velocidade, fisica e duracao mantidos.
+
+COSMETICOS E CPS
+- Foice anterior renomeada para Foice vermelha, diagonal nas costas.
+- Foice roxa Medal com seus 11 quadros e animacao original.
+- Foice Skull diagonal e SharkKilz Bubble Aura com os arquivos originais.
+- CPS aceita {middle}, com contador independente do botao do meio.
+  Exemplo: {cps} CPS | {right} R | {middle} M
+  O texto padrao dos perfis existentes nao foi alterado.
+
+ITENS NAO INCLUIDOS
+Pet robo Medal, pet Herobrine, SantaHatV2 e tres asas extras ainda nao
+estao nesta entrega: seus arquivos originais nao estavam no game.zip
+acessivel. O pedido de completar esses itens foi encerrado para finalizar
+esta entrega, conforme a ultima orientacao do usuario. Nao foram
+substituidos por outros modelos; nao e necessario enviar novos arquivos.
+O port 1.19.2 continua separado e ainda nao e uma versao para instalar.
+
+COMPATIBILIDADE E VALIDACAO
+Mantem as correcoes de crash, o caminho direto de geometria da 2.29
+e o render adiado da 1.21.11. Testada a aplicacao real dos mixins do
+Sodium 0.5.13 junto com Duck na 1.20.1; isso nao equivale a um teste
+grafico com todos os mods de otimizacao existentes.
+
+Passaram comparacoes de vertices/UV/cores/normais, renderizacoes
+aninhadas e concorrentes, mascaras das particulas, cache remoto,
+injecoes nas APIs reais, assets, CRC e hashes. O atualizador publicado
+na 2.29 foi testado com estes quatro JARs: download, validacao, espera
+do processo, backup e substituicao, sem alterar o perfil de teste.
+Nao houve execucao grafica de Minecraft, Pojav, Dawn ou teste de FPS.
+Os numeros de chamadas e objetos nao sao uma promessa de ganho de FPS.
+
+UPDATER
+Manifesto Ed25519, SHA256, tamanho, ID e versao sao conferidos antes
+da troca. O JAR e substituido depois que o processo do jogo termina;
+a atualizacao entra na proxima abertura. Configuracoes sao preservadas.
+Dados: config/duckclientz/<versao>/updater/; dois backups anteriores.
+Para desligar a busca: settings.properties com automatic=false.
+O instalador separado ainda precisa de validacao real em Windows/Pojav.
+
+Servico: https://duck-connect.vercel.app
+VALIDACAO.txt contem os relatorios tecnicos desta entrega.
