@@ -1,0 +1,84 @@
+Duck Client beta.2.39 — validacao tecnica
+
+Sem teste grafico de Minecraft, Pojav, Dawn ou medicao de FPS.
+Testes de bytecode/API real e JVM com endpoints de desenho substituidos por gravadores.
+Protocolo e instalador do updater mantidos; novo manifesto assinado para os hashes finais. Sem repetir teste de transicao nesta entrega.
+
+
+build239.log
+warning: [options] system modules path not set in conjunction with -source 17
+1 warning
+PASS239 settings lookup index, 30 static keyboard tables, allocation-free fit hits, unified text cache sites=2, HH:mm:ss cache 1.20.1
+PASS239 cached reflection catalog and positive class/zero-argument resolution at 20 legacy callsites 1.20.1
+PASS239 common radius5 HUD backgrounds: 7->3 native textured submissions, live tint/alpha, resource-pack and size fallbacks 1.20.1
+PASS239 existing baked cosmetic models use read-only lookup at 2 third/first-person sites; no vertex, pose, buffer or texture changes 1.20.1
+warning: [options] system modules path not set in conjunction with -source 17
+1 warning
+PASS239 settings lookup index, 30 static keyboard tables, allocation-free fit hits, unified text cache sites=2, HH:mm:ss cache 1.21.1
+PASS239 cached reflection catalog and positive class/zero-argument resolution at 20 legacy callsites 1.21.1
+PASS239 common radius5 HUD backgrounds: 7->3 native textured submissions, live tint/alpha, resource-pack and size fallbacks 1.21.1
+PASS239 existing baked cosmetic models use read-only lookup at 2 third/first-person sites; no vertex, pose, buffer or texture changes 1.21.1
+warning: [options] system modules path not set in conjunction with -source 17
+1 warning
+PASS239 settings lookup index, 30 static keyboard tables, allocation-free fit hits, unified text cache sites=2, HH:mm:ss cache 1.21.4
+PASS239 cached reflection catalog and positive class/zero-argument resolution at 19 legacy callsites 1.21.4
+PASS239 common radius5 HUD backgrounds: 7->3 native textured submissions, live tint/alpha, resource-pack and size fallbacks 1.21.4
+PASS239 existing baked cosmetic models use read-only lookup at 2 third/first-person sites; no vertex, pose, buffer or texture changes 1.21.4
+warning: [options] system modules path not set in conjunction with -source 17
+1 warning
+PASS239 settings lookup index, 30 static keyboard tables, allocation-free fit hits, unified text cache sites=2, HH:mm:ss cache 1.21.11
+PASS239 native11 keeps direct compatibility API; no legacy reflection added
+PASS239 common radius5 HUD backgrounds: 7->3 native textured submissions, live tint/alpha, resource-pack and size fallbacks 1.21.11
+PASS239 existing baked cosmetic models use read-only lookup at 2 third/first-person sites; no vertex, pose, buffer or texture changes 1.21.11
+PASS239 incremental stable238 base; only approved classes/resources changed 1.20.1
+PASS239 incremental stable238 base; only approved classes/resources changed 1.21.1
+PASS239 incremental stable238 base; only approved classes/resources changed 1.21.4
+PASS239 incremental stable238 base; only approved classes/resources changed 1.21.11
+
+scope239-check.log
+PASS239 1.20.1 all existing assets/configs/mixins/other modules byte-identical238; only approved cache/HUD-mask classes changed: 10
+PASS239 1.21.1 all existing assets/configs/mixins/other modules byte-identical238; only approved cache/HUD-mask classes changed: 10
+PASS239 1.21.4 all existing assets/configs/mixins/other modules byte-identical238; only approved cache/HUD-mask classes changed: 10
+PASS239 1.21.11 all existing assets/configs/mixins/other modules byte-identical238; only approved cache/HUD-mask classes changed: 8
+
+native239-check.log
+Note: /workspace/duckclientz-expansion/CheckAddedApi.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS: 1859 bodies; 8393 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1876 bodies; 8391 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1884 bodies; 8401 actual MC/mod/Fabric references; 71 exact native injection/shadow/callsite checks.
+PASS: 1795 bodies; 8053 actual MC/mod/Fabric references; 66 exact native injection/shadow/callsite checks.
+
+artifact239-check.log
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.20.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.4
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.11
+
+hud239-check.log
+PASS239 1440 exact HUD raster comparisons, clipped/narrow/unsupported/alpha/radius/resource-reload equivalence; common backgrounds7->3 submissions 1.20.1
+PASS239 1440 exact HUD raster comparisons, clipped/narrow/unsupported/alpha/radius/resource-reload equivalence; common backgrounds7->3 submissions 1.21.1
+PASS239 1440 exact HUD raster comparisons, clipped/narrow/unsupported/alpha/radius/resource-reload equivalence; common backgrounds7->3 submissions 1.21.4
+PASS239 1440 exact HUD raster comparisons, clipped/narrow/unsupported/alpha/radius/resource-reload equivalence; common backgrounds7->3 submissions 1.21.11
+
+cache239-check.log
+PASS239 10229 settings mutation/list/sublist/first-match checks, fit Unicode/fonts/10000 allocation-free width-cache hits, clock all timezones/DST/negative epochs, reflection native compatibility 1.20.1
+PASS239 10229 settings mutation/list/sublist/first-match checks, fit Unicode/fonts/10000 allocation-free width-cache hits, clock all timezones/DST/negative epochs, reflection native compatibility 1.21.1
+PASS239 10229 settings mutation/list/sublist/first-match checks, fit Unicode/fonts/10000 allocation-free width-cache hits, clock all timezones/DST/negative epochs, reflection native compatibility 1.21.4
+PASS239 10222 settings mutation/list/sublist/first-match checks, fit Unicode/fonts/10000 allocation-free width-cache hits, clock all timezones/DST/negative epochs, reflection native compatibility 1.21.11
+
+startup239-check.log
+Note: /workspace/duckclientz-expansion/TestMixinService219.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /workspace/duckclientz-expansion/TestMixinApply230.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.20.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.21.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 18 render/GUI/hand target classes using actual remapped game bytecode 1.21.4
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 17 render/GUI/hand target classes using actual remapped game bytecode 1.21.11
+
+runtime239-check.log
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.20.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.4
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.11

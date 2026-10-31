@@ -1,0 +1,33 @@
+Duck Client beta.2.39 — quatro versoes
+
+HUDs: fundos comuns de raio5 usam3 partes em vez de7, mantendo o desenho,
+cor, transparencia e coordenadas. Tamanhos nao suportados e overrides de
+resource packs continuam no caminho anterior. A mascara compartilha8MiB de
+textura RGBA descomprimida entre todos os HUDs, carregada no primeiro uso.
+Teclado:30 tabelas constantes deixam de ser reconstruidas por renderizacao.
+Textos, recorte de teclas e relogio reduzem buscas/formatacoes repetidas.
+Opcoes numericas dos modulos usam indice invalidado quando a lista muda.
+Compatibilidade antiga reutiliza tabelas de metodos e resolucoes positivas.
+Cosmeticos: modelos ja carregados usam leitura direta do cache; o caminho
+atomico de carregamento inicial foi preservado. Nao muda vertices, poses,
+texturas, distancia de desenho ou quantidade de cosmeticos.
+
+Sem teste grafico ou medicao de FPS nesta entrega. Nao ha garantia de ganho.
+Comparacoes de desenho dos fundos, caches e compatibilidade passaram nas
+quatro versoes antes do ultimo ajuste isolado na busca de modelos. A ultima
+compilacao foi conferida contra APIs nativas e integridade dos artefatos.
+Nao foram executados testes adicionais de desempenho a pedido do usuario.
+As outras renderizacoes sao mantidas na base2.38 (=codigo2.36).
+
+Comunidade/cosmeticos online/chat: o servico ainda retorna503 porque o
+armazenamento atingiu o limite de500000 requisicoes. Esta versao nao resolve
+esse bloqueio. A alternativa Supabase esta preparada, mas ainda nao ha
+projeto conectado. Nenhum plano pago foi ativado.
+
+Na2.29 ou posterior, aguarde o atualizador baixar e reinicie o Minecraft.
+Sem reiniciar, continua rodando o mod anterior. Para instalar manualmente,
+use somente o JAR da sua versao na pasta mods e remova o Duck antigo.
+As configuracoes existentes sao preservadas.1.19.2 nao incluida.
+
+Fontes: build_cache239.py parte dos JARs publicados2.38 e aplica apenas os
+patches239. O build.py geral continua documentando a base anterior.
