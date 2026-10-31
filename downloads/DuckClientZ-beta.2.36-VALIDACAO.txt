@@ -1,0 +1,77 @@
+Duck Client beta.2.36 — validacao tecnica
+
+Sem teste grafico de Minecraft, Pojav, Dawn ou medicao de FPS.
+Testes de bytecode/API real e JVM com endpoints de desenho substituidos por gravadores.
+Os testes do updater usam os helpers publicados da2.29 e os quatro JARs finais desta entrega.
+
+
+native236-check.log
+Note: /workspace/duckclientz-expansion/CheckAddedApi.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS: 1812 bodies; 8240 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1829 bodies; 8238 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1837 bodies; 8248 actual MC/mod/Fabric references; 71 exact native injection/shadow/callsite checks.
+PASS: 1748 bodies; 7902 actual MC/mod/Fabric references; 66 exact native injection/shadow/callsite checks.
+
+startup236-check.log
+Note: /workspace/duckclientz-expansion/TestMixinService219.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /workspace/duckclientz-expansion/TestMixinApply230.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.20.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 15 render/GUI/hand target classes using actual remapped game bytecode 1.21.1
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 18 render/GUI/hand target classes using actual remapped game bytecode 1.21.4
+PASS FabricLoader0.19.3 Mixin0.17.3+0.8.7 + MixinExtras0.5.4 APPLY of 17 render/GUI/hand target classes using actual remapped game bytecode 1.21.11
+
+artifact236-check.log
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.20.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.4
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.11
+
+menu236-check.log
+PASS 74 exact native icon raster comparisons, 74 textures ->1 atlas; cached identifier identity; original mappings in3 locales; resource-pack override/reload and unknown texture fallback 1.20.1
+PASS 120 exact half-pixel native panel raster comparisons, fill/stroke/colors/alpha, 15 ->6 submissions; narrow and unsupported fallback 1.20.1
+PASS Unicode/long trim equivalence, 1000 hits without width rescans, font/reload and bounded caches; per-event settings snapshot with mode change 1.20.1
+PASS 74 exact native icon raster comparisons, 74 textures ->1 atlas; cached identifier identity; original mappings in3 locales; resource-pack override/reload and unknown texture fallback 1.21.1
+PASS 120 exact half-pixel native panel raster comparisons, fill/stroke/colors/alpha, 15 ->6 submissions; narrow and unsupported fallback 1.21.1
+PASS Unicode/long trim equivalence, 1000 hits without width rescans, font/reload and bounded caches; per-event settings snapshot with mode change 1.21.1
+PASS 74 exact native icon raster comparisons, 74 textures ->1 atlas; cached identifier identity; original mappings in3 locales; resource-pack override/reload and unknown texture fallback 1.21.4
+PASS 120 exact half-pixel native panel raster comparisons, fill/stroke/colors/alpha, 15 ->6 submissions; narrow and unsupported fallback 1.21.4
+PASS Unicode/long trim equivalence, 1000 hits without width rescans, font/reload and bounded caches; per-event settings snapshot with mode change 1.21.4
+PASS 74 exact native icon raster comparisons, 74 textures ->1 atlas; cached identifier identity; original mappings in3 locales; resource-pack override/reload and unknown texture fallback 1.21.11
+PASS 120 exact half-pixel native panel raster comparisons, fill/stroke/colors/alpha, 15 ->6 submissions; narrow and unsupported fallback 1.21.11
+PASS Unicode/long trim equivalence, 1000 hits without width rescans, font/reload and bounded caches; per-event settings snapshot with mode change 1.21.11
+
+behavior236-check.log
+PASS 15 actual native render/input/opening/scale bodies preserve bytecode after only cache-call substitutions 1.20.1
+PASS 15 actual native render/input/opening/scale bodies preserve bytecode after only cache-call substitutions 1.21.1
+PASS 15 actual native render/input/opening/scale bodies preserve bytecode after only cache-call substitutions 1.21.4
+PASS 12 actual native render/input/opening/scale bodies preserve bytecode after only cache-call substitutions 1.21.11
+
+scope236-check.log
+PASS only five existing GUI/cache/panel classes changed; all previous world/cosmetic/particle/updater class bytes preserved 1.20.1
+PASS only five existing GUI/cache/panel classes changed; all previous world/cosmetic/particle/updater class bytes preserved 1.21.1
+PASS only five existing GUI/cache/panel classes changed; all previous world/cosmetic/particle/updater class bytes preserved 1.21.4
+PASS only five existing GUI/cache/panel classes changed; all previous world/cosmetic/particle/updater class bytes preserved 1.21.11
+
+bridge236-check.log
+PASS actual native1.21.11 texture bridge: full-image atlas; U/V/src-width/src-height crop and unsupported context preserve exact native pipeline/arguments; resource-pack override fallback
+
+runtime236-check.log
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.20.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.1
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.4
+PASS 1794 runtime220 checks: centered dark HUD; no double TargetHUD panel; Inventory frame; cropped whole-face UV/no scissors; mining guard+constant CPS; indexed live-camera target selection; bounded menu/text caches+invalidation; animation reuse; cosmetic UUID/id reuse 1.21.11
+
+probe236-check.log
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.20.1
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.21.1
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.21.4
+PASS local opt-in command, inactive fast path, duplicate guard, CPU rows/frame data, async version-scoped file and automatic stop; no upload 1.21.11
+
+transition236-check.log
+PASS published2.29 helpers accept signed236 metadata and install actual new 1.20.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed236 metadata and install actual new 1.21.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed236 metadata and install actual new 1.21.4 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed236 metadata and install actual new 1.21.11 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop

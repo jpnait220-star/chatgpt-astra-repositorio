@@ -1,0 +1,49 @@
+Duck Client beta.2.36 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+FOCO DESTA ENTREGA: MENU DE FEATURES
+- Lookup de icones reutiliza identificadores: nao repete normalizacao Unicode,
+  expressoes regulares e criacao de Identifier a cada card/frame. Identificadores
+  dos favoritos, busca e engrenagem tambem sao reutilizados.
+- Os icones originais foram agrupados em uma textura compartilhada1024x2048,
+  sem reduzir resolucao nem modificar pixels. Margens protegem as bordas de
+  amostragem vizinha. Cada icone continua sendo uma chamada de desenho; o atlas
+  reduz a variedade de texturas usada pelo menu, nao a quantidade de icones.
+- Se um resource pack substituir um icone individual, esse icone usa o caminho
+  original. Essa verificacao ocorre na primeira consulta e apos reload.
+- Cards/botoes comuns usam mascaras de preenchimento e contorno, com tres
+  fatias por camada:15 ->6 chamadas por painel. Mantidos raios, cores, alpha e
+  desenho separado de fundo/borda. Tamanhos nao suportados usam o caminho antigo.
+- Titulos e cortes de texto sao reutilizados, com caches limitados. Troca de
+  fonte e reload invalidam os cortes; alteracao de idioma invalida os nomes.
+- Configuracoes expandidas usam um snapshot por evento/frame, evitando repetir
+  verificacoes da lista em cada size/get. O proximo desenho considera mudancas.
+- O menu de configuracao recebe a lista dinamica original, para trocar modos
+  e resetar tambem opcoes ocultas. Snapshots ficam apenas no desenho dos cards.
+- Nenhuma nova animacao de hover/gradiente de selecao foi adicionada. Abertura
+  pelo P, coordenadas, scroll, pesquisa e controles existentes foram preservados.
+- /duckperf agora inclui a linha CPU do menu de features. O comando continua
+  local, opcional, com captura de10s e arquivo por versao. Tempos inclusivos,
+  nao somar linhas; nao mede GPU. Nao envia o arquivo automaticamente.
+
+ATUALIZACAO
+A partir da2.29, aguarde o download pelo atualizador e reinicie o Minecraft.
+Sem reiniciar, continua na versao anterior. Backup e configuracoes preservados.
+Em instalacoes anteriores a2.29, troque manualmente o JAR uma vez. Use somente
+um JAR Duck, correspondente a sua versao do Minecraft.
+
+TESTES E LIMITES
+Comparacao do atlas com os pixels dos icones originais; desenho dos icones e
+paineis comparado com a2.34 nas quatro versoes, incluindo cores/transparencia,
+idiomas, fonte/reload, limites dos caches e fallback para resource packs.
+Comparados os corpos nativos de render/input/abertura/escala, permitindo apenas
+as substituicoes de cache e a ponte de textura da1.21.11. APIs/mixins nativos,
+HUDs e atualizador assinado com os quatro JARs finais tambem foram verificados.
+Resultados tecnicos detalhados em VALIDACAO.txt.
+
+Nao houve execucao grafica de Minecraft, Pojav ou Dawn, nem medicao real de FPS.
+Menos chamadas/consultas nao comprovam um ganho especifico de FPS. Caso continue
+pesado, digite /duckperf e reproduza o problema com o menu aberto por10s; envie
+config/duckclientz/<versao>/render-profile.txt.
+Otimizacoes da2.34 e configuracoes anteriores mantidas. Sem migracao nova.
+Servico: https://duck-connect.vercel.app
+1.19.2 nao incluida nesta entrega.
