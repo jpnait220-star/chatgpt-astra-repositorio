@@ -1,0 +1,58 @@
+name: Publish DuckClientZ beta.2.40 candidate downloads
+on:
+  push:
+    branches: [asasa]
+    paths:
+      - '.github/workflows/publish-duckclientz-240.yml'
+      - 'duckclientz-ci/release240/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: duckclientz-beta240-candidate-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout candidate metadata
+        uses: actions/checkout@v4
+      - name: Download exact 2.39 base JARs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/duckbaseline
+          for v in 1.20.1 1.21.1 1.21.4 1.21.11; do
+            curl -fLsS --retry 3 --retry-delay 2 \
+              -o "/tmp/duckbaseline/DuckClientZ-${v}-1.5.28-beta.2.39.jar" \
+              "https://raw.githubusercontent.com/jpnait220-star/chatgpt-astra-repositorio/asasa/downloads/DuckClientZ-${v}-1.5.28-beta.2.39.jar"
+          done
+      - name: Reconstruct and validate four candidate JARs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 duckclientz-ci/release240/reconstruct.py \
+            /tmp/duckbaseline duckclientz-ci/release240/classpatch.zip dist
+          for v in 1.20.1 1.21.1 1.21.4 1.21.11; do
+            test -s "dist/DuckClientZ-${v}-1.5.28-beta.2.40.jar"
+          done
+          (cd dist && sha256sum *.jar > SHA256SUMS.txt && zip -q DuckClientZ-beta.2.40-CANDIDATO-4-versoes.zip *.jar SHA256SUMS.txt)
+          ls -lh dist
+      - name: Publish public prerelease with direct JAR and ZIP downloads
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=duckclientz-beta.2.40-candidate
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.jar dist/*.zip dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "$TAG" dist/*.jar dist/*.zip dist/SHA256SUMS.txt \
+              --target "${GITHUB_SHA}" \
+              --title "DuckClientZ beta.2.40 — Candidato de estabilidade" \
+              --notes-file duckclientz-ci/release240/RELEASE-NOTES.md \
+              --prerelease
+          fi
+          gh release view "$TAG" --json url,assets
