@@ -1,0 +1,32 @@
+Duck Client beta.2.38 — validacao tecnica
+
+Sem teste grafico de Minecraft, Pojav, Dawn ou medicao de FPS.
+Testes de bytecode/API real e JVM com endpoints de desenho substituidos por gravadores.
+Os testes do updater usam os helpers publicados da2.29 e os quatro JARs finais desta entrega.
+
+
+recovery238-check.log
+PASS all code/resources/config bytes equal tested2.36; only version metadata advances to2.38 1.20.1
+PASS all code/resources/config bytes equal tested2.36; only version metadata advances to2.38 1.21.1
+PASS all code/resources/config bytes equal tested2.36; only version metadata advances to2.38 1.21.4
+PASS all code/resources/config bytes equal tested2.36; only version metadata advances to2.38 1.21.11
+
+native238-check.log
+Note: /workspace/duckclientz-expansion/CheckAddedApi.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+PASS: 1812 bodies; 8240 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1829 bodies; 8238 actual MC/mod/Fabric references; 64 exact native injection/shadow/callsite checks.
+PASS: 1837 bodies; 8248 actual MC/mod/Fabric references; 71 exact native injection/shadow/callsite checks.
+PASS: 1748 bodies; 7902 actual MC/mod/Fabric references; 66 exact native injection/shadow/callsite checks.
+
+artifact238-check.log
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.20.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.1
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.4
+PASS: final CRC/hash, metadata/mixins/entrypoints, particle/audio assets, scoped version and no compile stubs: 1.21.11
+
+transition238-check.log
+PASS published2.29 helpers accept signed238 metadata and install actual new 1.20.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed238 metadata and install actual new 1.21.1 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed238 metadata and install actual new 1.21.4 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop
+PASS published2.29 helpers accept signed238 metadata and install actual new 1.21.11 JAR after fixture process exit; real loopback transfer/hash/mod metadata, original backup, one JAR, config intact, no update loop

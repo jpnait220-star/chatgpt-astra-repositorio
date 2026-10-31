@@ -1,0 +1,26 @@
+Duck Client beta.2.38 — recuperacao da base2.36, quatro versoes
+
+Esta entrega retira as mudancas de renderizacao da2.37. Todos os bytes de
+codigo, recursos e configuracoes de cada JAR sao identicos aos da2.36; somente
+fabric.mod.json avanca a versao para permitir a instalacao pelo atualizador.
+Nao e uma nova rodada de otimizacoes nem promessa de FPS maior que a2.36.
+O menu permanece como estava na2.36, conforme a base pedida para recuperacao.
+
+Conexao de cosmeticos/chat: a verificacao do servico identificou Upstash com
+limite de500000 requisicoes atingido. O armazenamento recusa ate PING com
+"ERR max requests limit exceeded. Limit:500000, Usage:500000" e a API retorna503.
+Trocar o JAR nao libera esse limite. E necessario liberar capacidade/aguardar
+renovacao no provedor. Nenhum plano pago foi ativado. O atualizador e servido
+separadamente e continua disponivel. As credenciais nunca entram no JAR.
+
+Na2.29 ou posterior: aguarde o download e reinicie o Minecraft. Sem reiniciar,
+continua executando o JAR anterior. Use apenas um Duck na pasta mods e nao
+apague as configuracoes. Na2.18 e anteriores, substitua o JAR manualmente uma vez.
+A instalacao preserva as configuracoes e o backup do JAR anterior.
+
+Validacao: igualdade binaria de todos os arquivos dos quatro JARs com a2.36,
+exceto a versao; APIs/mixins/metadados; assinatura e transicao pelo instalador
+publicado, com backup e preservacao de config. Sem execucao grafica/FPS real.
+Para reproduzir estes JARs, build_recovery238.py usa os JARs publicados da2.36;
+se necessario, baixe-os do mesmo repositorio, pasta downloads, nomes imutaveis.
+1.19.2 nao incluida nesta entrega.
