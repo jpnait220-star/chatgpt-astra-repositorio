@@ -1,0 +1,49 @@
+Duck Client beta.2.37 — 1.20.1 / 1.21.1 / 1.21.4 / 1.21.11
+
+FOCO DESTA ENTREGA
+A captura enviada da1.21.4 apontou2,13ms de CPU por frame nos HUDs:
+Full Keystrokes0,78ms, Inventory HUD0,65ms e Vida0,44ms. Esses sao dados da
+captura anterior do usuario, NAO resultados medidos depois desta atualizacao.
+O relatorio nao mede GPU. Os cosmeticos tiveram0 lotes nessa captura; ela nao
+comprova que o custo visual dos jogadores proximos foi eliminado.
+
+ALTERACOES NAS QUATRO VERSOES
+- Full Keystrokes: linhas adjacentes do mouse com o mesmo recuo viram retangulos
+  solidos maiores; recuos reutilizados por tamanho/escala. Mantidos pixels,
+  transparencia, bordas e controles. Sem novas texturas ou shaders neste caminho.
+- HUD Vida nas versoes antigas: chamadas nativas para cabeca e decoracoes dos
+  itens substituem varredura de metodos/reflexao em cada desenho. A1.21.11 ja
+  usa o caminho nativo; a otimizacao dos retangulos tambem foi aplicada nela.
+- Hitrange e emissores de geometria do Duck: o calculo de posicao de cada vertice
+  usa a matematica da API nativa de cada versao, reutilizando vetores temporarios.
+  Nao muda o circulo, segmentos, espessura, cores, camera ou comportamento no F11.
+- Cosmeticos: com Sodium compativel, os lotes agora abrangem partes do modelo e
+  seus filhos, em vez de terminar por cubo/face. Buffer limitado a4096 vertices
+  por transferencia, com memoria reutilizada. UVs atuais, ordem dos vertices,
+  luz, cores, normal, poses e animacoes preservados; sem ocultar jogadores ou
+  remover detalhes. Cor tingida/consumidor incompativel preserva caminho direto.
+- O emissor do cubo reutiliza o contexto do lote em vez de consultar ThreadLocal
+  em cada vertice. A normal empacotada e reutilizada quando seus componentes
+  sao identicos. Caminho sem Sodium e submissao adiada nativa continuam suportados.
+- O relatorio /duckperf inclui Minecraft e versao do Duck para identificar a
+  instalacao usada na captura. O comando continua local/opcional, sem upload.
+
+LIMITES
+Foram revisados os modulos e caminhos compartilhados de HUD, geometria, glint,
+particulas, jogadores e cosmeticos. Nao se afirma que cada feature recebeu uma
+mudanca nem que todos os gargalos foram eliminados. Inventory HUD continua
+renderizando os27 itens/quantidades e destaques ao vivo; nao congela glint,
+cooldown ou durabilidade para produzir um numero de desempenho artificial.
+As mudancas recentes de menu e os perfis/configuracoes foram preservados.
+Nao houve medicao grafica de FPS nesta entrega. Testes JVM/API real constam
+em VALIDACAO.txt e nao substituem testes no PC/Pojav com a combinacao de mods.
+
+ATUALIZAR
+Na2.29 ou posterior, aguarde o download pelo atualizador, feche e reabra o
+Minecraft. Sem reiniciar voce continua na versao antiga. Antes da2.29, troque
+o JAR manualmente uma vez. Use apenas um Duck da versao correta na pasta mods.
+Nao apague as configuracoes. O instalador mantem backup do JAR anterior.
+Se persistir: /duckperf por10s olhando os jogadores proximos, com menu fechado;
+envie config/duckclientz/<versao>/render-profile.txt para comparar com a captura.
+Servico: https://duck-connect.vercel.app
+1.19.2 nao incluida.
