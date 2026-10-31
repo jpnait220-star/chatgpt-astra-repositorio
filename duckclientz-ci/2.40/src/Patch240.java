@@ -1,61 +1,54 @@
-import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.zip.*;
 import jdk.internal.org.objectweb.asm.*;
 import jdk.internal.org.objectweb.asm.tree.*;
-
-/** Targeted patches against the tested beta.2.39 baseline, never a full source rebuild. */
+/** Conservative beta.2.40 candidate patch. No game classes are loaded at build time. */
 public final class Patch240 {
-  static final String SETTINGS = "com/duckswords/setting/KeybindSetting.class";
-  static final String HIT = "com/duckswords/modules/HitParticles.class";
-  static final String CRIT = "com/duckswords/modules/CritEffects.class";
-  static byte[] modify(byte[] bytes, String target) {
-    ClassNode node = new ClassNode();
-    new ClassReader(bytes).accept(node, 0);
-    if (target.equals(SETTINGS)) {
-      MethodNode method = node.methods.stream().filter(m -> m.name.equals("isPressed") && m.desc.equals("(Z)Z")).findFirst().orElseThrow();
-      // allowExtra |= (mods==0); no extra branches or StackMap frame requirements.
-      // For modifier bitmasks 0..15, (mods-1) >>> 31 is 1 iff mods==0.
-      InsnList i = new InsnList();
-      i.add(new VarInsnNode(Opcodes.ALOAD, 0));
-      i.add(new FieldInsnNode(Opcodes.GETFIELD,"com/duckswords/setting/KeybindSetting","mods","I"));
-      i.add(new InsnNode(Opcodes.ICONST_1));
-      i.add(new InsnNode(Opcodes.ISUB));
-      i.add(new IntInsnNode(Opcodes.BIPUSH,31));
-      i.add(new InsnNode(Opcodes.IUSHR));
-      i.add(new VarInsnNode(Opcodes.ILOAD,1));
-      i.add(new InsnNode(Opcodes.IOR));
-      i.add(new VarInsnNode(Opcodes.ISTORE,1));
-      method.instructions.insert(i);
-      method.maxStack=Math.max(method.maxStack,2);
-    } else if (target.equals(HIT) || target.equals(CRIT)) {
-      String helper=target.equals(HIT)?"hit":"critical";
-      MethodNode method=node.methods.stream().filter(m -> m.name.equals("emit") && m.desc.endsWith(")V")).findFirst().orElseThrow();
-      int changed=0;
-      for(AbstractInsnNode insn=method.instructions.getFirst();insn!=null;insn=insn.getNext()){
-        if(insn instanceof MethodInsnNode m && m.owner.equals("com/duckswords/setting/NumberSetting") && m.name.equals("getInt") && m.desc.equals("()I")){
-          method.instructions.insert(insn,new MethodInsnNode(Opcodes.INVOKESTATIC,"com/duckswords/perf/VisualBudget240",helper,"(I)I",false));
-          changed++;
-        }
-      }
-      if(changed!=1)throw new IllegalStateException("Expected one count read: "+target+" got "+changed);
-    } else throw new IllegalArgumentException(target);
-    ClassWriter writer=new ClassWriter(0);node.accept(writer);
-    byte[] result=writer.toByteArray();
-    new ClassReader(result).accept(new ClassVisitor(Opcodes.ASM8){},ClassReader.SKIP_CODE);
-    return result;
-  }
-  public static void main(String[] args)throws Exception{
-    if(args.length!=2)throw new IllegalArgumentException("Patch240 <baseline.jar> <patch-dir>");
-    Path dest=Path.of(args[1]);Files.createDirectories(dest);
-    try(ZipFile zip=new ZipFile(args[0])){
-      for(String cls:List.of(SETTINGS,HIT,CRIT)){
-        ZipEntry e=zip.getEntry(cls);if(e==null)throw new IllegalStateException(cls+" missing");
-        byte[] altered=modify(zip.getInputStream(e).readAllBytes(),cls);
-        Path p=dest.resolve(cls);Files.createDirectories(p.getParent());Files.write(p,altered);
-        System.out.println("PATCH "+cls);
-      }
+ static final String SETTINGS="com/duckswords/setting/KeybindSetting.class";
+ static final String HIT="com/duckswords/modules/HitParticles.class";
+ static final String CRIT="com/duckswords/modules/CritEffects.class";
+ static final String COSMETICS="com/duckswords/cosmetic/CosmeticManager.class";
+ static byte[] modify(byte[] data,String name){
+  ClassNode node=new ClassNode();new ClassReader(data).accept(node,0);
+  if(name.equals(SETTINGS)){
+   MethodNode m=node.methods.stream().filter(x->x.name.equals("isPressed")&&x.desc.equals("(Z)Z")).findFirst().orElseThrow();
+   InsnList i=new InsnList();i.add(new VarInsnNode(Opcodes.ALOAD,0));
+   i.add(new FieldInsnNode(Opcodes.GETFIELD,"com/duckswords/setting/KeybindSetting","mods","I"));
+   i.add(new InsnNode(Opcodes.ICONST_1));i.add(new InsnNode(Opcodes.ISUB));
+   i.add(new IntInsnNode(Opcodes.BIPUSH,31));i.add(new InsnNode(Opcodes.IUSHR));
+   i.add(new VarInsnNode(Opcodes.ILOAD,1));i.add(new InsnNode(Opcodes.IOR));
+   i.add(new VarInsnNode(Opcodes.ISTORE,1));m.instructions.insert(i);
+   m.maxStack=Math.max(2,m.maxStack);
+  } else if(name.equals(HIT)||name.equals(CRIT)){
+   MethodNode m=node.methods.stream().filter(x->x.name.equals("emit")&&x.desc.endsWith(")V")).findFirst().orElseThrow();
+   int found=0;for(AbstractInsnNode i=m.instructions.getFirst();i!=null;i=i.getNext())
+    if(i instanceof MethodInsnNode call&&call.owner.equals("com/duckswords/setting/NumberSetting")&&call.name.equals("getInt")&&call.desc.equals("()I")){
+     m.instructions.insert(i,new MethodInsnNode(Opcodes.INVOKESTATIC,"com/duckswords/perf/VisualBudget240",name.equals(HIT)?"hit":"critical","(I)I",false));found++;
     }
+   if(found!=1)throw new IllegalStateException("Unexpected particles method "+name+" "+found);
+  } else if(name.equals(COSMETICS)){
+   MethodNode m=node.methods.stream().filter(x->x.name.equals("spawn")&&x.desc.endsWith(")V")).findFirst().orElseThrow();
+   int found=0;for(AbstractInsnNode i=m.instructions.getFirst();i!=null;i=i.getNext())
+    if(i instanceof MethodInsnNode call&&call.owner.equals("com/duckswords/cosmetic/CosmeticManager")&&call.name.equals("isSafeForView")&&call.desc.endsWith(")Z")){
+     m.instructions.insert(i,new MethodInsnNode(Opcodes.INVOKESTATIC,"com/duckswords/perf/VisualBudget240","visible","(Z)Z",false));found++;
+    }
+   if(found!=1)throw new IllegalStateException("Unexpected cosmetic guard "+found);
+  } else throw new IllegalArgumentException(name);
+  ClassWriter w=new ClassWriter(ClassWriter.COMPUTE_MAXS);node.accept(w);
+  byte[] result=w.toByteArray();new ClassReader(result).accept(new ClassVisitor(Opcodes.ASM8){},ClassReader.SKIP_CODE);
+  return result;
+ }
+ public static void main(String[] argv)throws Exception {
+  if(argv.length!=2)throw new IllegalArgumentException("Patch240 base.jar patch-dir");
+  Path dst=Path.of(argv[1]);Files.createDirectories(dst);
+  try(ZipFile zip=new ZipFile(argv[0])){
+   for(String name:List.of(SETTINGS,HIT,CRIT,COSMETICS)){
+    ZipEntry ent=zip.getEntry(name);if(ent==null)throw new IllegalStateException("Missing "+name);
+    Path file=dst.resolve(name);Files.createDirectories(file.getParent());
+    Files.write(file,modify(zip.getInputStream(ent).readAllBytes(),name));
+    System.out.println("PATCH "+name);
+   }
   }
+ }
 }
