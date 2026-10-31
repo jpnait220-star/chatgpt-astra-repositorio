@@ -1,3 +1,9 @@
+# Alternativa Supabase pronta para conectar
+
+Consulte [supabase/README.md](supabase/README.md). Os13 testes passaram; a migracao
+ainda depende de criar/conectar um projeto. A producao continua com Upstash
+bloqueado em500000 requisicoes. Nao e uma correcao de FPS.
+
 # Duck Connect
 
 API de cosméticos compatível com DuckClientZ beta.2.17 e beta.2.18, mais página responsiva

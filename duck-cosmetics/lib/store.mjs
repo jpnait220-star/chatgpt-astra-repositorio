@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { supabaseTransport } from './supabase.mjs';
 export const TTL = 120;
 export class MemoryStore {
   entries = new Map(); limits = new Map();
@@ -45,7 +46,13 @@ export class RedisStore {
     return Number.isSafeInteger(count) && count <= 600;
   }
 }
+export class SupabaseStore extends RedisStore {
+  constructor(url, key, request = fetch) { super(url, key, supabaseTransport(url, key, request)); }
+}
 export function productionStore(env = process.env) {
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY;
+  if (supabaseUrl || supabaseKey) return new SupabaseStore(supabaseUrl, supabaseKey);
   const url = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL;
   const token = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN;
   return url && token ? new RedisStore(url, token) : null;
