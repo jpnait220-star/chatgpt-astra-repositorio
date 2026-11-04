@@ -18,8 +18,8 @@ public final class Session {
   public String finish;
   private final Random random = new Random();
   private long clock;
-  private int attackAt,
-      rocketAt,
+  private final CpsCadence clicks = new CpsCadence(15);
+  private int rocketAt,
       webAt,
       jumpAt,
       maneuverUntil,
@@ -188,12 +188,13 @@ public final class Session {
     if (o.teia && t >= webAt && !healing) {
       if (placeWeb(o.tank ? bot.getBlockPos().down() : owner.getBlockPos().up(), t)) return;
     }
-    if (!o.tank && !healing && heldUntil <= t && t >= attackAt) {
+    if (!o.tank && !healing && heldUntil <= t) {
       int sword = selectSword();
-      if (sword >= 0 && dist < CombatPlan.meleeIntentRange(bot.getEntityInteractionRange())) {
+      if (sword >= 0
+          && dist < CombatPlan.meleeIntentRange(bot.getEntityInteractionRange())
+          && clicks.next()) {
         bot.swingHand(Hand.MAIN_HAND);
         if (canHit()) bot.attack(owner);
-        attackAt = t + Math.max(1, 20 / d.cps) + random.nextInt(2);
       }
     }
   }

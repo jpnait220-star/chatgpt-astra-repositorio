@@ -27,6 +27,19 @@ public class CoreTest {
     }
     check(Math.abs(Aim.wrap(Aim.approach(179, -179, 5) + 179)) < 0.01);
     var registries = net.minecraft.registry.BuiltinRegistries.createWrapperLookup();
+    CpsCadence cadence = new CpsCadence(15);
+    int attempts = 0;
+    for (int second = 0; second < 100; second++) {
+      int local = 0;
+      for (int tick = 0; tick < 20; tick++)
+        if (cadence.next()) {
+          local++;
+          attempts++;
+        }
+      check(local == 15);
+    }
+    check(attempts == 1500);
+    for (var level : Options.Difficulty.values()) check(level.cps == 15);
     var kit = Kits.defaults(registries);
     check(kit.size() == 41);
     int totems = 0;

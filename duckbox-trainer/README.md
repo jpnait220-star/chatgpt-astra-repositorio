@@ -1,4 +1,4 @@
-# Duck Box Trainer — teste 0.2.0-alpha / Fabric 1.21.4
+# Duck Box Trainer — teste 0.2.1-alpha / Fabric 1.21.4
 
 Protótipo local de treino de Box PvP com um jogador controlado pelo servidor.
 O NPC usa ServerPlayerEntity: o modelo, a hitbox, a animação, o inventário,
@@ -22,6 +22,14 @@ A versão inicial comporta **um jogador contra um bot por mundo**. O foco é
 singleplayer. Comandos e controles exigem permissão de operador; o mapa já
 permite comandos. Num servidor privado, o mod e a Fabric API devem estar no
 servidor e no cliente que vai treinar. Nenhuma integração com servidor público.
+
+## Cadencia de ataque
+
+O bot tenta atacar a15 CPS em todas as dificuldades, enquanto esta em combate,
+com espada e perto do alvo. O agendamento distribui15 tentativas em20 ticks,
+sem rajadas de compensacao. A mira continua podendo errar; dano e animacao
+seguem as regras vanilla. Retotem, comer e trocar itens pausam as tentativas.
+A taxa corresponde a15 por segundo com o servidor rodando a20TPS.
 
 ## Painel no mundo
 

@@ -1,13 +1,13 @@
 from pathlib import Path
 from zipfile import ZipFile,ZIP_DEFLATED
 import hashlib,json,shutil,subprocess
-B=Path(__file__).parent;R=Path('/workspace/duckbox-publish');D=B/'dist';name='DuckBoxTrainer-1.21.4-0.2.0-alpha';jar=D/(name+'.jar')
+B=Path(__file__).parent;R=Path('/workspace/duckbox-publish');D=B/'dist';name='DuckBoxTrainer-1.21.4-0.2.1-alpha';jar=D/(name+'.jar')
 assert jar.exists()
 with ZipFile(jar) as z:
  assert z.testzip() is None
- meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.2.0-alpha' and meta['depends']['minecraft']=='1.21.4'
+ meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.2.1-alpha' and meta['depends']['minecraft']=='1.21.4'
  classes=[n for n in z.namelist() if n.endswith('.class')];assert classes and all(n.startswith('dev/duckbox/') for n in classes)
-validation='Duck Box Trainer0.2.0-alpha / Minecraft1.21.4\nSem execucao grafica de combate ou garantia de naturalidade/FPS.\nTestes usam bibliotecas/registries/bytecode Minecraft reais, sem substitutos de entidades.\nInclui TestServer vanilla sem janela: dano/locomocao, kit135HP, bau e mapa. Nao e partida grafica nem testa todas dificuldades.\n\n'
+validation='Duck Box Trainer0.2.1-alpha / Minecraft1.21.4\nSem execucao grafica de combate ou garantia de naturalidade/FPS.\nTestes usam bibliotecas/registries/bytecode Minecraft reais, sem substitutos de entidades.\nInclui TestServer vanilla sem janela: dano/locomocao, kit135HP, bau e mapa. Nao e partida grafica nem testa todas dificuldades.\n\n'
 for log in ['build.log','test.log','mixins-test.log','combat-test.log']:
  s=(B/log).read_text();assert 'Traceback' not in s and 'Exception in thread' not in s and 'error:' not in s,log
  assert ('COMPILED' if log=='build.log' else 'PASS') in s
