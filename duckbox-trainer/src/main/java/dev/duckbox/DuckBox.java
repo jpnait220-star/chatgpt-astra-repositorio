@@ -1,0 +1,572 @@
+package dev.duckbox;
+
+import static net.minecraft.server.command.CommandManager.*;
+
+import com.google.gson.*;
+import com.mojang.brigadier.arguments.*;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.*;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.component.type.AttributeModifierSlot;
+import net.minecraft.entity.*;
+import net.minecraft.item.ItemStack;
+import net.minecraft.registry.*;
+import net.minecraft.server.*;
+import net.minecraft.server.command.*;
+import net.minecraft.server.network.*;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.*;
+import net.minecraft.util.math.*;
+import net.minecraft.world.*;
+import net.minecraft.world.GameMode;
+
+public final class DuckBox implements ModInitializer {
+  public static MinecraftServer server;
+  public static Options options = new Options();
+  public static Session session;
+  private static JsonObject disk = new JsonObject();
+  private static final Gson JSON = new GsonBuilder().setPrettyPrinting().create();
+  private static Path file;
+  private static final Map<UUID, Long> rockets = new HashMap<>();
+  private static final Map<UUID, Long> clicks = new HashMap<>();
+
+  @Override
+  public void onInitialize() {
+    PayloadTypeRegistry.playS2C().register(TrainingPayload.ID, TrainingPayload.CODEC);
+    ServerLifecycleEvents.SERVER_STARTED.register(
+        s -> {
+          server = s;
+          file =
+              s.getSavePath(net.minecraft.util.WorldSavePath.ROOT).resolve("duckbox-training.json");
+          load();
+        });
+    ServerLifecycleEvents.SERVER_STOPPING.register(
+        s -> {
+          if (session != null) stop("Servidor encerrado.");
+        });
+    ServerLifecycleEvents.SERVER_STOPPED.register(
+        s -> {
+          server = null;
+          session = null;
+          rockets.clear();
+          clicks.clear();
+          Arena.reset();
+        });
+    ServerTickEvents.END_SERVER_TICK.register(
+        s -> {
+          Arena.tick();
+          if (session != null) {
+            if (session.finish != null) stop(session.finish);
+            else if (session.owner.isDisconnected()) stop("Jogador saiu.");
+            else {
+              try {
+                session.bot.tick();
+                if (session.finish != null) stop(session.finish);
+                else session.status();
+              } catch (RuntimeException e) {
+                org.slf4j.LoggerFactory.getLogger("DuckBox")
+                    .error("Erro no tick do bot; encerrando treino", e);
+                stop("Treino interrompido. Veja o log DuckBox.");
+              }
+            }
+          }
+        });
+    ServerPlayConnectionEvents.JOIN.register(
+        (handler, sender, s) -> {
+          if (handler.player instanceof TrainingBot) return;
+          restore(handler.player);
+          if (s.getSaveProperties().getLevelName().equals("DuckBoxTreino")
+              && !options.built
+              && !Arena.building()) {
+            options.x = 0;
+            options.y = 64;
+            options.z = 0;
+            options.dimension = "minecraft:overworld";
+            options.initialized = true;
+            Arena.create(handler.player, options);
+          }
+        });
+    ServerPlayConnectionEvents.DISCONNECT.register(
+        (handler, s) -> {
+          if (session != null && session.owner == handler.player) stop("Jogador saiu.");
+        });
+    PlayerBlockBreakEvents.BEFORE.register(
+        (w, p, pos, state, entity) ->
+            session == null
+                || p != session.owner
+                || w != world()
+                || state.isOf(net.minecraft.block.Blocks.COBWEB)
+                || Math.abs(pos.getX() - options.x) > options.size / 2
+                || Math.abs(pos.getZ() - options.z) > options.size / 2
+                || pos.getY() < options.y
+                || pos.getY() > options.y + 10);
+    ServerLivingEntityEvents.ALLOW_DEATH.register(
+        (entity, source, amount) -> {
+          if (session != null && (entity == session.owner || entity == session.bot)) {
+            entity.setHealth(1);
+            session.finish =
+                entity == session.bot ? "Voce venceu!" : "O bot venceu. Tente novamente!";
+            return false;
+          }
+          return true;
+        });
+    UseBlockCallback.EVENT.register(
+        (p, w, hand, hit) -> {
+          if (w.isClient() || hand != Hand.MAIN_HAND || p instanceof TrainingBot)
+            return ActionResult.PASS;
+          String key = Arena.control(hit.getBlockPos(), (ServerWorld) w, options);
+          if (key == null) return ActionResult.PASS;
+          if (!p.hasPermissionLevel(2)) return ActionResult.FAIL;
+          long now = w.getTime();
+          if (clicks.getOrDefault(p.getUuid(), -20L) + 5 > now) return ActionResult.SUCCESS;
+          clicks.put(p.getUuid(), now);
+          try {
+            control((ServerPlayerEntity) p, key);
+          } catch (Exception e) {
+            say((ServerPlayerEntity) p, e.getMessage());
+          }
+          return ActionResult.SUCCESS;
+        });
+    CommandRegistrationCallback.EVENT.register(
+        (dispatcher, registry, environment) ->
+            dispatcher.register(
+                literal("box")
+                    .requires(s -> s.hasPermissionLevel(2))
+                    .executes(
+                        c ->
+                            run(
+                                c.getSource(),
+                                p -> {
+                                  say(
+                                      p,
+                                      "/box criar [17..41] | iniciar | parar | dificuldade"
+                                          + " LOW/MEDIUM/HIGH/EXPERT | habilidade nome | modo"
+                                          + " DUEL/TANK | kit salvar/padrao | atributo"
+                                          + " minecraft:max_health 100 HEAD");
+                                }))
+                    .then(
+                        literal("criar")
+                            .executes(c -> run(c.getSource(), p -> Arena.create(p, options)))
+                            .then(
+                                argument("tamanho", IntegerArgumentType.integer(17, 41))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  requireStopped();
+                                                  options.size =
+                                                      IntegerArgumentType.getInteger(c, "tamanho")
+                                                          | 1;
+                                                  Arena.create(p, options);
+                                                }))))
+                    .then(literal("iniciar").executes(c -> run(c.getSource(), DuckBox::start)))
+                    .then(
+                        literal("parar")
+                            .executes(c -> run(c.getSource(), p -> stop("Treino encerrado."))))
+                    .then(
+                        literal("dificuldade")
+                            .then(
+                                argument("nivel", StringArgumentType.word())
+                                    .suggests(
+                                        (c, b) ->
+                                            CommandSource.suggestMatching(
+                                                List.of("LOW", "MEDIUM", "HIGH", "EXPERT"), b))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  options.difficulty =
+                                                      Options.Difficulty.valueOf(
+                                                          StringArgumentType.getString(c, "nivel")
+                                                              .toUpperCase(Locale.ROOT));
+                                                  save();
+                                                  say(p, "Dificuldade: " + options.difficulty);
+                                                }))))
+                    .then(
+                        literal("habilidade")
+                            .then(
+                                argument("nome", StringArgumentType.word())
+                                    .suggests(
+                                        (c, b) ->
+                                            CommandSource.suggestMatching(
+                                                List.of(
+                                                    "giro",
+                                                    "gap",
+                                                    "retotem",
+                                                    "teia",
+                                                    "wtap",
+                                                    "strafe",
+                                                    "foguete_teia"),
+                                                b))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  String key =
+                                                      StringArgumentType.getString(c, "nome");
+                                                  say(p, key + ": " + options.toggle(key));
+                                                  save();
+                                                }))))
+                    .then(
+                        literal("modo")
+                            .then(
+                                argument("tipo", StringArgumentType.word())
+                                    .suggests(
+                                        (c, b) ->
+                                            CommandSource.suggestMatching(
+                                                List.of("DUEL", "TANK"), b))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  String mode =
+                                                      StringArgumentType.getString(c, "tipo");
+                                                  if (!mode.equalsIgnoreCase("TANK")
+                                                      && !mode.equalsIgnoreCase("DUEL"))
+                                                    throw new IllegalArgumentException(
+                                                        "Use DUEL ou TANK.");
+                                                  options.tank = mode.equalsIgnoreCase("TANK");
+                                                  save();
+                                                  say(p, "Modo: " + mode);
+                                                }))))
+                    .then(
+                        literal("kit")
+                            .then(
+                                literal("salvar")
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  requireStopped();
+                                                  disk.add("kit", Kits.encode(p, Kits.capture(p)));
+                                                  save();
+                                                  say(
+                                                      p,
+                                                      "Kit salvo. Jogador e bot receberao copias"
+                                                          + " iguais.");
+                                                })))
+                            .then(
+                                literal("padrao")
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  requireStopped();
+                                                  disk.remove("kit");
+                                                  save();
+                                                  say(p, "Kit padrao selecionado.");
+                                                }))))
+                    .then(
+                        literal("atributo")
+                            .then(
+                                argument("atributo", IdentifierArgumentType.identifier())
+                                    .then(
+                                        argument("valor", DoubleArgumentType.doubleArg(-1024, 1024))
+                                            .then(
+                                                argument("slot", StringArgumentType.word())
+                                                    .suggests(
+                                                        (c, b) ->
+                                                            CommandSource.suggestMatching(
+                                                                List.of(
+                                                                    "HEAD",
+                                                                    "CHEST",
+                                                                    "LEGS",
+                                                                    "FEET",
+                                                                    "MAINHAND",
+                                                                    "OFFHAND",
+                                                                    "ANY"),
+                                                                b))
+                                                    .executes(
+                                                        c ->
+                                                            run(
+                                                                c.getSource(),
+                                                                p -> {
+                                                                  requireStopped();
+                                                                  Kits.attribute(
+                                                                      p,
+                                                                      IdentifierArgumentType
+                                                                          .getIdentifier(
+                                                                              c, "atributo")
+                                                                          .toString(),
+                                                                      DoubleArgumentType.getDouble(
+                                                                          c, "valor"),
+                                                                      AttributeModifierSlot.valueOf(
+                                                                          StringArgumentType
+                                                                              .getString(c, "slot")
+                                                                              .toUpperCase(
+                                                                                  Locale.ROOT)));
+                                                                  say(
+                                                                      p,
+                                                                      "Item alterado. Use /box kit"
+                                                                          + " salvar para atualizar"
+                                                                          + " o kit.");
+                                                                }))))))));
+  }
+
+  private interface Task {
+    void run(ServerPlayerEntity p) throws Exception;
+  }
+
+  private static int run(ServerCommandSource s, Task task) {
+    try {
+      task.run(s.getPlayerOrThrow());
+      return 1;
+    } catch (Exception e) {
+      s.sendError(Text.literal("DuckBox: " + e.getMessage()));
+      return 0;
+    }
+  }
+
+  public static void say(ServerPlayerEntity p, String message) {
+    p.sendMessage(Text.literal("[DuckBox] " + message), false);
+  }
+
+  public static void requireStopped() {
+    if (session != null || Arena.building())
+      throw new IllegalArgumentException("Encerre o treino e aguarde a construcao.");
+  }
+
+  public static void control(ServerPlayerEntity p, String key) {
+    switch (key) {
+      case "iniciar" -> start(p);
+      case "parar" -> stop("Treino encerrado.");
+      case "dificuldade" -> {
+        options.difficulty = Options.Difficulty.values()[(options.difficulty.ordinal() + 1) % 4];
+        say(p, "Dificuldade: " + options.difficulty);
+        save();
+      }
+      case "tamanho" -> {
+        requireStopped();
+        options.size =
+            options.size < 25 ? 25 : options.size < 33 ? 33 : options.size < 41 ? 41 : 17;
+        Arena.create(p, options);
+      }
+      default -> {
+        boolean active = options.toggle(key);
+        var pos = p.getServerWorld();
+        for (var entry : Arena.controls.entrySet())
+          if (entry.getValue().equals(key)) {
+            var state = pos.getBlockState(entry.getKey());
+            if (state.contains(net.minecraft.block.LeverBlock.POWERED))
+              pos.setBlockState(
+                  entry.getKey(), state.with(net.minecraft.block.LeverBlock.POWERED, active), 3);
+          }
+        save();
+        say(p, key + ": " + active);
+      }
+    }
+  }
+
+  public static ServerWorld world() {
+    return server.getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(options.dimension)));
+  }
+
+  public static void start(ServerPlayerEntity p) {
+    requireStopped();
+    if (!options.built) throw new IllegalArgumentException("Use /box criar primeiro.");
+    if (p.getServerWorld() != world())
+      throw new IllegalArgumentException("Entre na dimensao da arena.");
+    if (p.isSpectator()) throw new IllegalArgumentException("Saia do modo espectador.");
+    if (p.hasVehicle()) throw new IllegalArgumentException("Desmonte antes de iniciar.");
+    if (p.isUsingItem()) p.stopUsingItem();
+    List<ItemStack> kit =
+        disk.has("kit") ? Kits.decode(p, disk.getAsJsonArray("kit")) : Kits.defaults();
+    boolean sword = kit.stream().anyMatch(i -> i.isIn(net.minecraft.registry.tag.ItemTags.SWORDS));
+    if (!sword) throw new IllegalArgumentException("O kit precisa de uma espada.");
+    backup(p);
+    TrainingBot bot = new TrainingBot(server, world());
+    try {
+      server
+          .getPlayerManager()
+          .onPlayerConnect(
+              new TrainingBot.LocalConnection(),
+              bot,
+              ConnectedClientData.createDefault(bot.getGameProfile(), false));
+      bot.changeGameMode(GameMode.SURVIVAL);
+      Kits.give(bot, kit);
+      Kits.give(p, kit);
+      p.changeGameMode(GameMode.SURVIVAL);
+      p.clearStatusEffects();
+      bot.clearStatusEffects();
+      p.getHungerManager().setFoodLevel(20);
+      Arena.clearWebs(world(), options);
+      bot.teleport(
+          world(), options.x + 4.5, options.y + 1, options.z + 0.5, Set.of(), 90, 0, false);
+      p.teleport(world(), options.x - 3.5, options.y + 1, options.z + 0.5, Set.of(), -90, 0, false);
+      session = new Session(p, bot, options);
+      sync();
+      say(
+          p,
+          "Treino iniciado: "
+              + options.difficulty
+              + " / "
+              + (options.tank ? "TANK" : "DUEL")
+              + ". /box parar para sair.");
+    } catch (Exception error) {
+      if (server.getPlayerManager().getPlayer(bot.getUuid()) != null)
+        server.getPlayerManager().remove(bot);
+      restore(p);
+      throw error;
+    }
+  }
+
+  public static void stop(String reason) {
+    Session s = session;
+    if (s == null) return;
+    s.closed = true;
+    if (ServerPlayNetworking.canSend(s.owner, TrainingPayload.ID))
+      ServerPlayNetworking.send(
+          s.owner, new TrainingPayload(s.owner.getUuid(), s.bot.getUuid(), false));
+    session = null;
+    s.bot.stopUsingItem();
+    s.bot.getInventory().clear();
+    server.getPlayerManager().remove(s.bot);
+    rockets.clear();
+    if (!s.owner.isDisconnected()) {
+      restore(s.owner);
+      say(s.owner, reason);
+    }
+    Arena.clearWebs(s.bot.getServerWorld(), options);
+  }
+
+  private static void load() {
+    options = new Options();
+    disk = new JsonObject();
+    if (!Files.exists(file)) return;
+    try {
+      disk = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+      if (disk.has("options")) options = JSON.fromJson(disk.get("options"), Options.class);
+      if (options == null) options = new Options();
+      options.size = MathHelper.clamp(options.size, 17, 41) | 1;
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          "Nao foi possivel ler duckbox-training.json; arquivo preservado.", e);
+    }
+  }
+
+  public static void sync() {
+    if (session != null
+        && !session.owner.isDisconnected()
+        && ServerPlayNetworking.canSend(session.owner, TrainingPayload.ID))
+      ServerPlayNetworking.send(
+          session.owner,
+          new TrainingPayload(session.owner.getUuid(), session.bot.getUuid(), options.webRocket));
+  }
+
+  public static void save() {
+    sync();
+    if (file == null) return;
+    try {
+      disk.add("options", JSON.toJsonTree(options));
+      Path temp = file.resolveSibling(file.getFileName() + ".tmp");
+      Files.writeString(temp, JSON.toJson(disk));
+      try {
+        Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+      } catch (AtomicMoveNotSupportedException e) {
+        Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException("Nao foi possivel salvar o treino.", e);
+    }
+  }
+
+  private static void backup(ServerPlayerEntity p) {
+    if (!disk.has("backups")) disk.add("backups", new JsonObject());
+    JsonObject b = new JsonObject();
+    b.add("inventory", Kits.encode(p, Kits.capture(p)));
+    JsonArray effects = new JsonArray();
+    var ops = RegistryOps.of(com.mojang.serialization.JsonOps.INSTANCE, p.getRegistryManager());
+    for (var effect : p.getStatusEffects())
+      effects.add(
+          net.minecraft.entity.effect.StatusEffectInstance.CODEC
+              .encodeStart(ops, effect)
+              .getOrThrow());
+    b.add("effects", effects);
+    b.addProperty("selectedSlot", p.getInventory().selectedSlot);
+    b.addProperty("health", p.getHealth());
+    b.addProperty("food", p.getHungerManager().getFoodLevel());
+    b.addProperty("saturation", p.getHungerManager().getSaturationLevel());
+    b.addProperty("mode", p.interactionManager.getGameMode().getName());
+    b.addProperty("x", p.getX());
+    b.addProperty("y", p.getY());
+    b.addProperty("z", p.getZ());
+    b.addProperty("yaw", p.getYaw());
+    b.addProperty("pitch", p.getPitch());
+    b.addProperty("dimension", p.getServerWorld().getRegistryKey().getValue().toString());
+    disk.getAsJsonObject("backups").add(p.getUuidAsString(), b);
+    save();
+  }
+
+  private static void restore(ServerPlayerEntity p) {
+    if (!disk.has("backups") || !disk.getAsJsonObject("backups").has(p.getUuidAsString())) return;
+    JsonObject b = disk.getAsJsonObject("backups").getAsJsonObject(p.getUuidAsString());
+    Kits.give(p, Kits.decode(p, b.getAsJsonArray("inventory")));
+    p.clearStatusEffects();
+    if (b.has("effects")) {
+      var ops = RegistryOps.of(com.mojang.serialization.JsonOps.INSTANCE, p.getRegistryManager());
+      for (var effect : b.getAsJsonArray("effects"))
+        p.addStatusEffect(
+            net.minecraft.entity.effect.StatusEffectInstance.CODEC.parse(ops, effect).getOrThrow());
+    }
+    if (b.has("selectedSlot")) p.getInventory().selectedSlot = b.get("selectedSlot").getAsInt();
+    p.networkHandler.sendPacket(
+        new net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket(
+            p.getInventory().selectedSlot));
+    p.changeGameMode(GameMode.byName(b.get("mode").getAsString(), GameMode.SURVIVAL));
+    p.setHealth(Math.max(1, Math.min(p.getMaxHealth(), b.get("health").getAsFloat())));
+    p.getHungerManager().setFoodLevel(b.get("food").getAsInt());
+    p.getHungerManager().setSaturationLevel(b.get("saturation").getAsFloat());
+    ServerWorld w =
+        server.getWorld(
+            RegistryKey.of(RegistryKeys.WORLD, Identifier.of(b.get("dimension").getAsString())));
+    if (w != null)
+      p.teleport(
+          w,
+          b.get("x").getAsDouble(),
+          b.get("y").getAsDouble(),
+          b.get("z").getAsDouble(),
+          Set.of(),
+          b.get("yaw").getAsFloat(),
+          b.get("pitch").getAsFloat(),
+          false);
+    disk.getAsJsonObject("backups").remove(p.getUuidAsString());
+    save();
+  }
+
+  public static void rocket(LivingEntity entity) {
+    if (entity.getWorld().isClient()) {
+      ClientTrainingState.boost(entity);
+      return;
+    }
+    if (session != null && (entity == session.bot || entity == session.owner))
+      rockets.put(entity.getUuid(), entity.getWorld().getTime() + 3);
+  }
+
+  public static boolean ignoreWeb(Entity entity) {
+    if (entity.getWorld().isClient()) return ClientTrainingState.ignore(entity);
+    return session != null
+        && options.webRocket
+        && (entity == session.bot || entity == session.owner)
+        && entity instanceof LivingEntity living
+        && living.isGliding()
+        && rockets.getOrDefault(entity.getUuid(), -1L) >= entity.getWorld().getTime();
+  }
+}
