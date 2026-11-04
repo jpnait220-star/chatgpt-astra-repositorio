@@ -14,6 +14,11 @@ public final class CosmeticState {
     state = null;
   }
 
+  public static boolean isBot(UUID id) {
+    var p = state;
+    return p != null && p.bot().equals(id) && !id.equals(new UUID(0, 0));
+  }
+
   public static boolean enabled(UUID id, int bit) {
     var p = state;
     return p != null && (p.owner().equals(id) || p.bot().equals(id)) && (p.mask() & bit) != 0;

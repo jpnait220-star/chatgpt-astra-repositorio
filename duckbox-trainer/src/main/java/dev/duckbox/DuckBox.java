@@ -660,7 +660,7 @@ public final class DuckBox implements ModInitializer {
             p,
             new CosmeticPayload(
                 p.getUuid(),
-                session != null && session.owner == p ? session.bot.getUuid() : new UUID(0, 0),
+                session != null ? session.bot.getUuid() : new UUID(0, 0),
                 mask));
   }
 

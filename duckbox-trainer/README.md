@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.0-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.1-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.0 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.1 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -17,6 +17,13 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 
 Fabric API: https://modrinth.com/mod/fabric-api/version/0.119.3+1.21.4
 O ZIP inclui um template de mundo plano; arena e lobby sao gerados pelo mod.
+
+## Skin do bot
+
+O bot usa Robot Duck, PNG64x64 incluido no mod, com bracos Steve. A textura
+carrega localmente, sem consulta a servidores de skins. A cabeca equipada fica
+oculta apenas na renderizacao do bot para mostrar seu rosto; Protecao60 e os
+atributos do item permanecem. A skin do jogador nao e alterada.
 
 ## Comecar
 

@@ -36,7 +36,7 @@ public class MixinTest {
     var transformer = (IMixinTransformer) ctor.newInstance();
     for (String target :
         (args.length > 2
-            ? new String[] {"net/minecraft/class_1007"}
+            ? new String[] {"net/minecraft/class_1007", "net/minecraft/class_640"}
             : new String[] {
               "net/minecraft/class_1297", "net/minecraft/class_1671", "net/minecraft/class_3222"
             })) {

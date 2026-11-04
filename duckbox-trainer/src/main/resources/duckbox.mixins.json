@@ -11,6 +11,8 @@
     "defaultRequire": 1
   },
   "client": [
-    "CosmeticArmMixin"
+    "CosmeticArmMixin",
+    "BotSkinEntryMixin",
+    "BotSkinStateMixin"
   ]
 }

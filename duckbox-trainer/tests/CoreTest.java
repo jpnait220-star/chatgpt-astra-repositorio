@@ -26,6 +26,42 @@ public class CoreTest {
       check(Math.abs(Aim.wrap(Aim.approach(i, 137, 17) - i)) <= 17.001);
     }
     check(Math.abs(Aim.wrap(Aim.approach(179, -179, 5) + 179)) < 0.01);
+    var robotId = java.util.UUID.randomUUID();
+    var humanId = java.util.UUID.randomUUID();
+    dev.duckbox.cosmetic.CosmeticState.set(new CosmeticPayload(humanId, robotId, 0));
+    var original =
+        new net.minecraft.client.util.SkinTextures(
+            net.minecraft.util.Identifier.of("minecraft", "original.png"),
+            null,
+            null,
+            null,
+            net.minecraft.client.util.SkinTextures.Model.SLIM,
+            true);
+    check(
+        dev.duckbox.cosmetic.BotSkin.resolve(robotId, original)
+            == dev.duckbox.cosmetic.BotSkin.ROBOT);
+    check(dev.duckbox.cosmetic.BotSkin.resolve(humanId, original) == original);
+    var renderState = new net.minecraft.client.render.entity.state.PlayerEntityRenderState();
+    renderState.skinTextures = original;
+    renderState.wearingSkullType = net.minecraft.block.SkullBlock.Type.PLAYER;
+    dev.duckbox.cosmetic.BotSkin.apply(humanId, renderState);
+    check(renderState.wearingSkullType == net.minecraft.block.SkullBlock.Type.PLAYER);
+    dev.duckbox.cosmetic.BotSkin.apply(robotId, renderState);
+    check(
+        renderState.skinTextures.texture().equals(dev.duckbox.cosmetic.BotSkin.TEXTURE)
+            && renderState.skinTextures.model()
+                == net.minecraft.client.util.SkinTextures.Model.WIDE);
+    check(
+        renderState.wearingSkullType == null
+            && renderState.hatVisible
+            && renderState.jacketVisible);
+    dev.duckbox.cosmetic.CosmeticState.clear();
+    check(dev.duckbox.cosmetic.BotSkin.resolve(robotId, original) == original);
+    try (var skin =
+        CoreTest.class.getResourceAsStream("/assets/duckbox/textures/entity/robot_duck.png")) {
+      var decoded = javax.imageio.ImageIO.read(skin);
+      check(decoded.getWidth() == 64 && decoded.getHeight() == 64);
+    }
     var registries = net.minecraft.registry.BuiltinRegistries.createWrapperLookup();
     CpsCadence cadence = new CpsCadence(15);
     int attempts = 0;
@@ -152,7 +188,20 @@ public class CoreTest {
     TrainingPayload.CODEC.encode(buffer, packet);
     check(TrainingPayload.CODEC.decode(buffer).equals(packet));
     buffer.release();
-    var cosmeticPacket=new CosmeticPayload(java.util.UUID.randomUUID(),java.util.UUID.randomUUID(),15);var meshBuffer=new net.minecraft.network.RegistryByteBuf(io.netty.buffer.Unpooled.buffer(),net.minecraft.registry.DynamicRegistryManager.EMPTY);CosmeticPayload.CODEC.encode(meshBuffer,cosmeticPacket);check(CosmeticPayload.CODEC.decode(meshBuffer).equals(cosmeticPacket));meshBuffer.release();dev.duckbox.cosmetic.CosmeticState.set(cosmeticPacket);check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(),1));check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.bot(),8));check(!dev.duckbox.cosmetic.CosmeticState.enabled(java.util.UUID.randomUUID(),1));dev.duckbox.cosmetic.CosmeticState.clear();check(!dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(),1));
+    var cosmeticPacket =
+        new CosmeticPayload(java.util.UUID.randomUUID(), java.util.UUID.randomUUID(), 15);
+    var meshBuffer =
+        new net.minecraft.network.RegistryByteBuf(
+            io.netty.buffer.Unpooled.buffer(), net.minecraft.registry.DynamicRegistryManager.EMPTY);
+    CosmeticPayload.CODEC.encode(meshBuffer, cosmeticPacket);
+    check(CosmeticPayload.CODEC.decode(meshBuffer).equals(cosmeticPacket));
+    meshBuffer.release();
+    dev.duckbox.cosmetic.CosmeticState.set(cosmeticPacket);
+    check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(), 1));
+    check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.bot(), 8));
+    check(!dev.duckbox.cosmetic.CosmeticState.enabled(java.util.UUID.randomUUID(), 1));
+    dev.duckbox.cosmetic.CosmeticState.clear();
+    check(!dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(), 1));
 
     NbtCompound root =
         NbtIo.readCompressed(new FileInputStream(args[0]), NbtSizeTracker.ofUnlimitedBytes());

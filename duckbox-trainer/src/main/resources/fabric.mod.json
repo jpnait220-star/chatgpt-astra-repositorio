@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "duckbox",
-  "version": "0.3.0-alpha",
+  "version": "0.3.1-alpha",
   "name": "Duck Box Trainer",
   "description": "Treino experimental de Box PvP: bot jogador, arena e kit configuraveis. Minecraft 1.21.4.",
   "authors": [
