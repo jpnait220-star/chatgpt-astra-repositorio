@@ -29,7 +29,9 @@ public final class Arena {
     "wtap",
     "strafe",
     "foguete_teia",
-    "tamanho"
+    "tamanho",
+    "giro_nivel",
+    "regras"
   };
 
   public static void reset() {
@@ -209,6 +211,34 @@ public final class Arena {
       }
     }
     updateModeLabel(buildingWorld, o);
+    updateRulesLabel(buildingWorld, o);
+    updateSpinLabel(buildingWorld, o);
+  }
+
+  public static void updateSpinLabel(ServerWorld w, Options o) {
+    if (w == null
+        || !w.getRegistryKey().getValue().toString().equals(o.dimension)
+        || (!o.built && w != buildingWorld)) return;
+    sign(
+        w,
+        new BlockPos(o.x - 31, o.y + 1, o.z + 9),
+        "NIVEL DO GIRO",
+        o.spin.name(),
+        "Clique no botao",
+        "Mira independente");
+  }
+
+  public static void updateRulesLabel(ServerWorld w, Options o) {
+    if (w == null
+        || !w.getRegistryKey().getValue().toString().equals(o.dimension)
+        || (!o.built && w != buildingWorld)) return;
+    sign(
+        w,
+        new BlockPos(o.x - 27, o.y + 1, o.z + 9),
+        "REGRAS",
+        o.rules.name(),
+        "Clique no botao",
+        "Kit por modo");
   }
 
   public static void updateModeLabel(ServerWorld w, Options o) {
@@ -233,7 +263,7 @@ public final class Arena {
   }
 
   public static BlockPos kitChest(Options o) {
-    return new BlockPos(o.x - 27, o.y + 1, o.z + 8);
+    return new BlockPos(o.x - 22, o.y + 1, o.z + 8);
   }
 
   public static boolean isKitChest(BlockPos pos, ServerWorld w, Options o) {

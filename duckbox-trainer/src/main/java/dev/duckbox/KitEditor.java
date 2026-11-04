@@ -102,7 +102,7 @@ public final class KitEditor extends GenericContainerScreenHandler {
               active = new KitEditor(id, inventory, p, contents);
               return active;
             },
-            Text.literal("DuckBox | Kit dos dois")));
+            Text.literal("Kit dos dois: " + DuckBox.options.rules)));
   }
 
   @Override

@@ -52,7 +52,7 @@ public final class CombatServerTest {
             ConnectedClientData.createDefault(bot.getGameProfile(), false));
     owner.changeGameMode(GameMode.SURVIVAL);
     bot.changeGameMode(GameMode.SURVIVAL);
-    var kit = Kits.defaults(world.getRegistryManager());
+    var kit = Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM);
     var encodedKit = Kits.encode(owner, kit);
     var decodedKit = Kits.decode(owner, encodedKit);
     for (int i = 0; i < 41; i++)
@@ -79,11 +79,13 @@ public final class CombatServerTest {
     options.difficulty = Options.Difficulty.HIGH;
     DuckBox.options = options;
     DuckBox.session = new Session(owner, bot, options);
+    DuckBox.session.startingBuffs();
     java.lang.reflect.Field ticks =
         net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572");
     ticks.setAccessible(true);
     boolean hit = false, moved = false;
-    int landed=0;float previousHealth=owner.getHealth();
+    int landed = 0;
+    float previousHealth = owner.getHealth();
     double start = bot.getX();
     for (int t = 1; t <= 180; t++) {
       ticks.setInt(server, t);
@@ -108,9 +110,12 @@ public final class CombatServerTest {
                 + owner.getMaxHealth()
                 + ", distance="
                 + bot.distanceTo(owner));
-        if(landed>=3){hit=true;break;}
+        if (landed >= 3) {
+          hit = true;
+          break;
+        }
       }
-      previousHealth=owner.getHealth();
+      previousHealth = owner.getHealth();
     }
     if (!hit)
       throw new AssertionError(
@@ -124,6 +129,96 @@ public final class CombatServerTest {
               + owner.isLoaded()
               + " phase health="
               + owner.getHealth());
+    var active = DuckBox.session;
+    for (var actor : List.of(owner, bot)) {
+      if (actor.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
+              != 1
+          || actor.getStatusEffect(net.minecraft.entity.effect.StatusEffects.REGENERATION) == null
+          || actor.getStatusEffect(net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE)
+              == null) throw new AssertionError("Starting gap effects");
+    }
+    owner
+        .getInventory()
+        .setStack(40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    owner.setHealth(1);
+    if (!owner.damage(world, world.getDamageSources().generic(), 100000)
+        || owner.getHealth() <= 0
+        || !owner.getOffHandStack().isEmpty())
+      throw new AssertionError("Vanilla totem did not pop");
+    if (owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE))
+      throw new AssertionError("Totem did not clear resistance as expected");
+    active.maintainRules();
+    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
+        != 1) throw new AssertionError("ResistanceII not restored");
+    options.rules = Options.Rules.INSTA_KILL;
+    active.maintainRules();
+    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
+        != 0) throw new AssertionError("Insta Kill resistance must beI");
+    options.rules = Options.Rules.NORMAL_SPAM;
+    active.maintainRules();
+    owner.getInventory().setStack(40, Kits.duckCharm());
+    owner.setHealth(135);
+    bot.setHealth(40);
+    options.retotem = true;
+    options.giro = false;
+    int tick = server.getTicks();
+    for (int i = 0; i < 12; i++) {
+      ticks.setInt(server, ++tick);
+      bot.tick();
+    }
+    if (!bot.getOffHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING))
+      throw new AssertionError("Bot did not select vanilla protector at low health");
+    int charms = 0;
+    for (int i = 0; i < 41; i++) if (Kits.isCharm(bot.getInventory().getStack(i))) charms++;
+    if (charms != 1) throw new AssertionError("Charm duplicated or lost");
+    bot.setHealth(bot.getMaxHealth());
+    for (int i = 0; i < 12; i++) {
+      ticks.setInt(server, ++tick);
+      bot.tick();
+    }
+    if (!Kits.isCharm(bot.getOffHandStack()))
+      throw new AssertionError("Charm not restored after healing");
+    if (!DuckBox.allowTrainingDamage(owner, world.getDamageSources().generic())
+        || DuckBox.allowTrainingDamage(owner, world.getDamageSources().fall())
+        || DuckBox.allowTrainingDamage(owner, world.getDamageSources().flyIntoWall()))
+      throw new AssertionError("Fall/wall damage scope");
+    System.out.println(
+        "PASS REAL RULES: initial gap buffs; vanilla totem consumed; ResistanceII restored after"
+            + " pop and I for Insta Kill; low-health protector swap and healed charm restore"
+            + " conserve one charm; fall/wall scoped cancellation");
+    bot.getInventory().setStack(5, bot.getOffHandStack());
+    bot.getInventory().setStack(40, net.minecraft.item.ItemStack.EMPTY);
+    int removed = 0;
+    for (int i = 0; i < 9; i++)
+      if (bot.getInventory().getStack(i).isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)) {
+        removed += bot.getInventory().getStack(i).getCount();
+        bot.getInventory().setStack(i, net.minecraft.item.ItemStack.EMPTY);
+      }
+    bot.setHealth(30);
+    for (int i = 0; i < 40; i++) {
+      ticks.setInt(server, ++tick);
+      bot.tick();
+    }
+    if (!bot.getOffHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)
+        || active.countTotems() != 12 - removed)
+      throw new AssertionError("Vanilla reserve refill conservation");
+    options.retotem = false;
+    options.gap = true;
+    options.giro = false;
+    bot.setHealth(35);
+    int applesBefore = bot.getInventory().getStack(2).getCount();
+    int eaten = 0;
+    for (int i = 0; i < 145; i++) {
+      ticks.setInt(server, ++tick);
+      bot.tick();
+      eaten = applesBefore - bot.getInventory().getStack(2).getCount();
+      if (eaten >= 2) break;
+    }
+    if (eaten != 2)
+      throw new AssertionError("Low health must consume two real gap items, got" + eaten);
+    System.out.println(
+        "PASS REAL RECOVERY: vanilla reserve refilled after hotbar depletion without extra totems;"
+            + " low-health recovery consumed two real apples");
     DuckBox.session.closed = true;
     DuckBox.session = null;
     options.built = true;
@@ -163,6 +258,13 @@ public final class CombatServerTest {
     System.out.println(
         "PASS REAL KIT CHEST: native 54-slot handler opens/closes, labels locked,"
             + " hotbar/storage/offhand mapping saved to JSON and decoded with world registry");
+    options.rules = Options.Rules.INSTA_KILL;
+    var insta = DuckBox.currentKit(owner);
+    if (!insta.get(0).isOf(net.minecraft.item.Items.GOLDEN_SWORD))
+      throw new AssertionError("Rules kits leaked into each other");
+    options.rules = Options.Rules.NORMAL_SPAM;
+    if (!DuckBox.currentKit(owner).get(0).isOf(net.minecraft.item.Items.DIAMOND_SWORD))
+      throw new AssertionError("Normal custom kit lost");
     options.initialized = true;
     Arena.create(owner, options);
     int batches = 0;

@@ -27,16 +27,19 @@ public class MixinTest {
     mod = new ZipFile(args[1]);
     DuckBoxMixinService.reader = MixinTest.class.getMethod("read", String.class);
     MixinBootstrap.init();
-    MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.SERVER);
+    MixinEnvironment.getDefaultEnvironment()
+        .setSide(args.length > 2 ? MixinEnvironment.Side.CLIENT : MixinEnvironment.Side.SERVER);
     Mixins.addConfiguration("duckbox.mixins.json");
     var type = Class.forName("org.spongepowered.asm.mixin.transformer.MixinTransformer");
     var ctor = type.getDeclaredConstructor();
     ctor.setAccessible(true);
     var transformer = (IMixinTransformer) ctor.newInstance();
     for (String target :
-        new String[] {
-          "net/minecraft/class_1297", "net/minecraft/class_1671", "net/minecraft/class_3222"
-        }) {
+        (args.length > 2
+            ? new String[] {"net/minecraft/class_1007"}
+            : new String[] {
+              "net/minecraft/class_1297", "net/minecraft/class_1671", "net/minecraft/class_3222"
+            })) {
       ClassNode old = read(target);
       ClassWriter w = new ClassWriter(0);
       old.accept(w);

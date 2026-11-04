@@ -2,6 +2,7 @@ package dev.duckbox;
 
 import java.util.*;
 import net.minecraft.entity.*;
+import net.minecraft.entity.effect.*;
 import net.minecraft.item.*;
 import net.minecraft.server.network.*;
 import net.minecraft.text.Text;
@@ -23,16 +24,17 @@ public final class Session {
       webAt,
       jumpAt,
       maneuverUntil,
-      maneuverAt = 40,
-      healingStartedAt,
+      maneuverAt = 30,
       swapAt = -1,
+      pendingSlot = -1,
       refillAt = -1,
       gapWait,
       heldUntil;
-  private int side = 1, damageCount;
-  private float lastHealth;
-  private boolean healing, strafeActive;
+  private int side = 1, damageCount, gapsLeft, healingStartedAt, appleCountBefore, escapeUntil;
+  private float lastHealth, fullHealth;
+  private boolean healing, escaping, airGap, strafeActive;
   private String phase = "Preparando";
+  private Vec3d recoveryPoint;
   private double aimX, aimY, aimZ;
 
   public Session(ServerPlayerEntity p, TrainingBot b, Options options) {
@@ -40,16 +42,39 @@ public final class Session {
     bot = b;
     o = options;
     b.session = this;
-    lastHealth = b.getHealth();
+    lastHealth = b.getHealth() + b.getAbsorptionAmount();
     aimX = p.getX();
     aimY = p.getEyeY();
     aimZ = p.getZ();
   }
 
+  public void maintainRules() {
+    int amplifier = o.rules == Options.Rules.NORMAL_SPAM ? 1 : 0;
+    for (var p : List.of(owner, bot)) {
+      var effect = p.getStatusEffect(StatusEffects.RESISTANCE);
+      if (effect == null || effect.getAmplifier() != amplifier || !effect.isInfinite()) {
+        p.removeStatusEffect(StatusEffects.RESISTANCE);
+        p.addStatusEffect(
+            new StatusEffectInstance(StatusEffects.RESISTANCE, -1, amplifier, false, false, true));
+      }
+    }
+  }
+
+  public void startingBuffs() {
+    maintainRules();
+    for (var p : List.of(owner, bot)) {
+      p.addStatusEffect(
+          new StatusEffectInstance(StatusEffects.REGENERATION, 400, 1, false, false, true));
+      p.addStatusEffect(
+          new StatusEffectInstance(StatusEffects.ABSORPTION, 2400, 3, false, false, true));
+      p.addStatusEffect(
+          new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 6000, 0, false, false, true));
+    }
+  }
+
   public void control() {
     if (closed || finish != null) return;
-    clock++;
-    int t = (int) clock;
+    int t = (int) ++clock;
     var d = o.difficulty;
     if (!owner.isAlive()
         || owner.isDisconnected()
@@ -57,6 +82,7 @@ public final class Session {
       finish = "Treino encerrado: jogador saiu.";
       return;
     }
+    maintainRules();
     bot.forwardSpeed = 0;
     bot.sidewaysSpeed = 0;
     bot.setSneaking(false);
@@ -64,20 +90,17 @@ public final class Session {
       bot.setHealth(bot.getMaxHealth());
       owner.setHealth(owner.getMaxHealth());
     }
+    fullHealth = Math.max(fullHealth, bot.getMaxHealth());
     double dist = bot.squaredDistanceTo(owner);
+    float health = bot.getHealth();
     if (t % 30 == 0 && random.nextBoolean()) side = -side;
     if (t % d.reaction == 0) strafeActive = random.nextDouble() < d.strafe;
-    float health = bot.getHealth();
-    if (health < lastHealth) {
+    float vitality = health + bot.getAbsorptionAmount();
+    if (vitality < lastHealth) {
       damageCount++;
-      if (healing && damageCount >= 2) {
-        bot.stopUsingItem();
-        healing = false;
-        gapWait = t + 50;
-        selectSword();
-      }
+      if ((healing || escaping) && damageCount >= 2) endRecovery(t, 45);
     } else if (t % 40 == 0) damageCount = 0;
-    lastHealth = health;
+    lastHealth = vitality;
     if (o.retotem && retotem(t)) return;
     if (heldUntil > t) {
       phase = "Trocando item";
@@ -94,6 +117,13 @@ public final class Session {
       finish = "Voce saiu da arena.";
       return;
     }
+    // A consumed apple decreases the real inventory count; interruption does not.
+    if (healing && !bot.isUsingItem()) {
+      if (apples() < appleCountBefore) gapsLeft--;
+      if (gapsLeft > 0 && health < bot.getMaxHealth() - 2) startApple(t);
+      else endRecovery(t, 30);
+    }
+    if (healing && t - healingStartedAt > 45) endRecovery(t, 35);
     boolean behind =
         Aim.fraction(health, bot.getMaxHealth()) + 0.12
             < Aim.fraction(owner.getHealth(), owner.getMaxHealth());
@@ -101,29 +131,36 @@ public final class Session {
         owner.isUsingItem()
             && owner.getActiveItem().contains(net.minecraft.component.DataComponentTypes.FOOD);
     if (!healing
+        && !escaping
+        && gapsLeft == 0
         && o.gap
         && t > gapWait
-        && (behind || otherEating || o.tank)
-        && health < bot.getMaxHealth() - 4) {
-      if (bot.isGliding() && t >= rocketAt) useRocket(t);
-      int apple = find(Items.ENCHANTED_GOLDEN_APPLE, true);
-      if (apple < 0) apple = find(Items.GOLDEN_APPLE, true);
-      if (apple >= 0) {
-        bot.getInventory().selectedSlot = apple;
-        bot.getMainHandStack().use(bot.getServerWorld(), bot, Hand.MAIN_HAND);
-        healing = bot.isUsingItem();
-        healingStartedAt = t;
-        damageCount = 0;
-      }
+        && health < bot.getMaxHealth() - 4
+        && (behind || otherEating || o.tank || health < bot.getMaxHealth() * 0.55)
+        && apples() > 0) {
+      gapsLeft = health < bot.getMaxHealth() * 0.65 ? 2 : 1;
+      damageCount = 0;
+      airGap = o.giro && random.nextDouble() < 0.65;
+      double radius = o.size / 2.0 - 1.8;
+      recoveryPoint =
+          new Vec3d(
+              o.x + (random.nextBoolean() ? radius : -radius),
+              o.y + (airGap ? Arena.HEIGHT - 1.6 : 1.2),
+              o.z + (random.nextBoolean() ? radius : -radius));
+      escaping = airGap;
+      escapeUntil = t + 26;
+      if (!escaping) startApple(t);
     }
-    if (healing && (!bot.isUsingItem() || t - healingStartedAt > 48)) {
-      bot.stopUsingItem();
-      healing = false;
-      gapWait = t + 25;
-      selectSword();
+    if (escaping && (bot.getY() > o.y + 2.8 || t >= escapeUntil)) {
+      escaping = false;
+      startApple(t);
     }
     if (t % d.reaction == 0) {
-      Vec3d point = owner.getEyePos().subtract(0, owner.getHeight() * 0.12, 0);
+      Vec3d point =
+          owner
+              .getEyePos()
+              .subtract(0, owner.getHeight() * 0.12, 0)
+              .add(owner.getVelocity().multiply(owner.isGliding() ? 1 : 0));
       double error =
           switch (d) {
             case LOW -> 0.45;
@@ -136,31 +173,41 @@ public final class Session {
       aimZ = point.z + random.nextGaussian() * error;
     }
     Vec3d aim = new Vec3d(aimX, aimY, aimZ);
-    if (healing || o.tank) {
-      phase = healing ? "Recuperando com gap" : "Tank / evasao";
-      double a = Math.atan2(bot.getZ() - o.z, bot.getX() - o.x) + side * 0.55;
-      double r = o.size / 2.0 - 2;
+    if (healing || escaping) {
+      phase = escaping ? "Buscando quina no alto" : "Recuperando: " + gapsLeft + " gap";
+      aim = recoveryPoint;
+    } else if (o.tank) {
+      phase = "Tank / evasao";
+      double angle = Math.atan2(bot.getZ() - o.z, bot.getX() - o.x) + side * 0.6;
+      double radius = o.size / 2.0 - 2;
       aim =
           new Vec3d(
-              o.x + Math.cos(a) * r, Math.max(o.y + 1.1, bot.getY() - 0.7), o.z + Math.sin(a) * r);
-    } else phase = "Combate";
-    if (t < maneuverUntil && !healing && !o.tank && dist < 25 && dist > 9) {
-      Vec3d relative = bot.getPos().subtract(owner.getPos());
-      double angle = Math.atan2(relative.z, relative.x) + side * 0.65;
-      aim =
-          new Vec3d(
-              owner.getX() + Math.cos(angle) * 2.2,
-              owner.getY() + 0.5,
-              owner.getZ() + Math.sin(angle) * 2.2);
-      phase = "Reposicionando perto do alvo";
+              o.x + Math.cos(angle) * radius,
+              o.y + Arena.HEIGHT - 2,
+              o.z + Math.sin(angle) * radius);
+    } else {
+      phase = "Combate";
+      if (t < maneuverUntil && dist > 9 && dist < 25) {
+        Vec3d relative = bot.getPos().subtract(owner.getPos());
+        double angle = Math.atan2(relative.z, relative.x) + side * 0.65;
+        aim =
+            clamp(
+                new Vec3d(
+                    owner.getX() + Math.cos(angle) * 2.2,
+                    owner.getY() + 0.5,
+                    owner.getZ() + Math.sin(angle) * 2.2));
+        phase = "Reposicionando perto do alvo";
+      }
     }
+
     look(aim, d.aimSpeed);
     bot.setHeadYaw(bot.getYaw());
     bot.setBodyYaw(bot.getYaw());
     bot.setSprinting(!healing);
-    bot.forwardSpeed = healing || o.tank ? 1 : dist > 2.3 ? 1 : 0.15f;
-    if (o.strafe && !healing && strafeActive) bot.sidewaysSpeed = side;
-    if (o.wtap && owner.getY() > bot.getY() + 1 && t % 18 < 3) bot.forwardSpeed = 0;
+    bot.forwardSpeed = healing || escaping || o.tank ? 1 : dist > 2.3 ? 1 : 0.15f;
+    if (o.strafe && !healing && !escaping && strafeActive) bot.sidewaysSpeed = side;
+    if (o.wtap && !escaping && owner.getY() > bot.getY() + 1 && dist < 12 && t % 18 < 3)
+      bot.forwardSpeed = 0;
     if (bot.isOnGround() && t >= jumpAt) {
       bot.jump();
       jumpAt = t + 8 + (d == Options.Difficulty.LOW ? random.nextInt(13) : random.nextInt(4));
@@ -169,26 +216,33 @@ public final class Session {
         && bot.getVelocity().y > -0.6
         && bot.getVelocity().y < 0.35
         && !(d == Options.Difficulty.LOW && t % 4 != 0)) bot.checkGliding();
-    if (CombatPlan.mayReposition(
-            o.giro,
-            bot.isGliding(),
-            healing,
-            o.tank,
-            t,
-            maneuverAt,
-            dist,
-            bot.getY() - owner.getY())
-        && bot.getVelocity().y < 0.08
-        && random.nextDouble() < d.rockets) {
-      if (useRocket(t)) {
+    if (escaping && bot.isGliding()) useRocket(t);
+    boolean pursuit =
+        (owner.isGliding() || owner.getY() > bot.getY() + 1.4 || otherEating)
+            && dist > CombatPlan.meleeIntentRange(bot.getEntityInteractionRange())
+            && dist < 324;
+    boolean near = dist >= 4 && dist < 30;
+    if (o.giro
+        && bot.isGliding()
+        && !healing
+        && !escaping
+        && !o.tank
+        && t >= maneuverAt
+        && (pursuit || near)
+        && random.nextDouble() < o.spin.chance) {
+      // Rocket follows the actual camera, so wait until it is facing the intended path.
+      Vec3d path = aim.subtract(bot.getEyePos()).normalize();
+      if (bot.getRotationVec(1).dotProduct(path) > 0.75 && clearPath(aim) && useRocket(t)) {
         maneuverUntil = t + 6;
-        maneuverAt = t + 55 + random.nextInt(35);
+        maneuverAt = t + o.spin.interval;
       }
-    } else if (o.tank && !healing && bot.isGliding() && t >= rocketAt && dist < 60) useRocket(t);
-    if (o.teia && t >= webAt && !healing) {
-      if (placeWeb(o.tank ? bot.getBlockPos().down() : owner.getBlockPos().up(), t)) return;
-    }
-    if (!o.tank && !healing && heldUntil <= t) {
+    } else if (o.tank && o.giro && !healing && bot.isGliding()) useRocket(t);
+    if (o.teia
+        && t >= webAt
+        && !healing
+        && !escaping
+        && placeWeb(o.tank ? bot.getBlockPos().down() : owner.getBlockPos().up(), t)) return;
+    if (!o.tank && !healing && !escaping && heldUntil <= t) {
       int sword = selectSword();
       if (sword >= 0
           && dist < CombatPlan.meleeIntentRange(bot.getEntityInteractionRange())
@@ -199,64 +253,142 @@ public final class Session {
     }
   }
 
+  private Vec3d clamp(Vec3d p) {
+    double h = o.size / 2.0 - 1.2;
+    return new Vec3d(
+        MathHelper.clamp(p.x, o.x - h, o.x + h),
+        MathHelper.clamp(p.y, o.y + 0.7, o.y + Arena.HEIGHT - 1.2),
+        MathHelper.clamp(p.z, o.z - h, o.z + h));
+  }
+
+  private boolean clearPath(Vec3d target) {
+    return bot.getServerWorld()
+            .raycast(
+                new RaycastContext(
+                    bot.getEyePos(),
+                    target,
+                    RaycastContext.ShapeType.COLLIDER,
+                    RaycastContext.FluidHandling.NONE,
+                    bot))
+            .getType()
+        == HitResult.Type.MISS;
+  }
+
+  private int apples() {
+    int n = 0;
+    for (int i = 0; i < 36; i++) {
+      var s = bot.getInventory().getStack(i);
+      if (s.isOf(Items.ENCHANTED_GOLDEN_APPLE) || s.isOf(Items.GOLDEN_APPLE)) n += s.getCount();
+    }
+    return n;
+  }
+
+  private void startApple(int t) {
+    int slot = find(Items.ENCHANTED_GOLDEN_APPLE, true);
+    if (slot < 0) slot = find(Items.GOLDEN_APPLE, true);
+    if (slot < 0) {
+      endRecovery(t, 40);
+      return;
+    }
+    bot.getInventory().selectedSlot = slot;
+    appleCountBefore = apples();
+    bot.getMainHandStack().use(bot.getServerWorld(), bot, Hand.MAIN_HAND);
+    healing = bot.isUsingItem();
+    healingStartedAt = t;
+    if (!healing) endRecovery(t, 30);
+  }
+
+  private void endRecovery(int t, int pause) {
+    bot.stopUsingItem();
+    healing = false;
+    escaping = false;
+    gapsLeft = 0;
+    gapWait = t + pause;
+    selectSword();
+  }
+
   private boolean retotem(int t) {
-    if (!bot.getOffHandStack().isEmpty()) return false;
     if (swapAt >= 0) {
-      phase = "Retotem";
+      phase = "Trocando offhand";
       if (t < swapAt) return true;
-      int slot = bot.getInventory().selectedSlot;
-      ItemStack main = bot.getMainHandStack();
-      if (Kits.isTotem(main)) {
-        bot.getInventory().setStack(40, main);
-        bot.getInventory().setStack(slot, ItemStack.EMPTY);
-      }
+      ItemStack off = bot.getOffHandStack();
+      bot.getInventory().setStack(40, bot.getInventory().getStack(pendingSlot));
+      bot.getInventory().setStack(pendingSlot, off);
       swapAt = -1;
+      pendingSlot = -1;
       selectSword();
       bot.getInventory().markDirty();
       return true;
     }
-    int hot = find(Items.TOTEM_OF_UNDYING, false);
-    if (hot >= 0) {
-      bot.stopUsingItem();
-      healing = false;
-      bot.getInventory().selectedSlot = hot;
+    boolean protector = bot.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING);
+    boolean low = bot.getHealth() < Math.max(12, fullHealth * 0.45);
+    boolean recovered = bot.getHealth() >= bot.getMaxHealth() * 0.82;
+    int candidate = -1;
+    if (!protector && (low || bot.getOffHandStack().isEmpty()))
+      candidate = find(Items.TOTEM_OF_UNDYING, false);
+    else if (protector && recovered) {
+      for (int i = 0; i < 36; i++)
+        if (Kits.isCharm(bot.getInventory().getStack(i))) {
+          candidate = i;
+          break;
+        }
+    }
+    if (candidate >= 0) {
+      if (candidate >= 9) {
+        int empty = -1;
+        for (int i = 0; i < 9; i++)
+          if (bot.getInventory().getStack(i).isEmpty()) {
+            empty = i;
+            break;
+          }
+        if (empty < 0) empty = 4;
+        ItemStack old = bot.getInventory().getStack(empty);
+        bot.getInventory().setStack(empty, bot.getInventory().getStack(candidate));
+        bot.getInventory().setStack(candidate, old);
+        candidate = empty;
+      }
+      endRecovery(t, 10);
+      bot.getInventory().selectedSlot = candidate;
+      pendingSlot = candidate;
       swapAt = t + o.difficulty.swapDelay;
       return true;
     }
+    if (protector || (!low && !bot.getOffHandStack().isEmpty())) return false;
     int reserve = -1;
     for (int i = 9; i < 36; i++)
-      if (Kits.isTotem(bot.getInventory().getStack(i))) {
+      if (bot.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
         reserve = i;
         break;
       }
     if (reserve < 0) return false;
-    phase = "Repondo 3 totems";
+    phase = "Repondo3totems";
     bot.setSneaking(true);
     if (refillAt < 0) refillAt = t + o.difficulty.reaction + 4;
     if (t < refillAt) return true;
-    // Move existing stacks only; never creates replacement totems.
-    int moved = 0;
     for (int slot = 6; slot <= 8; slot++)
-      if (bot.getInventory().getStack(slot).isEmpty()) {
-        for (int i = 9; i < 36; i++)
-          if (Kits.isTotem(bot.getInventory().getStack(i))) {
-            bot.getInventory().setStack(slot, bot.getInventory().getStack(i));
-            bot.getInventory().setStack(i, ItemStack.EMPTY);
-            moved++;
+      if (Kits.isCharm(bot.getInventory().getStack(slot))) {
+        for (int free = 9; free < 36; free++)
+          if (bot.getInventory().getStack(free).isEmpty()) {
+            bot.getInventory().setStack(free, bot.getInventory().getStack(slot));
+            bot.getInventory().setStack(slot, ItemStack.EMPTY);
             break;
           }
       }
-    if (moved == 0) {
-      int empty = -1;
-      for (int i = 0; i < 9; i++)
-        if (bot.getInventory().getStack(i).isEmpty()) {
-          empty = i;
-          break;
-        }
-      if (empty >= 0) {
-        bot.getInventory().setStack(empty, bot.getInventory().getStack(reserve));
-        bot.getInventory().setStack(reserve, ItemStack.EMPTY);
-      }
+    for (int target = 6; target <= 8; target++)
+      if (bot.getInventory().getStack(target).isEmpty())
+        for (int i = 9; i < 36; i++)
+          if (bot.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
+            bot.getInventory().setStack(target, bot.getInventory().getStack(i));
+            bot.getInventory().setStack(i, ItemStack.EMPTY);
+            break;
+          }
+    // With a packed custom hotbar, exchange a reserve totem with a non-sword slot instead of
+    // deleting an item.
+    if (find(Items.TOTEM_OF_UNDYING, false) < 0) {
+      int slot = 8;
+      ItemStack previous = bot.getInventory().getStack(slot);
+      bot.getInventory().setStack(slot, bot.getInventory().getStack(reserve));
+      bot.getInventory().setStack(reserve, previous);
     }
     refillAt = -1;
     bot.getInventory().markDirty();
@@ -264,15 +396,10 @@ public final class Session {
   }
 
   private int find(Item item, boolean move) {
-    for (int i = 0; i < 9; i++)
-      if ((item == Items.TOTEM_OF_UNDYING
-          ? Kits.isTotem(bot.getInventory().getStack(i))
-          : bot.getInventory().getStack(i).isOf(item))) return i;
+    for (int i = 0; i < 9; i++) if (bot.getInventory().getStack(i).isOf(item)) return i;
     if (move)
       for (int i = 9; i < 36; i++)
-        if ((item == Items.TOTEM_OF_UNDYING
-            ? Kits.isTotem(bot.getInventory().getStack(i))
-            : bot.getInventory().getStack(i).isOf(item))) {
+        if (bot.getInventory().getStack(i).isOf(item)) {
           int slot = 4;
           ItemStack previous = bot.getInventory().getStack(slot);
           bot.getInventory().setStack(slot, bot.getInventory().getStack(i));
@@ -326,7 +453,7 @@ public final class Session {
     bot.getInventory().selectedSlot = slot;
     bot.getMainHandStack().use(bot.getServerWorld(), bot, Hand.MAIN_HAND);
     bot.getInventory().selectedSlot = previous;
-    rocketAt = t + 35 + random.nextInt(20);
+    rocketAt = t + o.spin.rocketDelay;
     return true;
   }
 
@@ -374,6 +501,8 @@ public final class Session {
         Text.literal(
             "DuckBox | "
                 + o.difficulty
+                + " | "
+                + o.rules
                 + " | "
                 + phase
                 + " | Bot "

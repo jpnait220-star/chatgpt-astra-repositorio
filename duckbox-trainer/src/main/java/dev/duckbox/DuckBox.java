@@ -45,6 +45,7 @@ public final class DuckBox implements ModInitializer {
   @Override
   public void onInitialize() {
     PayloadTypeRegistry.playS2C().register(TrainingPayload.ID, TrainingPayload.CODEC);
+    PayloadTypeRegistry.playS2C().register(CosmeticPayload.ID, CosmeticPayload.CODEC);
     ServerLifecycleEvents.SERVER_STARTED.register(
         s -> {
           server = s;
@@ -89,6 +90,7 @@ public final class DuckBox implements ModInitializer {
         (handler, sender, s) -> {
           if (handler.player instanceof TrainingBot) return;
           restore(handler.player);
+          syncCosmetics();
           if (s.getSaveProperties().getLevelName().equals("DuckBoxTreino")
               && !options.built
               && !Arena.building()) {
@@ -115,6 +117,8 @@ public final class DuckBox implements ModInitializer {
                 || Math.abs(pos.getZ() - options.z) > options.size / 2
                 || pos.getY() < options.y
                 || pos.getY() > options.y + 10);
+    ServerLivingEntityEvents.ALLOW_DAMAGE.register(
+        (entity, source, amount) -> allowTrainingDamage(entity, source));
     ServerLivingEntityEvents.ALLOW_DEATH.register(
         (entity, source, amount) -> {
           if (session != null && (entity == session.owner || entity == session.bot)) {
@@ -151,6 +155,82 @@ public final class DuckBox implements ModInitializer {
           }
           return ActionResult.SUCCESS;
         });
+    CommandRegistrationCallback.EVENT.register(
+        (dispatcher, registry, environment) ->
+            dispatcher.register(
+                literal("box")
+                    .requires(x -> x.hasPermissionLevel(2))
+                    .then(
+                        literal("regras")
+                            .then(
+                                argument("tipo", StringArgumentType.word())
+                                    .suggests(
+                                        (c, b) ->
+                                            CommandSource.suggestMatching(
+                                                List.of("NORMAL_SPAM", "INSTA_KILL"), b))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  requireStopped();
+                                                  options.rules =
+                                                      Options.Rules.valueOf(
+                                                          StringArgumentType.getString(c, "tipo")
+                                                              .toUpperCase(Locale.ROOT));
+                                                  Arena.updateRulesLabel(
+                                                      p.getServerWorld(), options);
+                                                  save();
+                                                  say(p, "Regras: " + options.rules);
+                                                }))))
+                    .then(
+                        literal("giro")
+                            .then(
+                                argument("nivel", StringArgumentType.word())
+                                    .suggests(
+                                        (c, b) ->
+                                            CommandSource.suggestMatching(
+                                                List.of("BAIXO", "MEDIO", "ALTO", "EXTREMO"), b))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  options.spin =
+                                                      Options.SpinLevel.valueOf(
+                                                          StringArgumentType.getString(c, "nivel")
+                                                              .toUpperCase(Locale.ROOT));
+                                                  save();
+                                                  Arena.updateSpinLabel(world(), options);
+                                                  say(p, "Giro: " + options.spin);
+                                                }))))
+                    .then(
+                        literal("cosmetico")
+                            .then(
+                                argument("nome", StringArgumentType.word())
+                                    .suggests(
+                                        (c, b) ->
+                                            CommandSource.suggestMatching(
+                                                List.of("blood", "money", "oculos", "sapo"), b))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p -> {
+                                                  switch (StringArgumentType.getString(c, "nome")) {
+                                                    case "blood" -> options.blood = !options.blood;
+                                                    case "money" -> options.money = !options.money;
+                                                    case "oculos" ->
+                                                        options.glasses = !options.glasses;
+                                                    case "sapo" -> options.frog = !options.frog;
+                                                    default ->
+                                                        throw new IllegalArgumentException(
+                                                            "Use blood, money, oculos ou sapo");
+                                                  }
+                                                  syncCosmetics();
+                                                  save();
+                                                  say(p, "Cosmetico atualizado.");
+                                                }))))));
     CommandRegistrationCallback.EVENT.register(
         (dispatcher, registry, environment) ->
             dispatcher.register(
@@ -267,7 +347,7 @@ public final class DuckBox implements ModInitializer {
                                                 c.getSource(),
                                                 p -> {
                                                   requireStopped();
-                                                  disk.add("kit", Kits.encode(p, Kits.capture(p)));
+                                                  storeKit(p, Kits.capture(p));
                                                   save();
                                                   say(
                                                       p,
@@ -282,6 +362,9 @@ public final class DuckBox implements ModInitializer {
                                                 c.getSource(),
                                                 p -> {
                                                   requireStopped();
+                                                  if (disk.has("kits"))
+                                                    disk.getAsJsonObject("kits")
+                                                        .remove(options.rules.name());
                                                   disk.remove("kit");
                                                   save();
                                                   say(p, "Kit padrao selecionado.");
@@ -352,14 +435,38 @@ public final class DuckBox implements ModInitializer {
   }
 
   public static List<ItemStack> currentKit(ServerPlayerEntity p) {
-    return disk.has("kit")
-        ? Kits.decode(p, disk.getAsJsonArray("kit"))
-        : Kits.defaults(p.getRegistryManager());
+    if (!disk.has("kits")) disk.add("kits", new JsonObject());
+    if (disk.has("kit")) {
+      var old = Kits.decode(p, disk.getAsJsonArray("kit"));
+      for (int i = 0; i < old.size(); i++)
+        if (old.get(i).isOf(net.minecraft.item.Items.YELLOW_DYE) && Kits.isTotem(old.get(i)))
+          old.set(
+              i,
+              i == 40
+                  ? Kits.duckCharm()
+                  : new ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+      disk.getAsJsonObject("kits").add(Options.Rules.INSTA_KILL.name(), Kits.encode(p, old));
+      disk.remove("kit");
+      save();
+    }
+    var kits = disk.getAsJsonObject("kits");
+    return kits.has(options.rules.name())
+        ? Kits.decode(p, kits.getAsJsonArray(options.rules.name()))
+        : Kits.defaults(p.getRegistryManager(), options.rules);
   }
 
   public static void storeKit(ServerPlayerEntity p, List<ItemStack> kit) {
-    disk.add("kit", Kits.encode(p, kit));
+    if (!disk.has("kits")) disk.add("kits", new JsonObject());
+    disk.getAsJsonObject("kits").add(options.rules.name(), Kits.encode(p, kit));
     save();
+  }
+
+  public static boolean allowTrainingDamage(
+      net.minecraft.entity.LivingEntity entity, net.minecraft.entity.damage.DamageSource source) {
+    return session == null
+        || (entity != session.owner && entity != session.bot)
+        || (!source.isOf(net.minecraft.entity.damage.DamageTypes.FALL)
+            && !source.isOf(net.minecraft.entity.damage.DamageTypes.FLY_INTO_WALL));
   }
 
   public static boolean opponents(
@@ -390,6 +497,22 @@ public final class DuckBox implements ModInitializer {
         Arena.updateModeLabel(p.getServerWorld(), options);
         save();
         say(p, "Modo: " + (options.tank ? "TANK (o bot so tanka)" : "DUEL (combate)"));
+      }
+      case "giro_nivel" -> {
+        options.spin = Options.SpinLevel.values()[(options.spin.ordinal() + 1) % 4];
+        save();
+        Arena.updateSpinLabel(world(), options);
+        say(p, "Giro: " + options.spin);
+      }
+      case "regras" -> {
+        requireStopped();
+        options.rules =
+            options.rules == Options.Rules.NORMAL_SPAM
+                ? Options.Rules.INSTA_KILL
+                : Options.Rules.NORMAL_SPAM;
+        Arena.updateRulesLabel(p.getServerWorld(), options);
+        save();
+        say(p, "Regras: " + options.rules);
       }
       case "tamanho" -> {
         requireStopped();
@@ -458,6 +581,8 @@ public final class DuckBox implements ModInitializer {
           world(), options.x + 2.5, options.y + 1, options.z + 0.5, Set.of(), 90, 0, false);
       p.teleport(world(), options.x - 2.5, options.y + 1, options.z + 0.5, Set.of(), -90, 0, false);
       session = new Session(p, bot, options);
+      session.startingBuffs();
+      syncCosmetics();
       sync();
       say(
           p,
@@ -482,6 +607,7 @@ public final class DuckBox implements ModInitializer {
       ServerPlayNetworking.send(
           s.owner, new TrainingPayload(s.owner.getUuid(), s.bot.getUuid(), false));
     session = null;
+    syncCosmetics();
     s.bot.stopUsingItem();
     s.bot.getInventory().clear();
     server.getPlayerManager().remove(s.bot);
@@ -501,17 +627,41 @@ public final class DuckBox implements ModInitializer {
       disk = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
       if (disk.has("options")) options = JSON.fromJson(disk.get("options"), Options.class);
       if (options == null) options = new Options();
-      if (!disk.has("arenaRevision") || disk.get("arenaRevision").getAsInt() < 2) {
-        if (options.size == 25) options.size = 13;
-        options.tank = false;
+      int revision = disk.has("arenaRevision") ? disk.get("arenaRevision").getAsInt() : 0;
+      if (revision < 3) {
+        if (revision < 2) {
+          if (options.size == 25) options.size = 13;
+          options.tank = false;
+        }
         options.built = false;
-        disk.addProperty("arenaRevision", 2);
+        disk.addProperty("arenaRevision", 3);
       }
+      if (options.rules == null) options.rules = Options.Rules.NORMAL_SPAM;
+      if (options.spin == null) options.spin = Options.SpinLevel.MEDIO;
       options.size = MathHelper.clamp(options.size, 9, 41) | 1;
     } catch (Exception e) {
       throw new IllegalStateException(
           "Nao foi possivel ler duckbox-training.json; arquivo preservado.", e);
     }
+  }
+
+  public static void syncCosmetics() {
+    if (server == null
+        || !net.fabricmc.loader.api.FabricLoader.getInstance()
+            .isModLoaded("fabric-networking-api-v1")) return;
+    int mask =
+        (options.blood ? 1 : 0)
+            | (options.money ? 2 : 0)
+            | (options.glasses ? 4 : 0)
+            | (options.frog ? 8 : 0);
+    for (var p : server.getPlayerManager().getPlayerList())
+      if (!(p instanceof TrainingBot) && ServerPlayNetworking.canSend(p, CosmeticPayload.ID))
+        ServerPlayNetworking.send(
+            p,
+            new CosmeticPayload(
+                p.getUuid(),
+                session != null && session.owner == p ? session.bot.getUuid() : new UUID(0, 0),
+                mask));
   }
 
   public static void sync() {
@@ -525,9 +675,10 @@ public final class DuckBox implements ModInitializer {
 
   public static void save() {
     sync();
+    syncCosmetics();
     if (file == null) return;
     try {
-      disk.addProperty("arenaRevision", 2);
+      disk.addProperty("arenaRevision", 3);
       disk.add("options", JSON.toJsonTree(options));
       Path temp = file.resolveSibling(file.getFileName() + ".tmp");
       Files.writeString(temp, JSON.toJson(disk));

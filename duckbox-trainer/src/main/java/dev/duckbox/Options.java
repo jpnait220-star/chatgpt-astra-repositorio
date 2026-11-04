@@ -19,6 +19,29 @@ public final class Options {
     }
   }
 
+  public enum Rules {
+    NORMAL_SPAM,
+    INSTA_KILL
+  }
+
+  public enum SpinLevel {
+    BAIXO(110, 32, 0.25),
+    MEDIO(65, 22, 0.50),
+    ALTO(35, 12, 0.80),
+    EXTREMO(18, 8, 1.0);
+    public final int interval, rocketDelay;
+    public final double chance;
+
+    SpinLevel(int interval, int rocketDelay, double chance) {
+      this.interval = interval;
+      this.rocketDelay = rocketDelay;
+      this.chance = chance;
+    }
+  }
+
+  public Rules rules = Rules.NORMAL_SPAM;
+  public SpinLevel spin = SpinLevel.MEDIO;
+  public boolean blood = true, money = true, glasses = true, frog = true;
   public Difficulty difficulty = Difficulty.MEDIUM;
   public boolean giro = true,
       gap = true,

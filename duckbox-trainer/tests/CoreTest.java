@@ -44,12 +44,12 @@ public class CoreTest {
     check(kit.size() == 41);
     int totems = 0;
     for (var s : kit) if (Kits.isTotem(s)) totems += s.getCount();
-    check(totems == 13);
+    check(totems == 12);
     check(
         Kits.isTotem(kit.get(6))
             && Kits.isTotem(kit.get(7))
             && Kits.isTotem(kit.get(8))
-            && Kits.isTotem(kit.get(40)));
+            && !Kits.isTotem(kit.get(40)));
     check(kit.get(38).isOf(Items.ELYTRA));
     double[] totals = {0, 0, 0};
     Set<String> modifierKeys = new HashSet<>();
@@ -81,6 +81,21 @@ public class CoreTest {
     check(
         kit.get(0).contains(DataComponentTypes.UNBREAKABLE)
             && kit.get(38).contains(DataComponentTypes.UNBREAKABLE));
+    check(!kit.get(40).contains(DataComponentTypes.DEATH_PROTECTION));
+    check(
+        kit.get(36).contains(DataComponentTypes.UNBREAKABLE)
+            && kit.get(37).contains(DataComponentTypes.UNBREAKABLE));
+    var normal = Kits.defaults(registries, Options.Rules.NORMAL_SPAM);
+    double[] normalDamage = {0};
+    normal
+        .get(0)
+        .applyAttributeModifiers(
+            EquipmentSlot.MAINHAND,
+            (a, m) -> {
+              if (a == EntityAttributes.ATTACK_DAMAGE) normalDamage[0] += m.value();
+            });
+    check(normalDamage[0] == 20);
+    check(Options.SpinLevel.EXTREMO.interval < Options.SpinLevel.MEDIO.interval);
     var ench = registries.getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
     check(
         kit.get(0)
@@ -137,6 +152,8 @@ public class CoreTest {
     TrainingPayload.CODEC.encode(buffer, packet);
     check(TrainingPayload.CODEC.decode(buffer).equals(packet));
     buffer.release();
+    var cosmeticPacket=new CosmeticPayload(java.util.UUID.randomUUID(),java.util.UUID.randomUUID(),15);var meshBuffer=new net.minecraft.network.RegistryByteBuf(io.netty.buffer.Unpooled.buffer(),net.minecraft.registry.DynamicRegistryManager.EMPTY);CosmeticPayload.CODEC.encode(meshBuffer,cosmeticPacket);check(CosmeticPayload.CODEC.decode(meshBuffer).equals(cosmeticPacket));meshBuffer.release();dev.duckbox.cosmetic.CosmeticState.set(cosmeticPacket);check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(),1));check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.bot(),8));check(!dev.duckbox.cosmetic.CosmeticState.enabled(java.util.UUID.randomUUID(),1));dev.duckbox.cosmetic.CosmeticState.clear();check(!dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(),1));
+
     NbtCompound root =
         NbtIo.readCompressed(new FileInputStream(args[0]), NbtSizeTracker.ofUnlimitedBytes());
     NbtCompound data = root.getCompound("Data");

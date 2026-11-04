@@ -43,7 +43,7 @@ if not (T/'minecraft-named.jar').exists():
 # Remap the small Fabric modules actually used by the trainer to the compile namespace.
 for p in T.glob('fabric-*.jar'):
  if p.name=='fabric-api.jar':continue
- if not any(p.name.startswith(n) for n in ['fabric-api-base-','fabric-lifecycle-events-v1-','fabric-command-api-v2-','fabric-events-interaction-v0-','fabric-entity-events-v1-','fabric-networking-api-v1-']):continue
+ if not any(p.name.startswith(n) for n in ['fabric-api-base-','fabric-lifecycle-events-v1-','fabric-command-api-v2-','fabric-events-interaction-v0-','fabric-entity-events-v1-','fabric-networking-api-v1-','fabric-rendering-v1-']):continue
  out=T/'named'/p.name;out.parent.mkdir(exist_ok=True)
  if not out.exists():subprocess.run(['java','-jar',str(T/'remapper.jar'),str(p),str(out),str(T/'yarn.tiny'),'intermediary','named',str(T/'minecraft-named.jar')],check=True)
 print('READY named Minecraft1.21.4, real libraries and Fabric modules')

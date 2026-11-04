@@ -73,12 +73,16 @@ public final class Kits {
     return !stack.isEmpty() && stack.contains(DataComponentTypes.DEATH_PROTECTION);
   }
 
-  public static ItemStack duckTotem() {
+  public static boolean isCharm(ItemStack stack) {
+    return stack.isOf(Items.YELLOW_DYE) && !isTotem(stack);
+  }
+
+  public static ItemStack duckCharm() {
     ItemStack dye = new ItemStack(Items.YELLOW_DYE);
-    dye.set(DataComponentTypes.CUSTOM_NAME, net.minecraft.text.Text.literal("Totem de Pato"));
+    dye.set(DataComponentTypes.CUSTOM_NAME, net.minecraft.text.Text.literal("Offhand de Pato"));
     dye.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
     dye.set(DataComponentTypes.MAX_STACK_SIZE, 1);
-    dye.set(DataComponentTypes.DEATH_PROTECTION, DeathProtectionComponent.TOTEM_OF_UNDYING);
+
     dye.set(
         DataComponentTypes.ATTRIBUTE_MODIFIERS,
         AttributeModifiersComponent.builder()
@@ -133,6 +137,11 @@ public final class Kits {
 
   public static List<ItemStack> defaults(
       net.minecraft.registry.RegistryWrapper.WrapperLookup registries) {
+    return defaults(registries, Options.Rules.INSTA_KILL);
+  }
+
+  public static List<ItemStack> defaults(
+      net.minecraft.registry.RegistryWrapper.WrapperLookup registries, Options.Rules rules) {
     List<ItemStack> kit = new ArrayList<>(Collections.nCopies(41, ItemStack.EMPTY));
     ItemStack sword = new ItemStack(Items.GOLDEN_SWORD);
     sword.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
@@ -141,7 +150,7 @@ public final class Kits {
         AttributeModifiersComponent.builder()
             .add(
                 EntityAttributes.ATTACK_DAMAGE,
-                modifier("mainhand/attack_damage", 26),
+                modifier("mainhand/attack_damage", rules == Options.Rules.NORMAL_SPAM ? 20 : 26),
                 AttributeModifierSlot.MAINHAND)
             .build());
     sword.addEnchantment(
@@ -153,11 +162,13 @@ public final class Kits {
     kit.set(1, new ItemStack(Items.FIREWORK_ROCKET, 64));
     kit.set(2, new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 32));
     kit.set(3, new ItemStack(Items.COBWEB, 32));
-    for (int i = 6; i <= 8; i++) kit.set(i, duckTotem());
-    for (int i = 9; i < 18; i++) kit.set(i, duckTotem());
+    for (int i = 6; i <= 8; i++) kit.set(i, new ItemStack(Items.TOTEM_OF_UNDYING));
+    for (int i = 9; i < 18; i++) kit.set(i, new ItemStack(Items.TOTEM_OF_UNDYING));
     kit.set(18, new ItemStack(Items.FIREWORK_ROCKET, 64));
     kit.set(36, new ItemStack(Items.NETHERITE_BOOTS));
     kit.set(37, new ItemStack(Items.NETHERITE_LEGGINGS));
+    kit.get(36).set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+    kit.get(37).set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
     ItemStack elytra = new ItemStack(Items.ELYTRA);
     elytra.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
     elytra.set(
@@ -189,7 +200,7 @@ public final class Kits {
             .getOrThrow(net.minecraft.enchantment.Enchantments.PROTECTION),
         60);
     kit.set(39, head);
-    kit.set(40, duckTotem());
+    kit.set(40, duckCharm());
     return kit;
   }
 }
