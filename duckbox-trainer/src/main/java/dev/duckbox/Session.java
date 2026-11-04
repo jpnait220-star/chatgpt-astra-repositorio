@@ -85,7 +85,7 @@ public final class Session {
     maintainRules();
     bot.forwardSpeed = 0;
     bot.sidewaysSpeed = 0;
-    bot.setSneaking(false);
+    bot.setSneaking(bot.isGliding());
     if (t == 2 || t == 3) {
       bot.setHealth(bot.getMaxHealth());
       owner.setHealth(owner.getMaxHealth());
@@ -216,6 +216,8 @@ public final class Session {
         && bot.getVelocity().y > -0.6
         && bot.getVelocity().y < 0.35
         && !(d == Options.Difficulty.LOW && t % 4 != 0)) bot.checkGliding();
+    // Match crouching to actual elytra flight, including the tick it starts.
+    bot.setSneaking(bot.isGliding());
     if (escaping && bot.isGliding()) useRocket(t);
     boolean pursuit =
         (owner.isGliding() || owner.getY() > bot.getY() + 1.4 || otherEating)
