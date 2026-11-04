@@ -2,8 +2,8 @@ package dev.duckbox;
 
 public final class Options {
   public enum Difficulty {
-    LOW(16, 7, 15, 7, 0.09, 0.10),
-    MEDIUM(10, 14, 15, 5, 0.30, 0.28),
+    LOW(10, 14, 15, 5, 0.30, 0.28),
+    MEDIUM(8, 18, 15, 4, 0.40, 0.36),
     HIGH(6, 23, 15, 3, 0.60, 0.45),
     EXPERT(4, 34, 15, 2, 0.85, 0.65);
     public final int reaction, aimSpeed, cps, swapDelay;

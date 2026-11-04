@@ -163,8 +163,8 @@ public final class Session {
               .add(owner.getVelocity().multiply(owner.isGliding() ? 1 : 0));
       double error =
           switch (d) {
-            case LOW -> 0.45;
-            case MEDIUM -> 0.20;
+            case LOW -> 0.20;
+            case MEDIUM -> 0.15;
             case HIGH -> 0.09;
             case EXPERT -> 0.035;
           };
@@ -210,12 +210,11 @@ public final class Session {
       bot.forwardSpeed = 0;
     if (bot.isOnGround() && t >= jumpAt) {
       bot.jump();
-      jumpAt = t + 8 + (d == Options.Difficulty.LOW ? random.nextInt(13) : random.nextInt(4));
+      jumpAt = t + 8 + random.nextInt(4);
     } else if (!bot.isOnGround()
         && !bot.isGliding()
         && bot.getVelocity().y > -0.6
-        && bot.getVelocity().y < 0.35
-        && !(d == Options.Difficulty.LOW && t % 4 != 0)) bot.checkGliding();
+        && bot.getVelocity().y < 0.35) bot.checkGliding();
     // Match crouching to actual elytra flight, including the tick it starts.
     bot.setSneaking(bot.isGliding());
     if (escaping && bot.isGliding()) useRocket(t);
