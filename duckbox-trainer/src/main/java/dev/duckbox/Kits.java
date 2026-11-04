@@ -62,23 +62,99 @@ public final class Kits {
             DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT);
     var modifier =
         new EntityAttributeModifier(
-            Identifier.of("duckbox", id.getPath()),
+            Identifier.of("duckbox", slot.asString() + "/" + id.getPath()),
             amount,
             EntityAttributeModifier.Operation.ADD_VALUE);
     held.set(DataComponentTypes.ATTRIBUTE_MODIFIERS, mods.with(attr, modifier, slot));
     p.getInventory().markDirty();
   }
 
+  public static boolean isTotem(ItemStack stack) {
+    return !stack.isEmpty() && stack.contains(DataComponentTypes.DEATH_PROTECTION);
+  }
+
+  public static ItemStack duckTotem() {
+    ItemStack dye = new ItemStack(Items.YELLOW_DYE);
+    dye.set(DataComponentTypes.CUSTOM_NAME, net.minecraft.text.Text.literal("Totem de Pato"));
+    dye.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+    dye.set(DataComponentTypes.MAX_STACK_SIZE, 1);
+    dye.set(DataComponentTypes.DEATH_PROTECTION, DeathProtectionComponent.TOTEM_OF_UNDYING);
+    dye.set(
+        DataComponentTypes.ATTRIBUTE_MODIFIERS,
+        AttributeModifiersComponent.builder()
+            .add(
+                EntityAttributes.MAX_HEALTH,
+                modifier("offhand/max_health", 30),
+                AttributeModifierSlot.OFFHAND)
+            .add(
+                EntityAttributes.ATTACK_DAMAGE,
+                modifier("offhand/attack_damage", 1.5),
+                AttributeModifierSlot.OFFHAND)
+            .build());
+    return dye;
+  }
+
+  private static EntityAttributeModifier modifier(String name, double value) {
+    return new EntityAttributeModifier(
+        Identifier.of("duckbox", name), value, EntityAttributeModifier.Operation.ADD_VALUE);
+  }
+
+  private static ProfileComponent duckProfile() {
+    try (var in = Kits.class.getResourceAsStream("/duckbox/rasy_mc_profile.json")) {
+      JsonObject json =
+          JsonParser.parseReader(
+                  new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))
+              .getAsJsonObject();
+      String id = json.get("id").getAsString();
+      java.util.UUID uuid =
+          java.util.UUID.fromString(
+              id.replaceFirst("(........)(....)(....)(....)(............)", "$1-$2-$3-$4-$5"));
+      var profile = new com.mojang.authlib.GameProfile(uuid, json.get("name").getAsString());
+      for (var value : json.getAsJsonArray("properties")) {
+        JsonObject property = value.getAsJsonObject();
+        profile
+            .getProperties()
+            .put(
+                property.get("name").getAsString(),
+                new com.mojang.authlib.properties.Property(
+                    property.get("name").getAsString(),
+                    property.get("value").getAsString(),
+                    property.has("signature") ? property.get("signature").getAsString() : null));
+      }
+      return new ProfileComponent(profile);
+    } catch (Exception e) {
+      throw new IllegalStateException("Perfil de RasyMc ausente ou invalido", e);
+    }
+  }
+
   public static List<ItemStack> defaults() {
+    return defaults(net.minecraft.registry.BuiltinRegistries.createWrapperLookup());
+  }
+
+  public static List<ItemStack> defaults(
+      net.minecraft.registry.RegistryWrapper.WrapperLookup registries) {
     List<ItemStack> kit = new ArrayList<>(Collections.nCopies(41, ItemStack.EMPTY));
-    ItemStack sword = new ItemStack(Items.NETHERITE_SWORD);
+    ItemStack sword = new ItemStack(Items.GOLDEN_SWORD);
     sword.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+    sword.set(
+        DataComponentTypes.ATTRIBUTE_MODIFIERS,
+        AttributeModifiersComponent.builder()
+            .add(
+                EntityAttributes.ATTACK_DAMAGE,
+                modifier("mainhand/attack_damage", 26),
+                AttributeModifierSlot.MAINHAND)
+            .build());
+    sword.addEnchantment(
+        registries
+            .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+            .getOrThrow(net.minecraft.enchantment.Enchantments.SHARPNESS),
+        54);
     kit.set(0, sword);
     kit.set(1, new ItemStack(Items.FIREWORK_ROCKET, 64));
     kit.set(2, new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 32));
     kit.set(3, new ItemStack(Items.COBWEB, 32));
-    for (int i = 6; i <= 8; i++) kit.set(i, new ItemStack(Items.TOTEM_OF_UNDYING));
-    for (int i = 9; i < 18; i++) kit.set(i, new ItemStack(Items.TOTEM_OF_UNDYING));
+    for (int i = 6; i <= 8; i++) kit.set(i, duckTotem());
+    for (int i = 9; i < 18; i++) kit.set(i, duckTotem());
     kit.set(18, new ItemStack(Items.FIREWORK_ROCKET, 64));
     kit.set(36, new ItemStack(Items.NETHERITE_BOOTS));
     kit.set(37, new ItemStack(Items.NETHERITE_LEGGINGS));
@@ -88,35 +164,32 @@ public final class Kits {
         DataComponentTypes.ATTRIBUTE_MODIFIERS,
         AttributeModifiersComponent.builder()
             .add(
-                EntityAttributes.ATTACK_DAMAGE,
-                new EntityAttributeModifier(
-                    Identifier.of("duckbox", "attack_damage"),
-                    255,
-                    EntityAttributeModifier.Operation.ADD_VALUE),
+                EntityAttributes.MAX_HEALTH,
+                modifier("chest/max_health", 25),
                 AttributeModifierSlot.CHEST)
             .add(
                 EntityAttributes.ATTACK_SPEED,
-                new EntityAttributeModifier(
-                    Identifier.of("duckbox", "attack_speed"),
-                    255,
-                    EntityAttributeModifier.Operation.ADD_VALUE),
+                modifier("chest/attack_speed", 255),
                 AttributeModifierSlot.CHEST)
             .build());
     kit.set(38, elytra);
     ItemStack head = new ItemStack(Items.PLAYER_HEAD);
+    head.set(DataComponentTypes.PROFILE, duckProfile());
     head.set(
         DataComponentTypes.ATTRIBUTE_MODIFIERS,
         AttributeModifiersComponent.builder()
             .add(
                 EntityAttributes.MAX_HEALTH,
-                new EntityAttributeModifier(
-                    Identifier.of("duckbox", "max_health"),
-                    1000,
-                    EntityAttributeModifier.Operation.ADD_VALUE),
+                modifier("head/max_health", 60),
                 AttributeModifierSlot.HEAD)
             .build());
+    head.addEnchantment(
+        registries
+            .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+            .getOrThrow(net.minecraft.enchantment.Enchantments.PROTECTION),
+        60);
     kit.set(39, head);
-    kit.set(40, new ItemStack(Items.TOTEM_OF_UNDYING));
+    kit.set(40, duckTotem());
     return kit;
   }
 }

@@ -1,19 +1,19 @@
 from pathlib import Path
 from zipfile import ZipFile,ZIP_DEFLATED
 import hashlib,json,shutil,subprocess
-B=Path(__file__).parent;R=Path('/workspace/duckbox-publish');D=B/'dist';name='DuckBoxTrainer-1.21.4-0.1.0-alpha';jar=D/(name+'.jar')
+B=Path(__file__).parent;R=Path('/workspace/duckbox-publish');D=B/'dist';name='DuckBoxTrainer-1.21.4-0.2.0-alpha';jar=D/(name+'.jar')
 assert jar.exists()
 with ZipFile(jar) as z:
  assert z.testzip() is None
- meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.1.0-alpha' and meta['depends']['minecraft']=='1.21.4'
+ meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.2.0-alpha' and meta['depends']['minecraft']=='1.21.4'
  classes=[n for n in z.namelist() if n.endswith('.class')];assert classes and all(n.startswith('dev/duckbox/') for n in classes)
-validation='Duck Box Trainer0.1.0-alpha / Minecraft1.21.4\nSem execucao grafica de combate ou garantia de naturalidade/FPS.\nTestes usam bibliotecas/registries/bytecode Minecraft reais, sem substitutos de entidades.\nNao simulam uma partida completa com jogador conectado.\n\n'
-for log in ['build.log','test.log','mixins-test.log']:
+validation='Duck Box Trainer0.2.0-alpha / Minecraft1.21.4\nSem execucao grafica de combate ou garantia de naturalidade/FPS.\nTestes usam bibliotecas/registries/bytecode Minecraft reais, sem substitutos de entidades.\nInclui TestServer vanilla sem janela: dano/locomocao, kit135HP, bau e mapa. Nao e partida grafica nem testa todas dificuldades.\n\n'
+for log in ['build.log','test.log','mixins-test.log','combat-test.log']:
  s=(B/log).read_text();assert 'Traceback' not in s and 'Exception in thread' not in s and 'error:' not in s,log
  assert ('COMPILED' if log=='build.log' else 'PASS') in s
  validation+=log+'\n'+s+'\n'
 (D/'VALIDACAO.txt').write_text(validation)
-paths=[p for folder in ['src','tests'] for p in (B/folder).rglob('*') if p.is_file()]+[B/n for n in ['README.md','LICENSE','.gitignore','bootstrap.py','build.py','make_map.py','test.py','test_mixins.py','package.py']]
+paths=[p for folder in ['src','tests'] for p in (B/folder).rglob('*') if p.is_file()]+[B/n for n in ['README.md','LICENSE','.gitignore','bootstrap.py','build.py','make_map.py','test.py','test_mixins.py','test_combat.py','package.py']]
 source=D/(name+'-fontes.zip')
 with ZipFile(source,'w',ZIP_DEFLATED) as z:
  for p in paths:z.write(p,p.relative_to(B).as_posix())

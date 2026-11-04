@@ -28,7 +28,7 @@ public final class Options {
       strafe = true,
       webRocket = true,
       tank = false;
-  public int size = 25, webCooldown = 200;
+  public int revision = 2, size = 13, webCooldown = 200;
   public boolean initialized = false, built = false;
   public int x, y, z;
   public String dimension = "minecraft:overworld";

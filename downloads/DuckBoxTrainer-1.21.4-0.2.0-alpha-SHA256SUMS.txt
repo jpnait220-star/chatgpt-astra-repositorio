@@ -1,0 +1,3 @@
+7e18772382271497bfbe68bdec0df7352cafe961004c954b540899e88140a54f  DuckBoxTrainer-1.21.4-0.2.0-alpha.jar
+b845ac549cc14f2f531a0beeae9af4b66c84b712adfcffe0e4553c5f84e9e869  DuckBoxTrainer-1.21.4-0.2.0-alpha.zip
+6e50a712c44688a58b89706fcccb64bce8d15829f60ca4df4fa3a0a15c09b37e  DuckBoxTrainer-1.21.4-0.2.0-alpha-fontes.zip

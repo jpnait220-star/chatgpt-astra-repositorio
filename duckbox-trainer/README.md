@@ -1,4 +1,4 @@
-# Duck Box Trainer — teste 0.1.0-alpha / Fabric 1.21.4
+# Duck Box Trainer — teste 0.2.0-alpha / Fabric 1.21.4
 
 Protótipo local de treino de Box PvP com um jogador controlado pelo servidor.
 O NPC usa ServerPlayerEntity: o modelo, a hitbox, a animação, o inventário,
@@ -25,11 +25,11 @@ servidor e no cliente que vai treinar. Nenhuma integração com servidor públic
 
 ## Painel no mundo
 
-- Botões: iniciar, parar, dificuldade e tamanho.
-- Alavancas: Tank, giro, retotem, gap, teia, W-tap, strafe e foguete na teia.
+- Botões: iniciar, parar, dificuldade, modo DUEL/TANK e tamanho.
+- Alavancas: giro, retotem, gap, teia, W-tap, strafe e foguete na teia.
 - Dificuldades: **LOW, MEDIUM, HIGH, EXPERT**.
-- Tamanhos: 17, 25, 33 e 41 blocos de largura externa, paredes incluídas.
-  Há também tamanhos ímpares intermediários por comando. Altura interna:9.
+- Tamanho padrao:13x13. Opcoes:9,13,17,21,25,33 e41 blocos de largura externa, paredes incluídas.
+  Há também tamanhos ímpares intermediários por comando. Altura interna:7.
 - Para mudar o tamanho, termine a partida. A construção anterior será refeita.
 
 ## Comandos
@@ -65,16 +65,52 @@ inventário completo, incluindo equipamento e mão secundária. `kit padrao`
 seleciona novamente o preset; não sobrescreve seu inventário naquele momento.
 `attack_damage` muda o dano; `attack_speed` muda a cadência de recarga.
 
-O kit de demonstração tem espada de netherita, elytra inquebrável com +255 de
-dano e +255 de velocidade de ataque, cabeça com +1000 de vida, pernas e botas,
-foguetes, maçãs encantadas, teias, três totens na hotbar, um na offhand e nove
-de reserva. Não há recarga infinita: bot e jogador têm a mesma quantidade.
-Ajuste o kit para os atributos utilizados no seu servidor; as regras de dano
-continuam vanilla, inclusive os limites nativos de atributos e invulnerabilidade
-entre danos. O mod não ignora esses limites para multiplicar hits artificiais.
+O novo kit padrao:
+
+| Item | Configuracao |
+| --- | --- |
+| Cabeca de RasyMc | Skin real do perfil, Protecao60, +60 de vida |
+| Elytra | Inquebravel, +25 de vida, +255 de velocidade de ataque |
+| Corante amarelo | Brilho, +30 de vida e +1,5 de dano na offhand; funciona como totem |
+| Espada de ouro | Inquebravel, modificador de dano26 e Afiacao54 |
+
+Com os tres itens equipados, sao135 pontos de vida:20 nativos +60+25+30.
+Os modificadores usam identificadores diferentes para que os bonus realmente
+se somem. A espada soma seu modificador ao ataque base e ao encantamento,
+seguindo as regras vanilla; a elytra nao adiciona mais255 de dano.
+Ha treze corantes-totens no total (3 na hotbar,1 na offhand,9 de reserva),
+128 foguetes,32 macas encantadas e32 teias. Pernas e botas de netherita
+continuam no preset e podem ser retiradas pelo editor.
+A protecao60 e a afiacao54 sao preservadas nos itens, com os limites de
+reducao de dano e invulnerabilidade do Minecraft. Nao se multiplicam hits.
+
+### Bau de kit
+
+Abra o **KIT DOS DOIS** no lobby. O editor tem54 slots:
+
+- Linhas1 a3: inventario principal (27 slots).
+- Linha4: hotbar (9 slots).
+- Linha5, primeiras5 colunas: cabeca, elytra/peitoral, calcas, botas, offhand.
+- Linha6: legendas bloqueadas; os espacos reservados nao aceitam itens.
+
+Edite e feche o bau para salvar. Na proxima rodada os dois recebem copias
+independentes e iguais, incluindo atributos e encantamentos. So um editor
+pode ficar aberto por vez. Feche-o antes de mudar o mapa ou iniciar o treino.
+
+### Atualizar a alpha anterior
+
+Substitua o JAR0.1.0 pelo0.2.0; nao deixe os dois em `mods`.
+No mundo DuckBoxTreino antigo, a arena padrao25x25 migra para13x13 e o lobby
+e reconstruido na entrada; o modo inicial volta para DUEL. Um kit que voce salvou manualmente e preservado;
+use **/box kit padrao** se quiser aplicar o novo preset de RasyMc.
+O pacote tambem inclui um template de mundo novo. Nao sobrescreva um mundo
+com inventario de treino ainda pendente de restauracao.
 
 ## Comportamentos desta primeira versão
 
+- Ataque tem prioridade durante reposicionamentos curtos perto do alvo; nao ha
+  um giro360 continuo bloqueando os hits. O PvP so e liberado entre os dois
+  participantes da rodada, mesmo se o mundo desabilitar PvP.
 - Mira com erro e atraso de reação por dificuldade. O bot gira suavemente e
   pode errar ataques. Só causa dano se o raio da mira alcançar a hitbox, dentro
   do alcance permitido e sem bloco sólido no caminho.
@@ -114,16 +150,20 @@ auto-update, coleta de dados, cosméticos online ou conexões externas no jogo.
 
 ## Validação e limites da alpha
 
-Compilação Java21 contra Minecraft1.21.4/Yarn reais; verificações em JVM com os
-registries vanilla, atributos do kit, quantidades de totem, isolamento das
-cópias, pacote de sincronização, NBT e codecs de geração do mapa; aplicação
-real de Mixin nos dois alvos de teia/foguete. Resultados em `VALIDACAO.txt`.
+Compilacao contra Minecraft1.21.4 real; verificacoes de atributos,
+encantamentos, perfil RasyMc, IDs exclusivos dos bonus, correspondencia de41
+slots, limites dos reposicionamentos, pacotes e NBT do mapa. Aplicacao real
+de tres Mixins nos alvos de teia/foguete/PvP.
 
-**Ainda não houve teste de combate com cliente gráfico.** A naturalidade dos
-giros, precisão e decisões precisa ser calibrada jogando. O vídeo enviado não
-pôde ser aberto porque excedeu32MiB; não é uma reprodução validada daquele
-clipe nem do comportamento do BaldTheBot. Esta é uma primeira implementação
-scriptada, sem aprendizado de máquina ou garantia de imitar um humano.
+Teste adicional num **TestServer vanilla sem janela**, com mundos, jogadores,
+inventarios e fisica reais: o bot se movimenta e causa dano ao alvo de
+sobrevivencia perto dele; o kit equipado resulta em135 de vida; o bau abre,
+bloqueia legendas, salva hotbar/inventario/offhand e recarrega o JSON. A arena
+detalhada tambem e montada nesse mundo. Nao e uma partida com cliente grafico
+nem um teste de todas as dificuldades; a aparencia e a naturalidade dos giros
+ainda precisam ser avaliadas jogando. O teste de combate usa PvP vanilla
+ativado; a injecao limitada de PvP e validada separadamente pelo transformador
+Mixin. Resultados e limites em `VALIDACAO.txt`.
 
 ## Código-fonte e build
 
@@ -135,6 +175,7 @@ python build.py
 python make_map.py
 python test.py
 python test_mixins.py
+python test_combat.py
 ```
 
 O bootstrap baixa Minecraft, Yarn, Fabric e bibliotecas para `tools`; nada disso

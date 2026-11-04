@@ -33,7 +33,10 @@ public class MixinTest {
     var ctor = type.getDeclaredConstructor();
     ctor.setAccessible(true);
     var transformer = (IMixinTransformer) ctor.newInstance();
-    for (String target : new String[] {"net/minecraft/class_1297", "net/minecraft/class_1671"}) {
+    for (String target :
+        new String[] {
+          "net/minecraft/class_1297", "net/minecraft/class_1671", "net/minecraft/class_3222"
+        }) {
       ClassNode old = read(target);
       ClassWriter w = new ClassWriter(0);
       old.accept(w);

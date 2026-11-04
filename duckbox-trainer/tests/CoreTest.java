@@ -26,32 +26,76 @@ public class CoreTest {
       check(Math.abs(Aim.wrap(Aim.approach(i, 137, 17) - i)) <= 17.001);
     }
     check(Math.abs(Aim.wrap(Aim.approach(179, -179, 5) + 179)) < 0.01);
-    var kit = Kits.defaults();
+    var registries = net.minecraft.registry.BuiltinRegistries.createWrapperLookup();
+    var kit = Kits.defaults(registries);
     check(kit.size() == 41);
     int totems = 0;
-    for (var s : kit) if (s.isOf(Items.TOTEM_OF_UNDYING)) totems += s.getCount();
+    for (var s : kit) if (Kits.isTotem(s)) totems += s.getCount();
     check(totems == 13);
     check(
-        kit.get(6).isOf(Items.TOTEM_OF_UNDYING)
-            && kit.get(7).isOf(Items.TOTEM_OF_UNDYING)
-            && kit.get(8).isOf(Items.TOTEM_OF_UNDYING)
-            && kit.get(40).isOf(Items.TOTEM_OF_UNDYING));
+        Kits.isTotem(kit.get(6))
+            && Kits.isTotem(kit.get(7))
+            && Kits.isTotem(kit.get(8))
+            && Kits.isTotem(kit.get(40)));
     check(kit.get(38).isOf(Items.ELYTRA));
-    double[] damage = {0}, speed = {0}, health = {0};
-    kit.get(38)
-        .applyAttributeModifiers(
-            EquipmentSlot.CHEST,
-            (a, m) -> {
-              if (a == EntityAttributes.ATTACK_DAMAGE) damage[0] += m.value();
-              if (a == EntityAttributes.ATTACK_SPEED) speed[0] += m.value();
-            });
-    kit.get(39)
-        .applyAttributeModifiers(
+    double[] totals = {0, 0, 0};
+    Set<String> modifierKeys = new HashSet<>();
+    for (EquipmentSlot slot :
+        List.of(
             EquipmentSlot.HEAD,
-            (a, m) -> {
-              if (a == EntityAttributes.MAX_HEALTH) health[0] += m.value();
-            });
-    check(damage[0] == 255 && speed[0] == 255 && health[0] == 1000);
+            EquipmentSlot.CHEST,
+            EquipmentSlot.OFFHAND,
+            EquipmentSlot.MAINHAND)) {
+      var item =
+          kit.get(
+              switch (slot) {
+                case HEAD -> 39;
+                case CHEST -> 38;
+                case OFFHAND -> 40;
+                default -> 0;
+              });
+      item.applyAttributeModifiers(
+          slot,
+          (a, m) -> {
+            check(modifierKeys.add(a.getIdAsString() + m.id()));
+            if (a == EntityAttributes.MAX_HEALTH) totals[0] += m.value();
+            if (a == EntityAttributes.ATTACK_DAMAGE) totals[1] += m.value();
+            if (a == EntityAttributes.ATTACK_SPEED) totals[2] += m.value();
+          });
+    }
+    check(totals[0] == 115 && totals[1] == 27.5 && totals[2] == 255);
+    check(kit.get(0).isOf(Items.GOLDEN_SWORD));
+    check(
+        kit.get(0).contains(DataComponentTypes.UNBREAKABLE)
+            && kit.get(38).contains(DataComponentTypes.UNBREAKABLE));
+    var ench = registries.getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+    check(
+        kit.get(0)
+                .getEnchantments()
+                .getLevel(ench.getOrThrow(net.minecraft.enchantment.Enchantments.SHARPNESS))
+            == 54);
+    check(
+        kit.get(39)
+                .getEnchantments()
+                .getLevel(ench.getOrThrow(net.minecraft.enchantment.Enchantments.PROTECTION))
+            == 60);
+    check(kit.get(39).get(DataComponentTypes.PROFILE).gameProfile().getName().equals("RasyMc"));
+    check(!kit.get(39).get(DataComponentTypes.PROFILE).properties().isEmpty());
+    check(
+        kit.get(40).isOf(Items.YELLOW_DYE)
+            && kit.get(40).get(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE));
+    Set<Integer> logical = new HashSet<>();
+    for (int i = 0; i < 54; i++) {
+      int slot = KitEditor.logicalSlot(i);
+      if (slot >= 0) check(logical.add(slot));
+    }
+    check(logical.size() == 41);
+    for (int i = 0; i < 41; i++) check(logical.contains(i));
+    check(new Options().size == 13);
+    check(CombatPlan.mayReposition(true, true, false, false, 80, 60, 9, 1));
+    check(!CombatPlan.mayReposition(true, true, false, false, 80, 60, 100, 1));
+    check(!CombatPlan.mayReposition(true, true, false, false, 80, 90, 9, 1));
+    check(!CombatPlan.mayReposition(true, true, true, false, 80, 60, 9, 1));
     var copied = kit.get(1).copy();
     copied.decrement(1);
     check(kit.get(1).getCount() == 64 && copied.getCount() == 63);

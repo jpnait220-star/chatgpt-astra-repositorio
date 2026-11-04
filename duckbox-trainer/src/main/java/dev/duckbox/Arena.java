@@ -16,11 +16,12 @@ public final class Arena {
   public static final ArrayDeque<Edit> pending = new ArrayDeque<>();
   private static ServerWorld buildingWorld;
   private static Options options;
+  public static final int HEIGHT = 8;
   private static final String[] KEYS = {
     "iniciar",
     "parar",
     "dificuldade",
-    "tank",
+    "modo",
     "giro",
     "retotem",
     "gap",
@@ -67,17 +68,54 @@ public final class Arena {
         for (int y = 0; y <= 10; y++) {
           boolean inside = Math.abs(x) <= h && Math.abs(z) <= h;
           BlockState block = Blocks.AIR.getDefaultState();
-          if (inside && (y == 0 || y == 10 || Math.abs(x) == h || Math.abs(z) == h))
-            block = (y == 0 ? Blocks.SMOOTH_STONE : Blocks.GLASS).getDefaultState();
+          boolean edge = Math.abs(x) == h || Math.abs(z) == h;
+          boolean corner = Math.abs(x) == h && Math.abs(z) == h;
+          if (inside && y <= HEIGHT) {
+            if (y == 0)
+              block =
+                  (edge
+                          ? Blocks.POLISHED_BLACKSTONE_BRICKS
+                          : (Math.abs(x) <= 1 || Math.abs(z) <= 1)
+                              ? Blocks.YELLOW_TERRACOTTA
+                              : (Math.floorMod(x + z, 2) == 0
+                                  ? Blocks.SMOOTH_QUARTZ
+                                  : Blocks.QUARTZ_BRICKS))
+                      .getDefaultState();
+            else if (corner)
+              block =
+                  (y == 3 || y == 6 ? Blocks.SEA_LANTERN : Blocks.CHISELED_POLISHED_BLACKSTONE)
+                      .getDefaultState();
+            else if (edge)
+              block =
+                  (y == HEIGHT
+                          ? Blocks.POLISHED_BLACKSTONE_BRICKS
+                          : Blocks.LIGHT_BLUE_STAINED_GLASS)
+                      .getDefaultState();
+            else if (y == HEIGHT) block = Blocks.GLASS.getDefaultState();
+          }
           pending.add(new Edit(new BlockPos(o.x + x, o.y + y, o.z + z), block));
         }
-    for (int x = -33; x <= -21; x++)
-      for (int z = -10; z <= 10; z++)
-        for (int y = 0; y <= 3; y++)
+    for (int x = -34; x <= -20; x++)
+      for (int z = -16; z <= 12; z++)
+        for (int y = 0; y <= 7; y++)
           pending.add(
               new Edit(
                   new BlockPos(o.x + x, o.y + y, o.z + z),
-                  y == 0 ? Blocks.SMOOTH_QUARTZ.getDefaultState() : Blocks.AIR.getDefaultState()));
+                  y == 0
+                      ? ((x == -34 || x == -20 || z == -16 || z == 12)
+                              ? Blocks.POLISHED_BLACKSTONE_BRICKS
+                              : (Math.floorMod(x + z, 2) == 0
+                                  ? Blocks.SMOOTH_QUARTZ
+                                  : Blocks.QUARTZ_BRICKS))
+                          .getDefaultState()
+                      : Blocks.AIR.getDefaultState()));
+    for (int x = -20; x < -h; x++)
+      for (int z = -2; z <= 2; z++)
+        pending.add(
+            new Edit(
+                new BlockPos(o.x + x, o.y, o.z + z),
+                (Math.abs(z) == 2 ? Blocks.POLISHED_BLACKSTONE_BRICKS : Blocks.YELLOW_TERRACOTTA)
+                    .getDefaultState()));
     player.teleport(buildingWorld, o.x - 27.5, o.y + 1, o.z + 9.5, Set.of(), 180, 0, false);
     DuckBox.say(player, "Montando arena em lotes. Aguarde alguns segundos.");
   }
@@ -99,10 +137,55 @@ public final class Arena {
 
   private static void panel() {
     Options o = options;
+    // Small duck statue, light posts and kit station, with no extra ticking entities.
+    for (int x = -2; x <= 2; x++)
+      for (int z = -1; z <= 1; z++)
+        for (int y = 1; y <= 4; y++)
+          buildingWorld.setBlockState(
+              new BlockPos(o.x - 27 + x, o.y + y, o.z - 13 + z),
+              Blocks.YELLOW_CONCRETE.getDefaultState(),
+              3);
+    for (int x = -2; x <= 2; x++)
+      buildingWorld.setBlockState(
+          new BlockPos(o.x - 27 + x, o.y + 2, o.z - 11),
+          Blocks.ORANGE_CONCRETE.getDefaultState(),
+          3);
+    for (int x : new int[] {-1, 1})
+      buildingWorld.setBlockState(
+          new BlockPos(o.x - 27 + x, o.y + 4, o.z - 12),
+          Blocks.BLACK_CONCRETE.getDefaultState(),
+          3);
+    for (int x : new int[] {-33, -21})
+      for (int z : new int[] {-15, 10}) {
+        for (int y = 1; y <= 3; y++)
+          buildingWorld.setBlockState(
+              new BlockPos(o.x + x, o.y + y, o.z + z),
+              Blocks.POLISHED_BLACKSTONE_WALL.getDefaultState(),
+              3);
+        buildingWorld.setBlockState(
+            new BlockPos(o.x + x, o.y + 4, o.z + z), Blocks.SEA_LANTERN.getDefaultState(), 3);
+      }
+    BlockPos chest = kitChest(o);
+    buildingWorld.setBlockState(
+        chest, Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 3);
+    sign(
+        buildingWorld,
+        chest.south(),
+        "KIT DOS DOIS",
+        "Abra o bau",
+        "Edite e feche",
+        "Salva ao fechar");
+    sign(
+        buildingWorld,
+        new BlockPos(o.x - 29, o.y + 1, o.z + 10),
+        "DUCK BOX",
+        "Treino PvP",
+        o.size + " x " + o.size,
+        "Escolha e inicie");
     for (int i = 0; i < KEYS.length; i++) {
       int col = i % 3, row = i / 3;
       BlockPos p = new BlockPos(o.x - 31 + col * 4, o.y + 1, o.z - 8 + row * 4);
-      boolean toggle = i >= 3 && i <= 10;
+      boolean toggle = i >= 4 && i <= 10;
       BlockState state =
           toggle
               ? Blocks.LEVER
@@ -125,6 +208,38 @@ public final class Arena {
         s.markDirty();
       }
     }
+    updateModeLabel(buildingWorld, o);
+  }
+
+  public static void updateModeLabel(ServerWorld w, Options o) {
+    sign(
+        w,
+        new BlockPos(o.x - 31, o.y + 1, o.z - 3),
+        "MODO DE TREINO",
+        o.tank ? "TANK" : "DUEL",
+        "Clique no botao",
+        "Tank nao ataca");
+  }
+
+  private static void sign(ServerWorld w, BlockPos pos, String... lines) {
+    w.setBlockState(pos, Blocks.OAK_SIGN.getDefaultState(), 3);
+    if (w.getBlockEntity(pos) instanceof SignBlockEntity sign) {
+      var text = sign.getFrontText();
+      for (int i = 0; i < Math.min(4, lines.length); i++)
+        text = text.withMessage(i, Text.literal(lines[i]));
+      sign.setText(text, true);
+      sign.markDirty();
+    }
+  }
+
+  public static BlockPos kitChest(Options o) {
+    return new BlockPos(o.x - 27, o.y + 1, o.z + 8);
+  }
+
+  public static boolean isKitChest(BlockPos pos, ServerWorld w, Options o) {
+    return o.built
+        && w.getRegistryKey().getValue().toString().equals(o.dimension)
+        && pos.equals(kitChest(o));
   }
 
   private static boolean enabled(String key, Options o) {
@@ -155,7 +270,7 @@ public final class Arena {
     int h = o.size / 2;
     for (int x = -h + 1; x < h; x++)
       for (int z = -h + 1; z < h; z++)
-        for (int y = 1; y < 10; y++) {
+        for (int y = 1; y < HEIGHT; y++) {
           BlockPos p = new BlockPos(o.x + x, o.y + y, o.z + z);
           if (w.getBlockState(p).isOf(Blocks.COBWEB))
             w.setBlockState(p, Blocks.AIR.getDefaultState(), 3);

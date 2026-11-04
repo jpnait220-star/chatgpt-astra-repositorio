@@ -54,6 +54,7 @@ public final class DuckBox implements ModInitializer {
         });
     ServerLifecycleEvents.SERVER_STOPPING.register(
         s -> {
+          KitEditor.flush();
           if (session != null) stop("Servidor encerrado.");
         });
     ServerLifecycleEvents.SERVER_STOPPED.register(
@@ -63,6 +64,7 @@ public final class DuckBox implements ModInitializer {
           rockets.clear();
           clicks.clear();
           Arena.reset();
+          KitEditor.reset();
         });
     ServerTickEvents.END_SERVER_TICK.register(
         s -> {
@@ -100,6 +102,7 @@ public final class DuckBox implements ModInitializer {
         });
     ServerPlayConnectionEvents.DISCONNECT.register(
         (handler, s) -> {
+          KitEditor.closeFor(handler.player);
           if (session != null && session.owner == handler.player) stop("Jogador saiu.");
         });
     PlayerBlockBreakEvents.BEFORE.register(
@@ -126,6 +129,15 @@ public final class DuckBox implements ModInitializer {
         (p, w, hand, hit) -> {
           if (w.isClient() || hand != Hand.MAIN_HAND || p instanceof TrainingBot)
             return ActionResult.PASS;
+          if (Arena.isKitChest(hit.getBlockPos(), (ServerWorld) w, options)) {
+            if (!p.hasPermissionLevel(2)) return ActionResult.FAIL;
+            try {
+              KitEditor.open((ServerPlayerEntity) p);
+            } catch (Exception e) {
+              say((ServerPlayerEntity) p, e.getMessage());
+            }
+            return ActionResult.SUCCESS;
+          }
           String key = Arena.control(hit.getBlockPos(), (ServerWorld) w, options);
           if (key == null) return ActionResult.PASS;
           if (!p.hasPermissionLevel(2)) return ActionResult.FAIL;
@@ -151,7 +163,7 @@ public final class DuckBox implements ModInitializer {
                                 p -> {
                                   say(
                                       p,
-                                      "/box criar [17..41] | iniciar | parar | dificuldade"
+                                      "/box criar [9..41] | iniciar | parar | dificuldade"
                                           + " LOW/MEDIUM/HIGH/EXPERT | habilidade nome | modo"
                                           + " DUEL/TANK | kit salvar/padrao | atributo"
                                           + " minecraft:max_health 100 HEAD");
@@ -160,7 +172,7 @@ public final class DuckBox implements ModInitializer {
                         literal("criar")
                             .executes(c -> run(c.getSource(), p -> Arena.create(p, options)))
                             .then(
-                                argument("tamanho", IntegerArgumentType.integer(17, 41))
+                                argument("tamanho", IntegerArgumentType.integer(9, 41))
                                     .executes(
                                         c ->
                                             run(
@@ -339,8 +351,27 @@ public final class DuckBox implements ModInitializer {
     p.sendMessage(Text.literal("[DuckBox] " + message), false);
   }
 
+  public static List<ItemStack> currentKit(ServerPlayerEntity p) {
+    return disk.has("kit")
+        ? Kits.decode(p, disk.getAsJsonArray("kit"))
+        : Kits.defaults(p.getRegistryManager());
+  }
+
+  public static void storeKit(ServerPlayerEntity p, List<ItemStack> kit) {
+    disk.add("kit", Kits.encode(p, kit));
+    save();
+  }
+
+  public static boolean opponents(
+      net.minecraft.entity.player.PlayerEntity a, net.minecraft.entity.player.PlayerEntity b) {
+    Session active = session;
+    return active != null
+        && !active.closed
+        && ((a == active.owner && b == active.bot) || (b == active.owner && a == active.bot));
+  }
+
   public static void requireStopped() {
-    if (session != null || Arena.building())
+    if (session != null || Arena.building() || KitEditor.editing())
       throw new IllegalArgumentException("Encerre o treino e aguarde a construcao.");
   }
 
@@ -353,10 +384,25 @@ public final class DuckBox implements ModInitializer {
         say(p, "Dificuldade: " + options.difficulty);
         save();
       }
+      case "modo" -> {
+        requireStopped();
+        options.tank = !options.tank;
+        Arena.updateModeLabel(p.getServerWorld(), options);
+        save();
+        say(p, "Modo: " + (options.tank ? "TANK (o bot so tanka)" : "DUEL (combate)"));
+      }
       case "tamanho" -> {
         requireStopped();
         options.size =
-            options.size < 25 ? 25 : options.size < 33 ? 33 : options.size < 41 ? 41 : 17;
+            options.size < 13
+                ? 13
+                : options.size < 17
+                    ? 17
+                    : options.size < 21
+                        ? 21
+                        : options.size < 25
+                            ? 25
+                            : options.size < 33 ? 33 : options.size < 41 ? 41 : 9;
         Arena.create(p, options);
       }
       default -> {
@@ -380,6 +426,7 @@ public final class DuckBox implements ModInitializer {
   }
 
   public static void start(ServerPlayerEntity p) {
+    KitEditor.closeFor(p);
     requireStopped();
     if (!options.built) throw new IllegalArgumentException("Use /box criar primeiro.");
     if (p.getServerWorld() != world())
@@ -387,8 +434,7 @@ public final class DuckBox implements ModInitializer {
     if (p.isSpectator()) throw new IllegalArgumentException("Saia do modo espectador.");
     if (p.hasVehicle()) throw new IllegalArgumentException("Desmonte antes de iniciar.");
     if (p.isUsingItem()) p.stopUsingItem();
-    List<ItemStack> kit =
-        disk.has("kit") ? Kits.decode(p, disk.getAsJsonArray("kit")) : Kits.defaults();
+    List<ItemStack> kit = currentKit(p);
     boolean sword = kit.stream().anyMatch(i -> i.isIn(net.minecraft.registry.tag.ItemTags.SWORDS));
     if (!sword) throw new IllegalArgumentException("O kit precisa de uma espada.");
     backup(p);
@@ -409,8 +455,8 @@ public final class DuckBox implements ModInitializer {
       p.getHungerManager().setFoodLevel(20);
       Arena.clearWebs(world(), options);
       bot.teleport(
-          world(), options.x + 4.5, options.y + 1, options.z + 0.5, Set.of(), 90, 0, false);
-      p.teleport(world(), options.x - 3.5, options.y + 1, options.z + 0.5, Set.of(), -90, 0, false);
+          world(), options.x + 2.5, options.y + 1, options.z + 0.5, Set.of(), 90, 0, false);
+      p.teleport(world(), options.x - 2.5, options.y + 1, options.z + 0.5, Set.of(), -90, 0, false);
       session = new Session(p, bot, options);
       sync();
       say(
@@ -455,7 +501,13 @@ public final class DuckBox implements ModInitializer {
       disk = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
       if (disk.has("options")) options = JSON.fromJson(disk.get("options"), Options.class);
       if (options == null) options = new Options();
-      options.size = MathHelper.clamp(options.size, 17, 41) | 1;
+      if (!disk.has("arenaRevision") || disk.get("arenaRevision").getAsInt() < 2) {
+        if (options.size == 25) options.size = 13;
+        options.tank = false;
+        options.built = false;
+        disk.addProperty("arenaRevision", 2);
+      }
+      options.size = MathHelper.clamp(options.size, 9, 41) | 1;
     } catch (Exception e) {
       throw new IllegalStateException(
           "Nao foi possivel ler duckbox-training.json; arquivo preservado.", e);
@@ -475,6 +527,7 @@ public final class DuckBox implements ModInitializer {
     sync();
     if (file == null) return;
     try {
+      disk.addProperty("arenaRevision", 2);
       disk.add("options", JSON.toJsonTree(options));
       Path temp = file.resolveSibling(file.getFileName() + ".tmp");
       Files.writeString(temp, JSON.toJson(disk));
