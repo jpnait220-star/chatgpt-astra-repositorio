@@ -52,6 +52,88 @@ public final class Session {
     aimZ = p.getZ();
   }
 
+  private int countdownTicks;
+  private Vec3d ownerCorner, botCorner;
+
+  public boolean countingDown() {
+    return countdownTicks > 0;
+  }
+
+  public void beginCountdown() {
+    countdownTicks = 100;
+    double offset = o.size / 2.0 - 1.5;
+    ownerCorner = new Vec3d(o.x - offset, o.y + 1, o.z - offset);
+    botCorner = new Vec3d(o.x + offset, o.y + 1, o.z + offset);
+    moveToCorner(owner, ownerCorner, -45);
+    moveToCorner(bot, botCorner, 135);
+    bot.setLoaded(true);
+    bot.onTeleportationDone();
+    for (var p : List.of(owner, bot)) p.setHealth(p.getMaxHealth());
+    showCount("5");
+  }
+
+  private void moveToCorner(ServerPlayerEntity p, Vec3d corner, float yaw) {
+    p.stopUsingItem();
+    p.stopGliding();
+    p.setSneaking(false);
+    p.setSprinting(false);
+    p.forwardSpeed = 0;
+    p.sidewaysSpeed = 0;
+    p.setVelocity(Vec3d.ZERO);
+    p.teleport(p.getServerWorld(), corner.x, corner.y, corner.z, Set.of(), yaw, 0, false);
+    p.setHeadYaw(yaw);
+    p.setBodyYaw(yaw);
+  }
+
+  private void holdCorner(ServerPlayerEntity p, Vec3d corner) {
+    p.stopGliding();
+    p.stopUsingItem();
+    p.forwardSpeed = 0;
+    p.sidewaysSpeed = 0;
+    p.setVelocity(Vec3d.ZERO);
+    if (p.getPos().squaredDistanceTo(corner) > 0.0001)
+      p.teleport(
+          p.getServerWorld(),
+          corner.x,
+          corner.y,
+          corner.z,
+          Set.of(),
+          p.getYaw(),
+          p.getPitch(),
+          false);
+  }
+
+  private void showCount(String value) {
+    for (var p : List.of(owner, bot)) {
+      p.networkHandler.sendPacket(
+          new net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket(0, 22, 0));
+      p.networkHandler.sendPacket(
+          new net.minecraft.network.packet.s2c.play.TitleS2CPacket(
+              Text.literal(value)
+                  .formatted(value.equals("VAI!") ? Formatting.GREEN : Formatting.YELLOW)));
+    }
+  }
+
+  private void tickCountdown() {
+    if (owner.getServerWorld() != bot.getServerWorld() || owner.isDisconnected()) {
+      finish = "Treino encerrado: jogador saiu.";
+      return;
+    }
+    holdCorner(owner, ownerCorner);
+    holdCorner(bot, botCorner);
+    phase = "Comeca em " + (countdownTicks + 19) / 20;
+    countdownTicks--;
+    if (countdownTicks == 0) {
+      startingBuffs();
+      for (var p : List.of(owner, bot)) {
+        p.timeUntilRegen = 0;
+        p.setHealth(p.getMaxHealth());
+      }
+      lastHealth = bot.getHealth() + bot.getAbsorptionAmount();
+      showCount("VAI!");
+    } else if (countdownTicks % 20 == 0) showCount(Integer.toString(countdownTicks / 20));
+  }
+
   public void maintainRules() {
     int amplifier = o.rules == Options.Rules.NORMAL_SPAM ? 1 : 0;
     for (var p : List.of(owner, bot)) {
@@ -78,6 +160,10 @@ public final class Session {
 
   public void control() {
     if (closed || finish != null) return;
+    if (countingDown()) {
+      tickCountdown();
+      return;
+    }
     int t = (int) ++clock;
     var d = o.difficulty;
     if (!owner.isAlive()
@@ -90,10 +176,6 @@ public final class Session {
     bot.forwardSpeed = 0;
     bot.sidewaysSpeed = 0;
     bot.setSneaking(bot.isGliding());
-    if (t == 2 || t == 3) {
-      bot.setHealth(bot.getMaxHealth());
-      owner.setHealth(owner.getMaxHealth());
-    }
     fullHealth = Math.max(fullHealth, bot.getMaxHealth());
     double dist = bot.squaredDistanceTo(owner);
     float health = bot.getHealth();
@@ -238,7 +320,7 @@ public final class Session {
       useRocket(t);
     boolean pursuit =
         (owner.isGliding() || owner.getY() > bot.getY() + 1.4 || otherEating)
-            && dist > CombatPlan.meleeIntentRange(bot.getEntityInteractionRange())
+            && dist > CombatPlan.meleeIntentRange(attackReach())
             && dist < 324;
     boolean near = dist >= 4 && dist < 30;
     if (o.giro
@@ -264,9 +346,7 @@ public final class Session {
       return;
     if (!o.tank && !healing && !escaping && heldUntil <= t) {
       int sword = selectSword();
-      if (sword >= 0
-          && dist < CombatPlan.meleeIntentRange(bot.getEntityInteractionRange())
-          && clicks.next()) {
+      if (sword >= 0 && dist < CombatPlan.meleeIntentRange(attackReach()) && clicks.next()) {
         bot.swingHand(Hand.MAIN_HAND);
         if (canHit()) bot.attack(owner);
       }
@@ -448,9 +528,12 @@ public final class Session {
     bot.setPitch(MathHelper.clamp(Aim.approach(bot.getPitch(), pitch, max), -85, 85));
   }
 
+  private double attackReach() {
+    return Math.min(bot.getEntityInteractionRange(), o.wtap ? 3.0 : 2.4);
+  }
+
   private boolean canHit() {
-    Vec3d start = bot.getEyePos(),
-        end = start.add(bot.getRotationVec(1).multiply(bot.getEntityInteractionRange()));
+    Vec3d start = bot.getEyePos(), end = start.add(bot.getRotationVec(1).multiply(attackReach()));
     var hit = owner.getBoundingBox().raycast(start, end);
     if (hit.isEmpty() && !owner.getBoundingBox().contains(start)) return false;
     Vec3d target = hit.orElse(start);

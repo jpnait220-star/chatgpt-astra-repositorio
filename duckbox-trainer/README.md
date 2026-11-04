@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.5-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.6-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.5 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.6 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -25,9 +25,17 @@ A pausa agachada para repor totens continua funcionando.
 
 O bot confirma seu proprio carregamento e teleporte, pois nao tem um cliente
 para enviar essas confirmacoes. Isso remove a protecao indevida de carregamento
-no inicio do treino. A invulnerabilidade vanilla entre danos continua:15 CPS
+no inicio do treino. Tambem foi removida a restauracao de vida nos primeiros
+ticks de combate que podia apagar dano recebido logo depois do inicio.
+A invulnerabilidade vanilla entre danos continua:15 CPS
 nao significa15 perdas de vida por segundo. Resistencia, Protecao e absorcao
 tambem reduzem ou escondem temporariamente a perda de vida vermelha.
+
+Durante o treino, `/box golpes` mostra as chamadas de dano que chegaram ao
+servidor e quantas foram aceitas ou recusadas por intervalo/protecao/outros.
+Nao e um contador de cliques: ataques sem alvo ou fora do alcance nao chegam
+a essa etapa. A falha intermitente relatada depois do inicio ainda nao foi
+reproduzida em cliente grafico.
 
 ## Skin do bot
 
@@ -41,6 +49,10 @@ atributos do item permanecem. A skin do jogador nao e alterada.
 Abra o mundo, aguarde a montagem e escolha **DUEL** para combate. **TANK** e
 um treino separado de sobrevivencia/evasao: nesse modo o bot nao ataca.
 Escolha as regras, edite o bau do kit se quiser e clique em iniciar.
+Os dois ficam em cantos opostos por5 segundos (5,4,3,2,1,VAI!), com movimento e
+dano bloqueados durante a espera. Os efeitos da gap comecam na liberacao.
+Sem W-tap o bot usa alcance maximo2,4; com W-tap, no maximo3 blocos da camera
+ate a hitbox, sempre exigindo mira e caminho livre.
 `/box parar` encerra e restaura o inventario anterior.
 
 Arena padrao13x13, altura interna7. Tamanhos externos impares de9 a41 por
@@ -60,7 +72,7 @@ base, encantamento, armadura e efeitos continuam calculados pelo Minecraft.
 A cadencia e15 tentativas em20 ticks elegiveis, em todas as dificuldades;
 a20TPS equivale a15 CPS. Nao ignora invulnerabilidade entre danos nem alcance.
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.5, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.6, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 

@@ -27,6 +27,42 @@ public final class TrainingBot extends ServerPlayerEntity {
         SyncedClientOptions.createDefault());
   }
 
+  private long incomingHits,
+      registeredHits,
+      cooldownRejections,
+      protectionRejections,
+      otherRejections;
+
+  @Override
+  public boolean damage(
+      ServerWorld world, net.minecraft.entity.damage.DamageSource source, float amount) {
+    boolean tracked = session != null && !session.closed && source.getAttacker() == session.owner;
+    boolean protectedHit = tracked && (session.countingDown() || isInvulnerableTo(world, source));
+    boolean cooldown = tracked && timeUntilRegen > 10;
+    boolean accepted = super.damage(world, source, amount);
+    if (tracked) {
+      incomingHits++;
+      if (accepted) registeredHits++;
+      else if (protectedHit) protectionRejections++;
+      else if (cooldown) cooldownRejections++;
+      else otherRejections++;
+    }
+    return accepted;
+  }
+
+  public String hitReport() {
+    return "Dano recebido pelo servidor: "
+        + incomingHits
+        + " | Registrados: "
+        + registeredHits
+        + " | Intervalo vanilla: "
+        + cooldownRejections
+        + " | Protecao/contagem: "
+        + protectionRejections
+        + " | Outros: "
+        + otherRejections;
+  }
+
   @Override
   public void tick() {
     int now = getServer().getTicks();

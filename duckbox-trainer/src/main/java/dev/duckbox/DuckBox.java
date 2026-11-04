@@ -131,6 +131,8 @@ public final class DuckBox implements ModInitializer {
         });
     UseBlockCallback.EVENT.register(
         (p, w, hand, hit) -> {
+          if (session != null && session.countingDown() && (p == session.owner || p == session.bot))
+            return ActionResult.FAIL;
           ActionResult rocketUse = useFlyingRocket(p, hand);
           if (rocketUse.isAccepted()) return rocketUse;
           if (w.isClient() || hand != Hand.MAIN_HAND || p instanceof TrainingBot)
@@ -162,6 +164,18 @@ public final class DuckBox implements ModInitializer {
             dispatcher.register(
                 literal("box")
                     .requires(x -> x.hasPermissionLevel(2))
+                    .then(
+                        literal("golpes")
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          if (session == null || session.owner != p)
+                                            throw new IllegalArgumentException(
+                                                "Inicie seu treino primeiro.");
+                                          say(p, session.bot.hitReport());
+                                        })))
                     .then(
                         literal("regras")
                             .then(
@@ -467,7 +481,8 @@ public final class DuckBox implements ModInitializer {
       net.minecraft.entity.LivingEntity entity, net.minecraft.entity.damage.DamageSource source) {
     return session == null
         || (entity != session.owner && entity != session.bot)
-        || (!source.isOf(net.minecraft.entity.damage.DamageTypes.FALL)
+        || (!session.countingDown()
+            && !source.isOf(net.minecraft.entity.damage.DamageTypes.FALL)
             && !source.isOf(net.minecraft.entity.damage.DamageTypes.FLY_INTO_WALL));
   }
 
@@ -585,7 +600,7 @@ public final class DuckBox implements ModInitializer {
       bot.setLoaded(true);
       bot.onTeleportationDone();
       session = new Session(p, bot, options);
-      session.startingBuffs();
+      session.beginCountdown();
       syncCosmetics();
       sync();
       say(

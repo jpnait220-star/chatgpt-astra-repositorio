@@ -322,6 +322,61 @@ public final class CombatServerTest {
     System.out.println(
         "PASS REAL INCOMING HITS: fresh bot load accepts player attack immediately; vanilla"
             + " immunity preserved and later hits accepted");
+    var countdownSession = new Session(owner, bot, options);
+    DuckBox.session = countdownSession;
+    owner.clearStatusEffects();
+    bot.clearStatusEffects();
+    countdownSession.beginCountdown();
+    if (!countdownSession.countingDown()
+        || owner.distanceTo(bot) < options.size - 4
+        || DuckBox.allowTrainingDamage(owner, world.getDamageSources().playerAttack(bot)))
+      throw new AssertionError("Countdown corners/protection");
+    owner.setPosition(owner.getPos().add(1, 0, 0));
+    countdownSession.control();
+    double offset = options.size / 2.0 - 1.5;
+    if (Math.abs(owner.getX() - (options.x - offset)) > 0.001
+        || owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.REGENERATION))
+      throw new AssertionError("Countdown must hold corner and postpone buffs");
+    for (int n = 1; n < 99; n++) countdownSession.control();
+    if (!countdownSession.countingDown())
+      throw new AssertionError("Countdown shorter than100ticks");
+    countdownSession.control();
+    if (countdownSession.countingDown()
+        || !owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.REGENERATION)
+        || !DuckBox.allowTrainingDamage(owner, world.getDamageSources().playerAttack(bot)))
+      throw new AssertionError("Countdown did not release combat/buffs after100ticks");
+    bot.setHealth(bot.getMaxHealth() - 10);
+    owner.setHealth(owner.getMaxHealth() - 10);
+    float botAfterStart = bot.getHealth(), ownerAfterStart = owner.getHealth();
+    countdownSession.control();
+    countdownSession.control();
+    countdownSession.control();
+    if (bot.getHealth() > botAfterStart || owner.getHealth() > ownerAfterStart)
+      throw new AssertionError("Opening hits must not be erased by startup health resets");
+    owner.teleport(world, 0.5, 64, 3.4, Set.of(), 180, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    owner.stopGliding();
+    bot.stopGliding();
+    owner.setPose(net.minecraft.entity.EntityPose.STANDING);
+    bot.setPose(net.minecraft.entity.EntityPose.STANDING);
+    var canHit = Session.class.getDeclaredMethod("canHit");
+    canHit.setAccessible(true);
+    options.wtap = false;
+    if ((boolean) canHit.invoke(countdownSession))
+      throw new AssertionError("Wtap-off must close before hitting");
+    options.wtap = true;
+    if (!(boolean) canHit.invoke(countdownSession))
+      throw new AssertionError("Wtap-on should allow normal reach");
+    owner.setPosition(0.5, 64, 4.0);
+    if ((boolean) canHit.invoke(countdownSession))
+      throw new AssertionError("Bot must not exceed3block ray reach");
+    countdownSession.closed = true;
+    DuckBox.session = null;
+    System.out.println(
+        "PASS REAL COUNTDOWN/REACH:100ticks, opposite corners, hold/protection/buffs, short reach"
+            + " without Wtap and3block cap with Wtap");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);
