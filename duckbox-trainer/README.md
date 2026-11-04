@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.4-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.5-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.4 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.5 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -20,6 +20,14 @@ O ZIP inclui um template de mundo plano; arena e lobby sao gerados pelo mod.
 
 O bot agacha durante o voo de elytra e solta ao parar de planar.
 A pausa agachada para repor totens continua funcionando.
+
+## Registro de golpes
+
+O bot confirma seu proprio carregamento e teleporte, pois nao tem um cliente
+para enviar essas confirmacoes. Isso remove a protecao indevida de carregamento
+no inicio do treino. A invulnerabilidade vanilla entre danos continua:15 CPS
+nao significa15 perdas de vida por segundo. Resistencia, Protecao e absorcao
+tambem reduzem ou escondem temporariamente a perda de vida vermelha.
 
 ## Skin do bot
 
@@ -52,7 +60,7 @@ base, encantamento, armadura e efeitos continuam calculados pelo Minecraft.
 A cadencia e15 tentativas em20 ticks elegiveis, em todas as dificuldades;
 a20TPS equivale a15 CPS. Nao ignora invulnerabilidade entre danos nem alcance.
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.4, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.5, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 

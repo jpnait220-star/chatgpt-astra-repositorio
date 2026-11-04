@@ -32,6 +32,10 @@ public final class TrainingBot extends ServerPlayerEntity {
     int now = getServer().getTicks();
     if (now == lastServerTick) return;
     lastServerTick = now;
+    // A server-controlled player has no client to acknowledge world loading/teleports.
+    // Do this before AI/damage checks rather than waiting for vanilla's 60-tick timeout.
+    setLoaded(true);
+    if (isInTeleportationState()) onTeleportationDone();
     if (session != null && !session.closed) session.control();
     super.tick();
     playerTick();

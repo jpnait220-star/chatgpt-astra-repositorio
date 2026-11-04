@@ -582,6 +582,8 @@ public final class DuckBox implements ModInitializer {
       bot.teleport(
           world(), options.x + 2.5, options.y + 1, options.z + 0.5, Set.of(), 90, 0, false);
       p.teleport(world(), options.x - 2.5, options.y + 1, options.z + 0.5, Set.of(), -90, 0, false);
+      bot.setLoaded(true);
+      bot.onTeleportationDone();
       session = new Session(p, bot, options);
       session.startingBuffs();
       syncCosmetics();

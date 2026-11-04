@@ -286,6 +286,42 @@ public final class CombatServerTest {
             + " rocket use");
     DuckBox.session.closed = true;
     DuckBox.session = null;
+    // A bot has no client loading ACK: test receiving real player attacks after a fresh load.
+    bot.session = null;
+    bot.setLoaded(false);
+    bot.clearStatusEffects();
+    bot.setAbsorptionAmount(0);
+    bot.setHealth(bot.getMaxHealth());
+    bot.timeUntilRegen = 0;
+    owner.clearStatusEffects();
+    owner.setLoaded(true);
+    owner.getInventory().selectedSlot = 0;
+    owner.setSprinting(false);
+    ticks.setInt(server, 4000);
+    bot.tick();
+    if (!bot.isLoaded() || bot.isInTeleportationState())
+      throw new AssertionError("Bot must acknowledge its own load/teleport");
+    float beforeIncoming = bot.getHealth();
+    owner.attack(bot);
+    if (bot.getHealth() >= beforeIncoming)
+      throw new AssertionError("Player hit rejected after fresh bot load");
+    float afterIncoming = bot.getHealth();
+    owner.attack(bot);
+    if (bot.getHealth() != afterIncoming)
+      throw new AssertionError("Vanilla equal-hit immunity must remain");
+    for (int n = 0; n < 12; n++) {
+      ticks.setInt(server, 4001 + n);
+      bot.tick();
+      owner.tick();
+      owner.playerTick();
+    }
+    float beforeNextHit = bot.getHealth();
+    owner.attack(bot);
+    if (bot.getHealth() >= beforeNextHit)
+      throw new AssertionError("Player hit rejected after vanilla immunity elapsed");
+    System.out.println(
+        "PASS REAL INCOMING HITS: fresh bot load accepts player attack immediately; vanilla"
+            + " immunity preserved and later hits accepted");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);
