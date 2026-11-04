@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.3-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.4-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.3 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.4 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -52,7 +52,7 @@ base, encantamento, armadura e efeitos continuam calculados pelo Minecraft.
 A cadencia e15 tentativas em20 ticks elegiveis, em todas as dificuldades;
 a20TPS equivale a15 CPS. Nao ignora invulnerabilidade entre danos nem alcance.
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.3, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.4, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -118,9 +118,18 @@ para adicionar/editar nosso modificador daquele slot. `attack_damage` e dano;
 - O nivel de giro e independente da mira: BAIXO, MEDIO, ALTO, EXTREMO.
   EXTREMO permite usar foguetes/reposicionar com mais frequencia; consome o
   estoque real. A mira continua limitada pela dificuldade, sem hits automaticos.
-- Teia oportunista com suporte, alcance/visibilidade e intervalo padrao10s.
+- Teia na posicao real da cabeca (inclusive planando), com suporte, alcance/visibilidade e intervalo padrao10s.
 - A extensao foguete-na-teia e sincronizada apenas para os participantes durante
-  um impulso real. Nao altera outros jogadores/mundos fora do treino.
+  um impulso real. Mantem70% de movimento horizontal e65% vertical, em vez de
+  ignorar totalmente a teia; sem impulso, a teia segue vanilla. Nao altera
+  outros jogadores/mundos fora do treino.
+- Durante voo de elytra, clicar num bloco com foguete usa o impulso em vez de
+  lancar um foguete solto, nas duas maos e apenas durante o treino.
+- Contra alvo preso no alto, o bot tenta perseguir de elytra/foguete ou, estando
+  perto por baixo e tendo blocos solidos no kit, subir pulando e colocando
+  blocos. Depois quebra a teia com a espada antes de atacar. Coloque la/blocos
+  no bau do kit para permitir a subida; o estoque e consumido normalmente.
+  Os blocos que o bot colocou sao removidos ao encerrar a rodada.
 
 ## Cosmeticos no proprio mod
 
@@ -171,7 +180,9 @@ UVs e normais dos cubos nativos.
 Num TestServer vanilla sem janela, com entidades, itens e fisica reais, foram
 verificados dano/locomocao, buffs iniciais, consumo de totem vanilla, resistencia
 apos pop, troca corante/totem, reposicao de reserva, consumo de duas macas,
-bau/JSON independente por modo e montagem do mapa. O cancelamento ambiental
+bau/JSON independente por modo e montagem do mapa. Tambem foram verificados
+colocacao de teia na cabeca, torre com consumo/limpeza dos blocos, quebra nativa
+da teia e uso de um foguete por clique durante voo. O cancelamento ambiental
 foi conferido como predicado usado pelo evento; a integracao Fabric e aplicada
 em jogo. Os testes de rede validam codecs; nao simulam uma conexao grafica.
 

@@ -222,6 +222,70 @@ public final class CombatServerTest {
     DuckBox.session.closed = true;
     DuckBox.session = null;
     options.built = true;
+    DuckBox.session = new Session(owner, bot, options);
+    // Native block placement and destruction: stock is consumed; no setBlock shortcut in AI.
+    owner.teleport(world, 0.5, 68, 0.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    world.setBlockState(new BlockPos(0, 68, 0), Blocks.COBWEB.getDefaultState(), 3);
+    bot.getInventory()
+        .setStack(5, new net.minecraft.item.ItemStack(net.minecraft.item.Items.WHITE_WOOL, 8));
+    var scaffold = Session.class.getDeclaredMethod("scaffold", int.class);
+    scaffold.setAccessible(true);
+    if (!(boolean) scaffold.invoke(DuckBox.session, 1000))
+      throw new AssertionError("Tower must start from floor");
+    bot.teleport(world, 0.5, 65.1, 0.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    if (!(boolean) scaffold.invoke(DuckBox.session, 1005)
+        || !world.getBlockState(new BlockPos(0, 64, 0)).isOf(Blocks.WHITE_WOOL)
+        || bot.getInventory().getStack(5).getCount() != 7)
+      throw new AssertionError("Native tower stock/placement");
+    DuckBox.session.cleanupBuilding();
+    if (!world.getBlockState(new BlockPos(0, 64, 0)).isAir())
+      throw new AssertionError("Tower cleanup");
+    bot.teleport(world, 1.5, 67, 0.5, Set.of(), 90, 0, false);
+    bot.onTeleportationDone();
+    var breakWeb = Session.class.getDeclaredMethod("breakTargetWeb");
+    breakWeb.setAccessible(true);
+    boolean triedBreak = false;
+    for (int n = 0;
+        n < 400 && world.getBlockState(new BlockPos(0, 68, 0)).isOf(Blocks.COBWEB);
+        n++) {
+      ticks.setInt(server, 1000 + n);
+      bot.interactionManager.update();
+      triedBreak |= (boolean) breakWeb.invoke(DuckBox.session);
+    }
+    if (!triedBreak || !world.getBlockState(new BlockPos(0, 68, 0)).isAir())
+      throw new AssertionError("Native web destruction");
+    owner.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, 1.5, 64, 0.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    world.setBlockState(new BlockPos(0, 65, -1), Blocks.STONE.getDefaultState(), 3);
+    var placeWeb = Session.class.getDeclaredMethod("placeWeb", BlockPos.class, int.class);
+    placeWeb.setAccessible(true);
+    if (!(boolean) placeWeb.invoke(DuckBox.session, BlockPos.ofFloored(owner.getEyePos()), 2000)
+        || !world.getBlockState(BlockPos.ofFloored(owner.getEyePos())).isOf(Blocks.COBWEB))
+      throw new AssertionError("Head web placement");
+    world.setBlockState(new BlockPos(0, 65, -1), Blocks.AIR.getDefaultState(), 3);
+    world.setBlockState(BlockPos.ofFloored(owner.getEyePos()), Blocks.AIR.getDefaultState(), 3);
+    owner.getInventory().selectedSlot = 2;
+    owner
+        .getInventory()
+        .setStack(2, new net.minecraft.item.ItemStack(net.minecraft.item.Items.FIREWORK_ROCKET, 8));
+    owner.startGliding();
+    if (!DuckBox.useFlyingRocket(owner, net.minecraft.util.Hand.MAIN_HAND).isAccepted()
+        || owner.getMainHandStack().getCount() != 7)
+      throw new AssertionError("Flying block click must use rocket once");
+    owner.stopGliding();
+    if (DuckBox.useFlyingRocket(owner, net.minecraft.util.Hand.MAIN_HAND).isAccepted())
+      throw new AssertionError("Ground rocket should keep vanilla behavior");
+    System.out.println(
+        "PASS REAL WEB AI: head placement, native tower stock/cleanup, native web break, airborne"
+            + " rocket use");
+    DuckBox.session.closed = true;
+    DuckBox.session = null;
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);

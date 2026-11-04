@@ -20,6 +20,10 @@ public final class Session {
   private final Random random = new Random();
   private long clock;
   private final CpsCadence clicks = new CpsCadence(15);
+  private int buildAt;
+  private BlockPos breakingWeb;
+  private float webBreakProgress;
+  private final Map<BlockPos, net.minecraft.block.BlockState> builtBlocks = new HashMap<>();
   private int rocketAt,
       webAt,
       jumpAt,
@@ -200,6 +204,13 @@ public final class Session {
       }
     }
 
+    boolean elevatedWeb = webAtOwner() != null && owner.getY() > bot.getY() + 1.8;
+    if (!healing && !escaping && !o.tank && elevatedWeb) {
+      if (scaffold(t)) return;
+      aim = owner.getEyePos();
+      phase = "Alcancando alvo na teia";
+    }
+    if (!healing && !escaping && !o.tank && breakTargetWeb()) return;
     look(aim, d.aimSpeed);
     bot.setHeadYaw(bot.getYaw());
     bot.setBodyYaw(bot.getYaw());
@@ -218,6 +229,13 @@ public final class Session {
     // Match crouching to actual elytra flight, including the tick it starts.
     bot.setSneaking(bot.isGliding());
     if (escaping && bot.isGliding()) useRocket(t);
+    if (elevatedWeb
+        && !healing
+        && !escaping
+        && !o.tank
+        && bot.isGliding()
+        && bot.getRotationVec(1).dotProduct(aim.subtract(bot.getEyePos()).normalize()) > 0.75)
+      useRocket(t);
     boolean pursuit =
         (owner.isGliding() || owner.getY() > bot.getY() + 1.4 || otherEating)
             && dist > CombatPlan.meleeIntentRange(bot.getEntityInteractionRange())
@@ -242,7 +260,8 @@ public final class Session {
         && t >= webAt
         && !healing
         && !escaping
-        && placeWeb(o.tank ? bot.getBlockPos().down() : owner.getBlockPos().up(), t)) return;
+        && placeWeb(o.tank ? bot.getBlockPos().down() : BlockPos.ofFloored(owner.getEyePos()), t))
+      return;
     if (!o.tank && !healing && !escaping && heldUntil <= t) {
       int sword = selectSword();
       if (sword >= 0
@@ -458,6 +477,129 @@ public final class Session {
     return true;
   }
 
+  private BlockPos webAtOwner() {
+    for (BlockPos p :
+        BlockPos.iterate(
+            BlockPos.ofFloored(
+                owner.getBoundingBox().minX,
+                owner.getBoundingBox().minY,
+                owner.getBoundingBox().minZ),
+            BlockPos.ofFloored(
+                owner.getBoundingBox().maxX,
+                owner.getBoundingBox().maxY,
+                owner.getBoundingBox().maxZ)))
+      if (bot.getServerWorld().getBlockState(p).isOf(net.minecraft.block.Blocks.COBWEB))
+        return p.toImmutable();
+    return null;
+  }
+
+  private boolean breakTargetWeb() {
+    BlockPos target = owner.getY() > o.y + 2.5 ? webAtOwner() : null;
+    var world = bot.getServerWorld();
+    boolean reachable =
+        target != null && bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(target)) < 20;
+    if (reachable) {
+      var ray =
+          world.raycast(
+              new RaycastContext(
+                  bot.getEyePos(),
+                  Vec3d.ofCenter(target),
+                  RaycastContext.ShapeType.OUTLINE,
+                  RaycastContext.FluidHandling.NONE,
+                  bot));
+      reachable = ray.getType() == HitResult.Type.BLOCK && ray.getBlockPos().equals(target);
+    }
+    var action =
+        net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.START_DESTROY_BLOCK;
+    if (breakingWeb != null && (!reachable || !breakingWeb.equals(target))) {
+      bot.interactionManager.processBlockBreakingAction(
+          breakingWeb,
+          net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.ABORT_DESTROY_BLOCK,
+          Direction.UP,
+          world.getTopYInclusive(),
+          0);
+      breakingWeb = null;
+      webBreakProgress = 0;
+    }
+    if (!reachable) return false;
+    selectSword();
+    look(Vec3d.ofCenter(target), o.difficulty.aimSpeed);
+    if (breakingWeb == null) {
+      breakingWeb = target;
+      webBreakProgress = 0;
+      bot.interactionManager.processBlockBreakingAction(
+          target, action, Direction.UP, world.getTopYInclusive(), 0);
+    }
+    bot.forwardSpeed = 0;
+    bot.swingHand(Hand.MAIN_HAND);
+    webBreakProgress += world.getBlockState(target).calcBlockBreakingDelta(bot, world, target);
+    if (webBreakProgress >= 1) {
+      bot.interactionManager.processBlockBreakingAction(
+          target,
+          net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK,
+          Direction.UP,
+          world.getTopYInclusive(),
+          0);
+      breakingWeb = null;
+      webBreakProgress = 0;
+    }
+    phase = "Quebrando teia do alvo";
+    return true;
+  }
+
+  private boolean scaffold(int t) {
+    double dx = owner.getX() - bot.getX(), dz = owner.getZ() - bot.getZ();
+    if (dx * dx + dz * dz > 2.0 || owner.getY() <= bot.getY() + 2) return false;
+    BlockPos place = bot.getBlockPos().down();
+    if (place.getY() < o.y || place.getY() >= o.y + Arena.HEIGHT - 1) return false;
+    int slot = -1;
+    for (int i = 0; i < 36; i++) {
+      var stack = bot.getInventory().getStack(i);
+      if (stack.getItem() instanceof BlockItem block
+          && block.getBlock().getDefaultState().isFullCube(bot.getServerWorld(), place)) {
+        slot = find(stack.getItem(), true);
+        break;
+      }
+    }
+    if (slot < 0) return false;
+    bot.stopGliding();
+    bot.setSneaking(false);
+    bot.forwardSpeed = 0;
+    bot.sidewaysSpeed = 0;
+    phase = "Subindo com blocos";
+    if (bot.isOnGround()) bot.jump();
+    if (t < buildAt || !bot.getServerWorld().getBlockState(place).isAir()) return true;
+    BlockPos support = place.down();
+    if (!bot.getServerWorld().getBlockState(support).isSolidBlock(bot.getServerWorld(), support))
+      return true;
+    Vec3d face = Vec3d.ofCenter(support).add(0, 0.5, 0);
+    look(face, 180);
+    int previous = bot.getInventory().selectedSlot;
+    bot.getInventory().selectedSlot = slot;
+    var result =
+        bot.interactionManager.interactBlock(
+            bot,
+            bot.getServerWorld(),
+            bot.getMainHandStack(),
+            Hand.MAIN_HAND,
+            new BlockHitResult(face, Direction.UP, support, false));
+    bot.getInventory().selectedSlot = previous;
+    if (result.isAccepted() && !bot.getServerWorld().getBlockState(place).isAir()) {
+      builtBlocks.put(place.toImmutable(), bot.getServerWorld().getBlockState(place));
+      buildAt = t + 4;
+      bot.swingHand(Hand.MAIN_HAND);
+    }
+    return true;
+  }
+
+  public void cleanupBuilding() {
+    for (var entry : builtBlocks.entrySet())
+      if (bot.getServerWorld().getBlockState(entry.getKey()).equals(entry.getValue()))
+        bot.getServerWorld()
+            .setBlockState(entry.getKey(), net.minecraft.block.Blocks.AIR.getDefaultState(), 3);
+    builtBlocks.clear();
+  }
+
   private boolean placeWeb(BlockPos pos, int t) {
     if (!bot.getServerWorld().getBlockState(pos).isAir()
         || bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(pos)) > 20) return false;
@@ -466,7 +608,7 @@ public final class Session {
     for (Direction dir : Direction.values()) {
       BlockPos support = pos.offset(dir);
       if (bot.getServerWorld().getBlockState(support).isAir()) continue;
-      Vec3d face = Vec3d.ofCenter(support).subtract(Vec3d.of(dir.getVector()).multiply(0.501));
+      Vec3d face = Vec3d.ofCenter(support).subtract(Vec3d.of(dir.getVector()).multiply(0.499));
       var ray =
           bot.getServerWorld()
               .raycast(

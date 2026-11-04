@@ -14,7 +14,7 @@ with ZipFile(out/'named.jar','w',ZIP_DEFLATED) as z:
  for folder in [classes,B/'src/main/resources']:
   for p in folder.rglob('*'):
    if p.is_file():z.write(p,p.relative_to(folder).as_posix())
-final=B/'dist/DuckBoxTrainer-1.21.4-0.3.3-alpha.jar';final.parent.mkdir(exist_ok=True);final.unlink(missing_ok=True)
+final=B/'dist/DuckBoxTrainer-1.21.4-0.3.4-alpha.jar';final.parent.mkdir(exist_ok=True);final.unlink(missing_ok=True)
 subprocess.run(['java','-jar',str(T/'remapper.jar'),str(out/'named.jar'),str(final),str(T/'yarn.tiny'),'named','intermediary',str(T/'minecraft-named.jar')],check=True)
 with ZipFile(final) as z:assert z.testzip() is None
 print('COMPILED',final.name,final.stat().st_size,hashlib.sha256(final.read_bytes()).hexdigest())

@@ -131,6 +131,8 @@ public final class DuckBox implements ModInitializer {
         });
     UseBlockCallback.EVENT.register(
         (p, w, hand, hit) -> {
+          ActionResult rocketUse = useFlyingRocket(p, hand);
+          if (rocketUse.isAccepted()) return rocketUse;
           if (w.isClient() || hand != Hand.MAIN_HAND || p instanceof TrainingBot)
             return ActionResult.PASS;
           if (Arena.isKitChest(hit.getBlockPos(), (ServerWorld) w, options)) {
@@ -605,9 +607,10 @@ public final class DuckBox implements ModInitializer {
     s.closed = true;
     if (ServerPlayNetworking.canSend(s.owner, TrainingPayload.ID))
       ServerPlayNetworking.send(
-          s.owner, new TrainingPayload(s.owner.getUuid(), s.bot.getUuid(), false));
+          s.owner, new TrainingPayload(s.owner.getUuid(), new UUID(0, 0), false));
     session = null;
     syncCosmetics();
+    s.cleanupBuilding();
     s.bot.stopUsingItem();
     s.bot.getInventory().clear();
     server.getPlayerManager().remove(s.bot);
@@ -659,9 +662,7 @@ public final class DuckBox implements ModInitializer {
         ServerPlayNetworking.send(
             p,
             new CosmeticPayload(
-                p.getUuid(),
-                session != null ? session.bot.getUuid() : new UUID(0, 0),
-                mask));
+                p.getUuid(), session != null ? session.bot.getUuid() : new UUID(0, 0), mask));
   }
 
   public static void sync() {
@@ -753,6 +754,19 @@ public final class DuckBox implements ModInitializer {
           false);
     disk.getAsJsonObject("backups").remove(p.getUuidAsString());
     save();
+  }
+
+  public static ActionResult useFlyingRocket(
+      net.minecraft.entity.player.PlayerEntity p, Hand hand) {
+    if (!p.isGliding() || !p.getStackInHand(hand).isOf(net.minecraft.item.Items.FIREWORK_ROCKET))
+      return ActionResult.PASS;
+    boolean training =
+        p.getWorld().isClient()
+            ? ClientTrainingState.participant(p)
+            : session != null && (p == session.owner || p == session.bot);
+    if (!training) return ActionResult.PASS;
+    if (!p.getWorld().isClient()) p.getStackInHand(hand).use(p.getWorld(), p, hand);
+    return ActionResult.SUCCESS;
   }
 
   public static void rocket(LivingEntity entity) {

@@ -19,10 +19,10 @@ public final class ClientTrainingState {
     rockets.clear();
   }
 
-  private static boolean participant(Entity e) {
+  public static boolean participant(Entity e) {
     TrainingPayload p = state;
     return p != null
-        && p.enabled()
+        && !p.bot().equals(new UUID(0, 0))
         && (p.owner().equals(e.getUuid()) || p.bot().equals(e.getUuid()));
   }
 
@@ -32,6 +32,7 @@ public final class ClientTrainingState {
 
   public static boolean ignore(Entity e) {
     return participant(e)
+        && state.enabled()
         && e instanceof LivingEntity l
         && l.isGliding()
         && rockets.getOrDefault(e.getUuid(), -1L) >= e.getWorld().getTime();
