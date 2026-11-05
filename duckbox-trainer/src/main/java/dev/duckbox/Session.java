@@ -19,7 +19,8 @@ public final class Session {
   public String finish;
   private final Random random = new Random();
   private long clock;
-  private final CpsCadence clicks;
+  private CpsCadence clicks;
+  private int clickRate;
   private int buildAt;
   private BlockPos breakingWeb;
   private float webBreakProgress;
@@ -70,7 +71,8 @@ public final class Session {
     owner = p;
     bot = b;
     o = options;
-    clicks = new CpsCadence(15);
+    clickRate = Options.allowedCps(options.cps) ? options.cps : 15;
+    clicks = new CpsCadence(clickRate);
     b.session = this;
     lastHealth = b.getHealth() + b.getAbsorptionAmount();
     aimX = p.getX();
@@ -664,6 +666,11 @@ public final class Session {
   }
 
   private boolean readyToAttack() {
+    int selected = Options.allowedCps(o.cps) ? o.cps : 15;
+    if (selected != clickRate) {
+      clickRate = selected;
+      clicks = new CpsCadence(clickRate);
+    }
     return clicks.next()
         && (o.rules == Options.Rules.INSTA_KILL || bot.getAttackCooldownProgress(0.5f) >= 1.0f);
   }
@@ -1071,6 +1078,8 @@ public final class Session {
             .append(Text.literal(o.difficulty.toString()).formatted(Formatting.AQUA))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
             .append(Text.literal(o.rules.toString()).formatted(Formatting.YELLOW))
+            .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal(o.cps + " CPS").formatted(Formatting.WHITE))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
             .append(Text.literal("◇ Totens " + countTotems()).formatted(Formatting.GREEN))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))

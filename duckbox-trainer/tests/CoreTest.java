@@ -181,6 +181,13 @@ public class CoreTest {
     check(logical.size() == 41);
     for (int i = 0; i < 41; i++) check(logical.contains(i));
     check(new Options().size == 13);
+    check(new com.google.gson.Gson().fromJson("{}", Options.class).cps == 15);
+    check(
+        Options.allowedCps(10)
+            && Options.allowedCps(13)
+            && Options.allowedCps(15)
+            && !Options.allowedCps(11));
+    check(Options.nextCps(10) == 13 && Options.nextCps(13) == 15 && Options.nextCps(15) == 10);
     check(new Options().x == -5 && new Options().y == 78 && new Options().z == 111);
     check(!new Options().autoBuildOnJoin);
     check(Options.nextSize(9) == 13 && Options.nextSize(13) == 17 && Options.nextSize(17) == 9);

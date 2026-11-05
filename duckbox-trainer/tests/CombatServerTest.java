@@ -1041,6 +1041,56 @@ public final class CombatServerTest {
     System.out.println(
         "PASS WEB RECOVERY/PACKET PHYSICS: bot mines its own webs; native packet0.2 moves0.09 when"
             + " doubled vs0.2 once; walls still collide");
+    options.gap = false;
+    options.retotem = false;
+    options.giro = false;
+    options.teia = false;
+    options.strafe = false;
+    options.tank = false;
+    Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+    bot.session = null;
+    ticks.setInt(server, 17000);
+    bot.tick();
+    bot.teleport(world, 0.5, 64, 0.5, Set.of(), 180, 0, false);
+    bot.onTeleportationDone();
+    bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    bot.setOnGround(true);
+    owner.teleport(world, 0.5, 64, 6.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    for (var mode : Options.Rules.values())
+      for (int rate : new int[] {10, 13, 15}) {
+        options.rules = mode;
+        options.cps = rate;
+        var selectedCps = new Session(owner, bot, options);
+        DuckBox.session = selectedCps;
+        int swingCount = 0;
+        float healthBefore = owner.getHealth() + owner.getAbsorptionAmount();
+        for (int n = 0; n < 40; n++) {
+          bot.handSwinging = false;
+          selectedCps.control();
+          if (bot.handSwinging) swingCount++;
+        }
+        if (swingCount != 2 * rate
+            || owner.getHealth() + owner.getAbsorptionAmount() != healthBefore)
+          throw new AssertionError(
+              "Selected CPS cadence/range: " + mode + " rate=" + rate + " count=" + swingCount);
+        options.cps = 13;
+        int switched = 0;
+        for (int n = 0; n < 20; n++) {
+          bot.handSwinging = false;
+          selectedCps.control();
+          if (bot.handSwinging) switched++;
+        }
+        if (switched != 13)
+          throw new AssertionError("Live CPS change must apply without catchup burst");
+        selectedCps.closed = true;
+      }
+    DuckBox.session = null;
+    options.rules = Options.Rules.NORMAL_SPAM;
+    options.cps = 15;
+    System.out.println(
+        "PASS CPS SELECTOR:10/13/15 rates in both modes, live changes,40tick counts, no damage"
+            + " at6blocks");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);
@@ -1141,6 +1191,27 @@ public final class CombatServerTest {
     System.out.println(
         "PASS CUSTOM MAP: floor -5/78/111, only9/13/17 bounds, no regeneration, custom"
             + " blocks/sign/inventory preserved");
+    DuckBox.setBotCps(owner, 13);
+    var savedCps =
+        com.google.gson.JsonParser.parseString(Files.readString(config))
+            .getAsJsonObject()
+            .getAsJsonObject("options")
+            .get("cps")
+            .getAsInt();
+    if (savedCps != 13
+        || !new Session(owner, bot, DuckBox.options).statusText().getString().contains("13 CPS"))
+      throw new AssertionError("CPS choice must persist and display");
+    for (int expected : new int[] {15, 10, 13}) {
+      DuckBox.control(owner, "cps");
+      if (DuckBox.options.cps != expected) throw new AssertionError("CPS cycle order");
+    }
+    try {
+      DuckBox.setBotCps(owner, 11);
+      throw new AssertionError("Invalid CPS accepted");
+    } catch (IllegalArgumentException expected) {
+    }
+    System.out.println(
+        "PASS CPS SETTINGS: saved JSON, actionbar value,10/13/15 cycle and invalid rates rejected");
     server.getPlayerManager().remove(bot);
     server.getPlayerManager().remove(owner);
     server.shutdown();

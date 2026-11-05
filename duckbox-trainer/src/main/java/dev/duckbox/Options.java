@@ -72,6 +72,16 @@ public final class Options {
       webRocket = true,
       tank = false;
   public int revision = 2, size = 13, webCooldown = 200;
+  public int cps = 15;
+
+  public static boolean allowedCps(int cps) {
+    return cps == 10 || cps == 13 || cps == 15;
+  }
+
+  public static int nextCps(int cps) {
+    return cps == 10 ? 13 : cps == 13 ? 15 : 10;
+  }
+
   public boolean initialized = false, built = false;
   public static final int ARENA_X = -5, ARENA_Y = 78, ARENA_Z = 111;
   public int x = ARENA_X, y = ARENA_Y, z = ARENA_Z;

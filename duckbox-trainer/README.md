@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.17-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.18-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.17 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.18 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -73,16 +73,16 @@ ao lado: use um local sem construcoes suas nesse volume.
 
 Afiacao54 permanece no preset. Os valores de dano sao modificadores: ataque
 base, encantamento, armadura e efeitos continuam calculados pelo Minecraft.
-Os dois modos usam15 tentativas de ataque por segundo a20TPS. No Normal Spam,
+Os dois modos usam a cadencia selecionada (10,13 ou15 CPS) a20TPS; o padrao e15. No Normal Spam,
 a tentativa so vira ataque se a recarga nativa estiver completa. O atributo
 +255 attack_speed da elytra e mantido e determina essa recarga com os demais
 atributos do kit. No Insta Kill permanece o sistema de spam anterior. Dano,
 invulnerabilidade entre golpes, alcance e mira continuam com as regras existentes.
-Ate6 blocos do alvo, o bot ja tenta os15 cliques e balanca a mao sem exigir
+Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca a mao sem exigir
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.17, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.18, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.17 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.18 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.17 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.18 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.17 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.18 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.17 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.18 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.17 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.18 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -344,3 +344,10 @@ Testes incluem combinacao real dos Mixins do Trainer e MouseTweaks, ponte
 de modo Spam/Insta e movimento nativo sem dupla lentidao. A sensacao de rede
 e o HUD ainda precisam de teste com cliente grafico. Atualize cliente e
 servidor privado juntos: o payload do treino ganhou o estado Insta Kill.
+
+CPS selecionavel: `/box cps 10`, `/box cps 13` ou `/box cps 15`; `/box cps`
+alterna entre os tres valores. O padrao continua15 e a escolha e salva por
+mundo. O lobby gerado tem um botao CPS DO BOT; no mapa personalizado use o
+comando ate vincular seus botoes. A mudanca vale imediatamente, inclusive
+durante o treino, sem rajada acumulada. Aplica aos dois modos; Spam continua
+respeitando a recarga nativa e o alcance do dano nao e alterado.

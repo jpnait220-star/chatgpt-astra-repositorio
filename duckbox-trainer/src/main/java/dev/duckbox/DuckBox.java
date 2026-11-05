@@ -92,6 +92,7 @@ public final class DuckBox implements ModInitializer {
           restore(handler.player);
           syncCosmetics();
           Arena.updateRulesLabel(handler.player.getServerWorld(), options);
+          Arena.ensureCpsControl(handler.player.getServerWorld(), options);
           if (options.autoBuildOnJoin && !options.built && !Arena.building()) {
             options.x = Options.ARENA_X;
             options.y = Options.ARENA_Y;
@@ -193,6 +194,24 @@ public final class DuckBox implements ModInitializer {
                                                   save();
                                                   say(p, "Regras: " + options.rules);
                                                 }))))
+                    .then(
+                        literal("cps")
+                            .executes(c -> run(c.getSource(), p -> control(p, "cps")))
+                            .then(
+                                argument("valor", IntegerArgumentType.integer(10, 15))
+                                    .suggests(
+                                        (c, b) ->
+                                            CommandSource.suggestMatching(
+                                                List.of("10", "13", "15"), b))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p ->
+                                                    setBotCps(
+                                                        p,
+                                                        IntegerArgumentType.getInteger(
+                                                            c, "valor"))))))
                     .then(
                         literal("giro")
                             .then(
@@ -540,6 +559,7 @@ public final class DuckBox implements ModInitializer {
         save();
         say(p, "Modo: " + (options.tank ? "TANK (o bot so tanka)" : "DUEL (combate)"));
       }
+      case "cps" -> setBotCps(p, Options.nextCps(options.cps));
       case "giro_nivel" -> {
         options.spin = Options.SpinLevel.values()[(options.spin.ordinal() + 1) % 4];
         save();
@@ -584,6 +604,14 @@ public final class DuckBox implements ModInitializer {
 
   public static ServerWorld world() {
     return server.getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(options.dimension)));
+  }
+
+  public static void setBotCps(ServerPlayerEntity p, int cps) {
+    if (!Options.allowedCps(cps)) throw new IllegalArgumentException("Escolha 10, 13 ou 15 CPS.");
+    options.cps = cps;
+    Arena.updateCpsLabel(p.getServerWorld(), options);
+    save();
+    say(p, "CPS do bot: " + cps);
   }
 
   public static void useCustomMap(ServerPlayerEntity p) {
@@ -701,6 +729,7 @@ public final class DuckBox implements ModInitializer {
       if (options.rules == null) options.rules = Options.Rules.NORMAL_SPAM;
       if (options.spin == null) options.spin = Options.SpinLevel.MEDIO;
       options.size = Options.allowedSize(options.size);
+      if (!Options.allowedCps(options.cps)) options.cps = 15;
       if (!disk.has("arenaPositionRevision")) {
         if (options.x != Options.ARENA_X
             || options.y != Options.ARENA_Y

@@ -31,7 +31,8 @@ public final class Arena {
     "foguete_teia",
     "tamanho",
     "giro_nivel",
-    "regras"
+    "regras",
+    "cps"
   };
 
   public static void reset() {
@@ -215,6 +216,37 @@ public final class Arena {
     updateModeLabel(buildingWorld, o);
     updateRulesLabel(buildingWorld, o);
     updateSpinLabel(buildingWorld, o);
+    updateCpsLabel(buildingWorld, o);
+  }
+
+  public static void updateCpsLabel(ServerWorld w, Options o) {
+    if (w == null
+        || o.customMap
+        || !w.getRegistryKey().getValue().toString().equals(o.dimension)
+        || (!o.built && w != buildingWorld)) return;
+    sign(
+        w,
+        new BlockPos(o.x - 23, o.y + 1, o.z + 9),
+        "CPS DO BOT",
+        Integer.toString(o.cps),
+        "10 / 13 / 15",
+        "Clique no botao");
+  }
+
+  public static void ensureCpsControl(ServerWorld w, Options o) {
+    if (w == null
+        || o.customMap
+        || !o.built
+        || !w.getRegistryKey().getValue().toString().equals(o.dimension)) return;
+    BlockPos button = new BlockPos(o.x - 23, o.y + 1, o.z + 8), label = button.south();
+    if (w.getBlockState(button).isAir()
+        && w.getBlockState(label).isAir()
+        && w.getBlockState(button.down()).isSolidBlock(w, button.down())) {
+      w.setBlockState(
+          button, Blocks.STONE_BUTTON.getDefaultState().with(ButtonBlock.FACE, BlockFace.FLOOR), 3);
+      controls.put(button, "cps");
+      updateCpsLabel(w, o);
+    }
   }
 
   public static void updateSpinLabel(ServerWorld w, Options o) {
