@@ -419,6 +419,61 @@ public final class CombatServerTest {
             + " rocket use");
     DuckBox.session.closed = true;
     DuckBox.session = null;
+    options.tank = true;
+    options.gap = true;
+    options.giro = true;
+    options.retotem = false;
+    owner.teleport(world, 4.5, 64, 4.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, 0.5, 68, 0.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    bot.setOnGround(false);
+    bot.startGliding();
+    bot.clearStatusEffects();
+    bot.setHealth(bot.getMaxHealth());
+    bot.setAbsorptionAmount(0);
+    bot.getInventory()
+        .setStack(
+            2,
+            new net.minecraft.item.ItemStack(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE, 32));
+    DuckBox.session = new Session(owner, bot, options);
+    var groundAt = Session.class.getDeclaredField("tankGroundAt");
+    groundAt.setAccessible(true);
+    groundAt.setInt(DuckBox.session, 0);
+    boolean landedForGap = false, ateGroundGap = false, resumedFlight = false;
+    float tankOwnerHealth = owner.getHealth();
+    for (int n = 0; n < 150; n++) {
+      ticks.setInt(server, 6000 + n);
+      bot.tick();
+      if (bot.isUsingItem()
+          && bot.getActiveItem().isOf(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE)) {
+        if (!bot.isOnGround()) throw new AssertionError("Tank ground gap started before landing");
+        landedForGap = true;
+      }
+      if (bot.getInventory().getStack(2).getCount() == 31) ateGroundGap = true;
+      if (ateGroundGap && bot.isGliding()) {
+        resumedFlight = true;
+        break;
+      }
+    }
+    if (!landedForGap || !ateGroundGap || !resumedFlight || owner.getHealth() != tankOwnerHealth)
+      throw new AssertionError(
+          "Tank must land, eat one real apple, resume flight without attacking: "
+              + landedForGap
+              + "/"
+              + ateGroundGap
+              + "/"
+              + resumedFlight
+              + " pos="
+              + bot.getPos());
+    DuckBox.session.closed = true;
+    DuckBox.session = null;
+    options.tank = false;
+    options.gap = false;
+    System.out.println(
+        "PASS REAL TANK CYCLE: descent from flight, grounded consumption of one apple, return to"
+            + " elytra and no attacks");
     // A bot has no client loading ACK: test receiving real player attacks after a fresh load.
     bot.session = null;
     bot.setLoaded(false);

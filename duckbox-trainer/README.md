@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.8-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.9-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.8 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.9 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -77,7 +77,7 @@ A cadencia do Normal Spam e8 CPS; Insta Kill usa15 CPS (a20TPS), em todas
 as dificuldades. O set mantem a velocidade de ataque alta para spam sem
 precisar carregar o golpe, como no combate1.8. Nao ignora invulnerabilidade entre danos nem alcance.
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.8, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.9, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -134,6 +134,11 @@ para adicionar/editar nosso modificador daquele slot. `attack_damage` e dano;
 ## Gap, giro e foguete
 
 - Conforme a vida e a situacao, o bot tenta comer uma ou duas macas reais.
+- Em Tank, alterna evasao aerea com pausas de gap no chao. Nessas pausas,
+  interrompe o voo, pousa, come uma maca real sem pular e depois retoma o voo.
+  Tambem programa uma dessas pausas a cada8..16 segundos de treino; precisa
+  das habilidades gap/giro e dos respectivos itens para comer/voltar a voar.
+  Dano repetido pode interromper a recuperacao para reagir.
 - Parte das tentativas inclui decolar e buscar uma quina alta, perto do teto;
   as demais podem ocorrer no chao. Precisa de elytra/foguetes no kit e giro ligado.
 - Dano repetido, inclusive na absorcao, interrompe a tentativa para retomar a luta.

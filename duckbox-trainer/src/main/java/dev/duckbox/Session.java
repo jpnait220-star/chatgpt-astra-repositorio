@@ -37,6 +37,8 @@ public final class Session {
   private int side = 1, damageCount, gapsLeft, healingStartedAt, appleCountBefore, escapeUntil;
   private float lastHealth, fullHealth;
   private boolean healing, escaping, airGap, strafeActive;
+  private boolean groundRecovery, landingForGap;
+  private int tankGroundAt = 160, landingUntil;
 
   private enum WebRoute {
     NONE,
@@ -230,17 +232,20 @@ public final class Session {
     boolean otherEating =
         owner.isUsingItem()
             && owner.getActiveItem().contains(net.minecraft.component.DataComponentTypes.FOOD);
+    boolean tankGroundDue = o.tank && t >= tankGroundAt;
     if (!healing
         && !escaping
+        && !landingForGap
         && gapsLeft == 0
         && o.gap
         && t > gapWait
-        && health < bot.getMaxHealth() - 4
+        && (health < bot.getMaxHealth() - 4 || tankGroundDue)
         && (behind || otherEating || o.tank || health < bot.getMaxHealth() * 0.55)
         && apples() > 0) {
-      gapsLeft = health < bot.getMaxHealth() * 0.65 ? 2 : 1;
+      groundRecovery = o.tank && (tankGroundDue || random.nextDouble() < 0.40);
+      gapsLeft = groundRecovery ? 1 : health < bot.getMaxHealth() * 0.65 ? 2 : 1;
       damageCount = 0;
-      airGap = o.giro && random.nextDouble() < 0.65;
+      airGap = !groundRecovery && o.giro && random.nextDouble() < 0.65;
       double radius = o.size / 2.0 - 1.8;
       recoveryPoint =
           new Vec3d(
@@ -249,9 +254,19 @@ public final class Session {
               o.z + (random.nextBoolean() ? radius : -radius));
       escaping = airGap;
       escapeUntil = t + 26;
-      if (!escaping) startApple(t);
+      landingForGap = groundRecovery;
+      landingUntil = t + 100;
+      if (!escaping && !landingForGap) startApple(t);
     }
-    if ((healing || escaping) && recoveryPoint != null) {
+    if (landingForGap) {
+      bot.stopGliding();
+      bot.setSneaking(false);
+      if (bot.isOnGround()) {
+        landingForGap = false;
+        startApple(t);
+      } else if (t >= landingUntil) endRecovery(t, 40);
+    }
+    if ((healing || escaping || landingForGap) && recoveryPoint != null) {
       if (recoveryLastPos != null && bot.getPos().squaredDistanceTo(recoveryLastPos) < 0.012)
         recoveryStuckTicks++;
       else recoveryStuckTicks = 0;
@@ -264,7 +279,7 @@ public final class Session {
         recoveryPoint =
             new Vec3d(
                 o.x - Math.signum(bot.getX() - o.x) * Math.max(1, edge - 1.0),
-                Math.min(bot.getY() + 0.4, o.y + Arena.HEIGHT - 2),
+                groundRecovery ? o.y + 1.2 : Math.min(bot.getY() + 0.4, o.y + Arena.HEIGHT - 2),
                 o.z - Math.signum(bot.getZ() - o.z) * Math.max(1, edge - 1.0));
         recoveryStuckTicks = 0;
         if (escaping && t >= escapeUntil) {
@@ -298,8 +313,13 @@ public final class Session {
       aimZ = point.z + random.nextGaussian() * error;
     }
     Vec3d aim = new Vec3d(aimX, aimY, aimZ);
-    if (healing || escaping) {
-      phase = escaping ? "Buscando quina no alto" : "Recuperando: " + gapsLeft + " gap";
+    if (healing || escaping || landingForGap) {
+      phase =
+          landingForGap
+              ? "Tank / descendo para gap"
+              : escaping
+                  ? "Buscando quina no alto"
+                  : groundRecovery ? "Tank / gap no chao" : "Recuperando: " + gapsLeft + " gap";
       aim = recoveryPoint;
     } else if (o.tank) {
       phase = "Tank / evasao";
@@ -361,10 +381,11 @@ public final class Session {
     if (o.strafe && !healing && !escaping && !elevatedWeb && strafeActive) bot.sidewaysSpeed = side;
     if (o.wtap && !escaping && owner.getY() > bot.getY() + 1 && dist < 12 && t % 18 < 3)
       bot.forwardSpeed = 0;
-    if (bot.isOnGround() && t >= jumpAt) {
+    if (!groundRecovery && bot.isOnGround() && t >= jumpAt) {
       bot.jump();
       jumpAt = t + 8 + random.nextInt(4);
-    } else if (!bot.isOnGround()
+    } else if (!groundRecovery
+        && !bot.isOnGround()
         && !bot.isGliding()
         && !(elevatedWeb && webRoute == WebRoute.TOWER)
         && bot.getVelocity().y > -0.6
@@ -463,6 +484,9 @@ public final class Session {
     bot.stopUsingItem();
     healing = false;
     escaping = false;
+    landingForGap = false;
+    if (groundRecovery) tankGroundAt = t + 160 + random.nextInt(161);
+    groundRecovery = false;
     gapsLeft = 0;
     gapWait = t + pause;
     selectSword();
