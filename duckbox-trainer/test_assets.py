@@ -4,7 +4,7 @@ from zipfile import ZipFile
 import hashlib,struct,sys,json
 B=Path(__file__).parent
 assert len(sys.argv)==2,'Usage: python test_assets.py corrected-pack.zip'
-with ZipFile(sys.argv[1]) as original, ZipFile(B/'dist/DuckBoxTrainer-1.21.4-0.3.24-alpha.jar') as mod:
+with ZipFile(sys.argv[1]) as original, ZipFile(B/'dist/DuckBoxTrainer-1.21.4-0.3.25-alpha.jar') as mod:
  mapping={n:Path(n).stem for n in original.namelist() if n.startswith(('Icones/','Kits/')) and n.endswith('.png')}
  for row in range(1,3):
   for col in range(1,4):mapping[f'START_3x2/start_linha{row}_coluna{col}.png']=f'start_{(row-1)*3+col}_'+('top_' if row==1 else 'bottom_')+['left','center','right'][col-1]

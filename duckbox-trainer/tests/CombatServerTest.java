@@ -437,10 +437,10 @@ public final class CombatServerTest {
               + owner.getPos());
     world.setBlockState(new BlockPos(0, 65, -1), Blocks.AIR.getDefaultState(), 3);
     world.setBlockState(BlockPos.ofFloored(owner.getEyePos()), Blocks.AIR.getDefaultState(), 3);
-    // Full AI/physics route, not just a direct placement helper: black wool must become a tower.
+    // Autonomous combat route: no forced AI state; approach from six blocks away.
     owner.teleport(world, 0.5, 68, 0.5, Set.of(), 0, 0, false);
     owner.onTeleportationDone();
-    bot.teleport(world, 1.5, 64, 0.5, Set.of(), 90, 0, false);
+    bot.teleport(world, 6.5, 64, 0.5, Set.of(), 90, 0, false);
     bot.onTeleportationDone();
     bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
     bot.setOnGround(true);
@@ -452,16 +452,11 @@ public final class CombatServerTest {
     world.setBlockState(new BlockPos(0, 69, 0), Blocks.COBWEB.getDefaultState(), 3);
     options.gap = false;
     options.retotem = false;
-    options.giro = false;
+    options.giro = true;
+    options.spin = Options.SpinLevel.EXTREMO;
+    options.strafe = true;
     options.teia = false;
     DuckBox.session = new Session(owner, bot, options);
-    routeField.set(DuckBox.session, java.lang.Enum.valueOf((Class) routeField.getType(), "TOWER"));
-    var routeTargetField = Session.class.getDeclaredField("routeTarget");
-    routeTargetField.setAccessible(true);
-    routeTargetField.set(DuckBox.session, new BlockPos(0, 69, 0));
-    var routeUntilField = Session.class.getDeclaredField("routeUntil");
-    routeUntilField.setAccessible(true);
-    routeUntilField.setInt(DuckBox.session, 10000);
     boolean climbed = false, brokeAfterTower = false;
     for (int n = 0; n < 300; n++) {
       ticks.setInt(server, 3000 + n);
@@ -2064,6 +2059,79 @@ public final class CombatServerTest {
     System.out.println(
         "PASS COMBAT STALL REGRESSIONS: bounded gap episode, guaranteed combat period, reserve"
             + " sword recovery and full refill with displaced weapons preserved");
+    // Speed fairness copies strength, duration and expiration without replenishing potions.
+    var fairOptions = new Options();
+    fairOptions.x = 0; fairOptions.y = 63; fairOptions.z = 0;
+    var fairSession = new Session(owner, tacticBot, fairOptions);
+    owner.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+    tacticBot.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
+        net.minecraft.entity.effect.StatusEffects.SPEED, 9000, 3));
+    fairSession.maintainRules();
+    if (tacticBot.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED))
+      throw new AssertionError("Bot must not keep unmatched speed");
+    owner.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
+        net.minecraft.entity.effect.StatusEffects.SPEED, 1234, 1));
+    fairSession.maintainRules();
+    var matchedSpeed = tacticBot.getStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+    if (matchedSpeed == null || matchedSpeed.getAmplifier() != 1 || matchedSpeed.getDuration() != 1234)
+      throw new AssertionError("Speed must match player strength and remaining time");
+    owner.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+    owner.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
+        net.minecraft.entity.effect.StatusEffects.SPEED, 120, 0));
+    fairSession.maintainRules();
+    matchedSpeed = tacticBot.getStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+    if (matchedSpeed.getAmplifier() != 0 || matchedSpeed.getDuration() != 120)
+      throw new AssertionError("Replacing player speed with weaker/shorter effect must replace bot effect too");
+    owner.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+    fairSession.maintainRules();
+    if (tacticBot.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED))
+      throw new AssertionError("Milk, totem or expiration must remove matched speed");
+
+    // Real survival mining with reserve shears: wool is faster; cobweb respects native tool speed.
+    owner.teleport(world, 3.5, 64, .5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    tacticBot.teleport(world, .5, 64, .5, Set.of(), -90, 0, false);
+    tacticBot.onTeleportationDone();
+    tacticBot.stopGliding();
+    tacticBot.setPose(net.minecraft.entity.EntityPose.STANDING);
+    tacticBot.setOnGround(true);
+    tacticBot.clearStatusEffects();
+    tacticBot.changeGameMode(GameMode.SURVIVAL);
+    for (int slot = 0; slot < 36; slot++) tacticBot.getInventory().setStack(slot, net.minecraft.item.ItemStack.EMPTY);
+    tacticBot.getInventory().setStack(0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLDEN_SWORD));
+    tacticBot.getInventory().setStack(21, new net.minecraft.item.ItemStack(net.minecraft.item.Items.SHEARS));
+    var mineMethod = Session.class.getDeclaredMethod("breakTrainingBlock", BlockPos.class, String.class);
+    mineMethod.setAccessible(true);
+    for (var material : List.of(Blocks.BLACK_WOOL, Blocks.COBWEB)) {
+      BlockPos cutting = new BlockPos(1, 65, 0);
+      world.setBlockState(cutting, material.getDefaultState(), 3);
+      tacticBot.getInventory().selectedSlot = 0;
+      float swordDelta = world.getBlockState(cutting).calcBlockBreakingDelta(tacticBot, world, cutting);
+      var cutter = new Session(owner, tacticBot, fairOptions);
+      boolean selectedShears = false;
+      int startedCut = -1, endedCut = -1;
+      int tickBase = server.getTicks() + 100;
+      for (int step = 0; step < 150 && !world.getBlockState(cutting).isAir(); step++) {
+        ticks.setInt(server, tickBase + step);
+        tacticBot.interactionManager.update();
+        mineMethod.invoke(cutter, cutting, "Cortando");
+        if (tacticBot.getMainHandStack().isOf(net.minecraft.item.Items.SHEARS)) selectedShears = true;
+        if (startedCut < 0 && miningTarget.get(cutter) != null) startedCut = step;
+        if (world.getBlockState(cutting).isAir()) endedCut = step;
+      }
+      if (!selectedShears || endedCut < 0
+          || (startedCut >= 0 && (endedCut - startedCut + 1 > Math.ceil(1 / swordDelta) + 1
+              || material == Blocks.BLACK_WOOL && endedCut - startedCut + 1 >= Math.ceil(1 / swordDelta))))
+        throw new AssertionError("Reserve shears must mine wool faster and preserve native web tool speed: " + material);
+      boolean keptShears = false;
+      for (int slot = 0; slot < 36; slot++)
+        keptShears |= tacticBot.getInventory().getStack(slot).isOf(net.minecraft.item.Items.SHEARS);
+      if (!keptShears || !tacticBot.getMainHandStack().isOf(net.minecraft.item.Items.GOLDEN_SWORD))
+        throw new AssertionError("Mining must keep real shears and restore combat sword");
+    }
+    if ((boolean) mineMethod.invoke(fairSession, new BlockPos(0, 63, 0), "Invalid"))
+      throw new AssertionError("Shears must not permit mining arena structure");
+    System.out.println("PASS SHEARS/SPEED: real reserve shears mine wool faster and cut cobweb with native hardness, preserved tool and restored sword; matched speed strength, duration, downgrade and removal");
     server.getPlayerManager().remove(tacticBot);
     System.out.println(
         "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"

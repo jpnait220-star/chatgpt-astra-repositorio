@@ -63,7 +63,7 @@ public final class Session {
   }
 
   private WebRoute webRoute = WebRoute.NONE;
-  private BlockPos routeTarget, trappedHead;
+  private BlockPos routeTarget, trappedHead, towerColumn;
   private int routeUntil, headWebSince, cageIndex, cageAt;
   private int towerProgressAt, webRouteAttempts;
   private Vec3d recoveryLastPos;
@@ -193,7 +193,26 @@ public final class Session {
     } else if (countdownTicks % 20 == 0) showCount(Integer.toString(countdownTicks / 20));
   }
 
+  private void matchPlayerSpeed() {
+    var source = owner.getStatusEffect(StatusEffects.SPEED);
+    var current = bot.getStatusEffect(StatusEffects.SPEED);
+    if (source == null) {
+      if (current != null) bot.removeStatusEffect(StatusEffects.SPEED);
+    } else if (current == null
+        || source.getAmplifier() != current.getAmplifier()
+        || source.isInfinite() != current.isInfinite()
+        || Math.abs((long) source.getDuration() - current.getDuration()) > 1
+        || source.isAmbient() != current.isAmbient()
+        || source.shouldShowParticles() != current.shouldShowParticles()
+        || source.shouldShowIcon() != current.shouldShowIcon()) {
+      // Replace, rather than merge, so a weaker/shorter new effect also matches.
+      bot.removeStatusEffect(StatusEffects.SPEED);
+      bot.addStatusEffect(new StatusEffectInstance(source));
+    }
+  }
+
   public void maintainRules() {
+    matchPlayerSpeed();
     int amplifier = o.rules == Options.Rules.NORMAL_SPAM && o.resistance2 ? 1 : 0;
     for (var p : List.of(owner, bot)) {
       var effect = p.getStatusEffect(StatusEffects.RESISTANCE);
@@ -450,12 +469,16 @@ public final class Session {
     if (!elevatedWeb) {
       webRoute = WebRoute.NONE;
       routeTarget = null;
+      towerColumn = null;
     } else if (webRoute == WebRoute.NONE || !trapped.equals(routeTarget) || t >= routeUntil) {
       routeTarget = trapped;
       routeUntil = t + 140;
       webRoute = buildingSlot() < 0 || (webRouteAttempts++ & 1) != 0
           ? WebRoute.AIR : WebRoute.TOWER;
-      towerProgressAt = t;
+      towerColumn = webRoute == WebRoute.TOWER ? chooseTowerColumn() : null;
+      if (webRoute == WebRoute.TOWER && towerColumn == null) webRoute = WebRoute.AIR;
+      // Approaching the tower must not consume its placement timeout.
+      towerProgressAt = 0;
     }
     if (!healing && !escaping && !o.tank) {
       if (!elevatedWeb && cageHead(t)) return;
@@ -464,15 +487,20 @@ public final class Session {
           if (scaffold(t)) return;
           if (buildingSlot() < 0) webRoute = WebRoute.AIR;
         }
-        if (webRoute == WebRoute.TOWER) bot.stopGliding();
+        if (webRoute == WebRoute.TOWER) {
+          bot.stopGliding();
+          bot.setSneaking(false);
+          maneuverUntil = 0;
+        }
         aim =
             webRoute == WebRoute.TOWER && bot.getY() < owner.getY() - 0.6
-                ? new Vec3d(owner.getX(), bot.getEyeY(), owner.getZ())
+                ? new Vec3d(towerColumn == null ? owner.getX() : towerColumn.getX() + .5,
+                    bot.getEyeY(), towerColumn == null ? owner.getZ() : towerColumn.getZ() + .5)
                 : owner.getEyePos();
         phase = webRoute == WebRoute.TOWER ? "Aproximando para torre" : "Voando ate o alvo na teia";
       }
       if (breakTargetWeb() || breakBlockingWool()) return;
-      if (headWeb() != null)
+      if (headWeb() != null && !(elevatedWeb && webRoute == WebRoute.TOWER))
         aim = owner.getPos().add(0, Math.min(0.18, owner.getHeight() * 0.35), 0);
     }
     if (o.tank && !healing && !escaping && !landingForGap && breakBlockingWool()) return;
@@ -484,11 +512,18 @@ public final class Session {
         healing && bot.isOnGround()
             ? 0.2f
             : healing || escaping || o.tank ? 1 : dist > 2.3 ? 1 : 0.15f;
+    if (elevatedWeb && webRoute == WebRoute.TOWER && towerColumn != null) {
+      double alignment = Math.hypot(bot.getX() - towerColumn.getX() - .5,
+          bot.getZ() - towerColumn.getZ() - .5);
+      bot.forwardSpeed = alignment < .8 ? .3f : 1;
+    }
     if (o.strafe && !healing && !escaping && !elevatedWeb && !feetTrappedTarget && strafeActive)
       bot.sidewaysSpeed = side;
     if (o.wtap && !escaping && owner.getY() > bot.getY() + 1 && dist < 12 && t % 18 < 3)
       bot.forwardSpeed = 0;
-    if (!groundRecovery && !(feetTrappedTarget && dist < 12) && bot.isOnGround() && t >= jumpAt) {
+    if (!groundRecovery && !(feetTrappedTarget && dist < 12)
+        && !(elevatedWeb && webRoute == WebRoute.TOWER)
+        && bot.isOnGround() && t >= jumpAt) {
       bot.jump();
       jumpAt = t + 8 + random.nextInt(4);
     } else if (!groundRecovery
@@ -900,6 +935,7 @@ public final class Session {
     webBreakProgress = 0;
     mineStopSent = false;
     mineReadyAt = now + 5;
+    selectSword();
   }
 
   private boolean breakTrainingBlock(BlockPos target, String label) {
@@ -942,8 +978,13 @@ public final class Session {
       webBreakProgress = 0;
       mineStopSent = false;
     }
-    if (!reachable) return false;
-    selectSword();
+    if (!reachable) {
+      selectSword();
+      return false;
+    }
+    int shears = find(Items.SHEARS, true);
+    if (shears >= 0) bot.getInventory().selectedSlot = shears;
+    else selectSword();
     bot.forwardSpeed = 0;
     bot.sidewaysSpeed = 0;
     look(Vec3d.ofCenter(target), o.difficulty.aimSpeed);
@@ -1096,9 +1137,41 @@ public final class Session {
     return false;
   }
 
+  private BlockPos chooseTowerColumn() {
+    BlockPos best = null;
+    double nearest = Double.MAX_VALUE;
+    // Stand beside the web, not underneath the opponent or inside its collision box.
+    for (Direction side : Direction.Type.HORIZONTAL) {
+      BlockPos candidate = owner.getBlockPos().offset(side).withY(o.y + 1);
+      if (!insideArena(candidate)) continue;
+      var world = bot.getServerWorld();
+      if (!world.getBlockState(candidate.down()).isSideSolidFullSquare(world, candidate.down(), Direction.UP))
+        continue;
+      boolean clear = true;
+      for (int y = candidate.getY(); y <= owner.getBlockY() + 1; y++) {
+        var state = world.getBlockState(candidate.withY(y));
+        if (!state.isAir() && !builtBlocks.containsKey(candidate.withY(y))) {
+          clear = false;
+          break;
+        }
+      }
+      double distance = bot.getPos().squaredDistanceTo(Vec3d.ofCenter(candidate));
+      if (clear && distance < nearest) {
+        best = candidate;
+        nearest = distance;
+      }
+    }
+    return best;
+  }
+
   private boolean scaffold(int t) {
     double dx = owner.getX() - bot.getX(), dz = owner.getZ() - bot.getZ();
-    if (dx * dx + dz * dz > 2.0 || (bot.isOnGround() && bot.getY() >= owner.getY() - 0.6))
+    if (towerColumn != null) {
+      dx = towerColumn.getX() + .5 - bot.getX();
+      dz = towerColumn.getZ() + .5 - bot.getZ();
+    }
+    if (dx * dx + dz * dz > (towerColumn == null ? 2.0 : .16)
+        || (bot.isOnGround() && bot.getY() >= owner.getY() - 0.6))
       return false;
     BlockPos place = bot.getBlockPos().down();
     if (place.getY() < o.y || place.getY() >= o.y + Arena.HEIGHT - 1) return false;
@@ -1114,6 +1187,7 @@ public final class Session {
     bot.setSneaking(false);
     bot.forwardSpeed = 0;
     bot.sidewaysSpeed = 0;
+    bot.setVelocity(new Vec3d(0, bot.getVelocity().y, 0));
     phase = "Subindo com blocos";
     if (bot.isOnGround()) bot.jump();
     if (t < buildAt || !bot.getServerWorld().getBlockState(place).isAir()) return true;

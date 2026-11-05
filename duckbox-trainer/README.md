@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.24-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.25-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.24 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.25 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   as configuracoes e os baus continuam salvos; use /box configurar para os controles.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.24, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.25, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.24 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.25 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.24 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.25 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.24 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.25 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.24 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.25 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.24 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.25 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -460,7 +460,7 @@ com botoes em `/box configurar` e comandos em chat/command block:
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
 
 
-## Alteracoes0.3.24
+## Alteracoes0.3.25
 
 - `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
   mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
@@ -528,7 +528,7 @@ no JSON como copia de seguranca. A partir dai, edicoes sao compartilhadas
 pelos dois modos e cada perfil continua independente dos demais.
 
 
-## Atualizacao0.3.24
+## Atualizacao0.3.25
 
 - `/spawn` retorna ao ponto salvo por `/box setspawn` (fallback **-146 65 93**).
   Ao terminar ou sair do x1, o inventario original e restaurado e o jogador
@@ -650,3 +650,20 @@ como material de construcao. Continua quebrando apenas la e teia.
   dos blocos que ja estao no mapa. Nao precisa recriar o mundo.
 - Bau de perfil amarelo/vermelho Mega Box, com o mesmo modelo de UV legado
   no item e no bloco colocado; perfis e inventarios existentes preservados.
+
+### Torre, tesoura e Speed
+
+O bot escolhe uma coluna livre ao lado do jogador na teia elevada, aproxima
+pelo chao sem o salto/giro do combate e alinha a torre antes de colocar os
+blocos. O tempo limite de construcao comeca na torre, nao durante a aproximacao.
+Usa blocos reais do inventario e continua alternando com a rota de voo.
+Nos perfis personalizados, mantenha la no kit para habilitar essa alternativa.
+
+Quando precisa quebrar la ou teia, procura tesoura tambem na reserva do
+inventario, usa a velocidade/durabilidade nativa da ferramenta e volta para
+a espada depois. Nao cria tesoura nem permite quebrar a estrutura da arena.
+
+Speed do jogador e espelhado no bot com a mesma forca e tempo restante,
+inclusive efeitos mais fracos/curtos substituindo os anteriores. Quando o
+jogador perde Speed (fim do tempo, leite, totem), o bot perde tambem. Nao
+renova a duracao da pocao nem muda a velocidade do jogador.
