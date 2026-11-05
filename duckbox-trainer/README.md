@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.25-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.26-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.25 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.26 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   as configuracoes e os baus continuam salvos; use /box configurar para os controles.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.25, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.26, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.25 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.26 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.25 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.26 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.25 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.26 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.25 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.26 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.25 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.26 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -460,7 +460,7 @@ com botoes em `/box configurar` e comandos em chat/command block:
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
 
 
-## Alteracoes0.3.25
+## Alteracoes0.3.26
 
 - `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
   mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
@@ -528,7 +528,7 @@ no JSON como copia de seguranca. A partir dai, edicoes sao compartilhadas
 pelos dois modos e cada perfil continua independente dos demais.
 
 
-## Atualizacao0.3.25
+## Atualizacao0.3.26
 
 - `/spawn` retorna ao ponto salvo por `/box setspawn` (fallback **-146 65 93**).
   Ao terminar ou sair do x1, o inventario original e restaurado e o jogador
@@ -584,7 +584,7 @@ clientes e servidor: foram adicionados payloads de baus e do NPC de lobby.
 
 ## Blocos com as texturas enviadas
 
-`/box blocos` abre um catalogo com24 blocos de painel. Clique para receber o
+`/box blocos` abre um catalogo com28 blocos de painel. Clique para receber o
 bloco. `/box bloco kit_1` entrega diretamente um modelo; o comando sugere
 os nomes disponiveis. Tambem pode usar `/give @s duckbox:painel_kit_1`.
 Os quatro kits sao paineis visuais; seu inventario continua configurado nos
@@ -663,7 +663,27 @@ Quando precisa quebrar la ou teia, procura tesoura tambem na reserva do
 inventario, usa a velocidade/durabilidade nativa da ferramenta e volta para
 a espada depois. Nao cria tesoura nem permite quebrar a estrutura da arena.
 
-Speed do jogador e espelhado no bot com a mesma forca e tempo restante,
-inclusive efeitos mais fracos/curtos substituindo os anteriores. Quando o
-jogador perde Speed (fim do tempo, leite, totem), o bot perde tambem. Nao
-renova a duracao da pocao nem muda a velocidade do jogador.
+O bot usa as proprias pocoes de Speed do inventario, priorizando a de maior
+forca (SpeedII antes deI), apenas quando estiver sem Speed. Splash/lingering
+sao lancadas para baixo por uso nativo do item, com uma agachadinha. Pocoes
+bebiveis sao consumidas normalmente. Busca tambem na reserva, conserva os
+itens deslocados e aguarda o efeito da pocao lancada antes de tentar outra.
+Nao vincula forca/duracao aos efeitos do jogador e nao cria pocoes.
+
+### Gap do High e Expert
+
+Com Giro ligado, as recuperacoes elegiveis mantem65% de chance de escolher
+comer voando. High/Expert aguardam a decolagem nessa escolha, mudam a rota
+para sair da mira e usam foguetes tambem enquanto comem, preservando a pausa
+para voltar ao combate. Nao criam elytra, foguetes ou macas: usam o kit.
+Se a decolagem estiver impedida, existe tempo limite para nao travar a IA.
+Os pousos programados do modo Tank continuam disponiveis.
+
+### Blocos de dificuldade
+
+`/box blocos` tem28 paineis e quatro fileiras. Os novos modelos sao
+`/box bloco easy`, `/box bloco hard`, `/box bloco harder` e
+`/box bloco insane_feature`. Sao blocos decorativos para seu mapa; vincule
+seus botoes aos comandos de dificuldade como antes. O fundo transparente
+e exibido sobre branco no bloco e no item. Os PNGs permanecem originais
+e nao entram no atlas de blocos. Os demais24paineis sao preservados.

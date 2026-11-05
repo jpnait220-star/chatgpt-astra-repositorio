@@ -193,26 +193,55 @@ public final class Session {
     } else if (countdownTicks % 20 == 0) showCount(Integer.toString(countdownTicks / 20));
   }
 
-  private void matchPlayerSpeed() {
-    var source = owner.getStatusEffect(StatusEffects.SPEED);
-    var current = bot.getStatusEffect(StatusEffects.SPEED);
-    if (source == null) {
-      if (current != null) bot.removeStatusEffect(StatusEffects.SPEED);
-    } else if (current == null
-        || source.getAmplifier() != current.getAmplifier()
-        || source.isInfinite() != current.isInfinite()
-        || Math.abs((long) source.getDuration() - current.getDuration()) > 1
-        || source.isAmbient() != current.isAmbient()
-        || source.shouldShowParticles() != current.shouldShowParticles()
-        || source.shouldShowIcon() != current.shouldShowIcon()) {
-      // Replace, rather than merge, so a weaker/shorter new effect also matches.
-      bot.removeStatusEffect(StatusEffects.SPEED);
-      bot.addStatusEffect(new StatusEffectInstance(source));
+  private int speedPotionAt, potionCrouchUntil;
+
+  private boolean useSpeedPotion(int t) {
+    if (t < speedPotionAt || bot.hasStatusEffect(StatusEffects.SPEED)) return false;
+    int chosen = -1, bestPower = -1, bestDuration = -1;
+    for (int i = 0; i < 36; i++) {
+      var stack = bot.getInventory().getStack(i);
+      if (!stack.isOf(Items.SPLASH_POTION) && !stack.isOf(Items.LINGERING_POTION)
+          && !stack.isOf(Items.POTION)) continue;
+      var contents = stack.get(net.minecraft.component.DataComponentTypes.POTION_CONTENTS);
+      if (contents == null) continue;
+      for (var effect : contents.getEffects()) {
+        if (!effect.getEffectType().equals(StatusEffects.SPEED)) continue;
+        if (effect.getAmplifier() > bestPower
+            || effect.getAmplifier() == bestPower && effect.getDuration() > bestDuration) {
+          chosen = i;
+          bestPower = effect.getAmplifier();
+          bestDuration = effect.getDuration();
+        }
+      }
     }
+    speedPotionAt = t + 20;
+    if (chosen < 0) return false;
+    if (healing || escaping || landingForGap) endRecovery(t, 30);
+    if (chosen >= 9) {
+      var displaced = bot.getInventory().getStack(4);
+      bot.getInventory().setStack(4, bot.getInventory().getStack(chosen));
+      bot.getInventory().setStack(chosen, displaced);
+      chosen = 4;
+    }
+    bot.getInventory().selectedSlot = chosen;
+    boolean drinking = bot.getMainHandStack().isOf(Items.POTION);
+    bot.setPitch(90);
+    bot.forwardSpeed = bot.sidewaysSpeed = 0;
+    var result = bot.getMainHandStack().use(bot.getServerWorld(), bot, Hand.MAIN_HAND);
+    if (!result.isAccepted()) {
+      selectSword();
+      return false;
+    }
+    bot.swingHand(Hand.MAIN_HAND);
+    potionCrouchUntil = t + 3;
+    bot.setSneaking(true);
+    heldUntil = t + (drinking ? Math.max(3, bot.getItemUseTimeLeft() + 1) : 3);
+    phase = drinking ? "Bebendo Speed" : "Potando Speed";
+    if (!drinking) selectSword();
+    return true;
   }
 
   public void maintainRules() {
-    matchPlayerSpeed();
     int amplifier = o.rules == Options.Rules.NORMAL_SPAM && o.resistance2 ? 1 : 0;
     for (var p : List.of(owner, bot)) {
       var effect = p.getStatusEffect(StatusEffects.RESISTANCE);
@@ -261,7 +290,7 @@ public final class Session {
     maintainRules();
     bot.forwardSpeed = 0;
     bot.sidewaysSpeed = 0;
-    bot.setSneaking(bot.isGliding());
+    bot.setSneaking(bot.isGliding() || t < potionCrouchUntil);
     fullHealth = Math.max(fullHealth, bot.getMaxHealth());
     double dist = bot.squaredDistanceTo(owner);
     float health = bot.getHealth();
@@ -289,6 +318,7 @@ public final class Session {
       heldUntil = 0;
       selectSword();
     }
+    if (useSpeedPotion(t)) return;
     if (Math.abs(owner.getX() - o.x) > o.size / 2.0 + 3
         || Math.abs(owner.getZ() - o.z) > o.size / 2.0 + 3
         || owner.getY() < o.y - 3
@@ -358,8 +388,9 @@ public final class Session {
               o.x + (random.nextBoolean() ? radius : -radius),
               o.y + (airGap ? Arena.HEIGHT - 1.6 : 1.2),
               o.z + (random.nextBoolean() ? radius : -radius));
+      if (sustainedAirGap()) recoveryPoint = flightGapPoint();
       escaping = airGap;
-      escapeUntil = t + 26;
+      escapeUntil = t + (sustainedAirGap() ? 40 : 26);
       landingForGap = groundRecovery;
       landingUntil = t + 100;
       if (!escaping && !landingForGap) startApple(t);
@@ -403,6 +434,8 @@ public final class Session {
       startApple(t);
     }
     settleGroundGap();
+    if (sustainedAirGap() && (healing || escaping) && t % 16 == 0)
+      recoveryPoint = flightGapPoint();
     if (t % d.reaction == 0) {
       Vec3d point =
           owner
@@ -536,6 +569,9 @@ public final class Session {
     // Match crouching to actual elytra flight, including the tick it starts.
     bot.setSneaking(bot.isGliding());
     if (escaping && bot.isGliding()) useRocket(t);
+    if (healing && sustainedAirGap() && bot.isGliding()
+        && bot.getRotationVec(1).dotProduct(recoveryPoint.subtract(bot.getEyePos()).normalize()) > .65
+        && clearPath(recoveryPoint)) useRocket(t);
     if (elevatedWeb
         && webRoute == WebRoute.AIR
         && !healing
@@ -611,8 +647,36 @@ public final class Session {
     return n;
   }
 
+  private boolean sustainedAirGap() {
+    return airGap && !groundRecovery
+        && (o.difficulty == Options.Difficulty.HIGH || o.difficulty == Options.Difficulty.EXPERT);
+  }
+
+  private Vec3d flightGapPoint() {
+    Vec3d away = bot.getPos().subtract(owner.getPos());
+    away = new Vec3d(away.x, 0, away.z);
+    if (away.lengthSquared() < .01) away = new Vec3d(1, 0, 0);
+    away = away.normalize();
+    Vec3d tangent = new Vec3d(-away.z * side, 0, away.x * side);
+    double height = MathHelper.clamp(bot.getY() + .8, o.y + 3.5, o.y + Arena.HEIGHT - 2);
+    Vec3d target = clamp(bot.getPos().add(tangent.multiply(4)).add(away.multiply(1.5)));
+    target = new Vec3d(target.x, height, target.z);
+    if (target.subtract(bot.getPos()).horizontalLengthSquared() < 2 || !clearPath(target)) {
+      side = -side;
+      target = clamp(bot.getPos().subtract(tangent.multiply(4)).add(away));
+      target = new Vec3d(target.x, height, target.z);
+    }
+    return target;
+  }
+
   private void settleGroundGap() {
     if (!healing || !bot.isOnGround() || groundRecovery) return;
+    if (sustainedAirGap() && clock < escapeUntil) {
+      bot.stopUsingItem();
+      healing = false;
+      escaping = true;
+      return;
+    }
     groundRecovery = true;
     airGap = false;
     escaping = false;
@@ -625,6 +689,15 @@ public final class Session {
   }
 
   private void startApple(int t) {
+    if (sustainedAirGap() && !bot.isGliding()) {
+      if (t < escapeUntil) {
+        escaping = true;
+        return;
+      }
+      // Missing/broken elytra or blocked takeoff must not leave the AI stuck.
+      airGap = false;
+      groundRecovery = true;
+    }
     int slot = find(Items.ENCHANTED_GOLDEN_APPLE, true);
     if (slot < 0) slot = find(Items.GOLDEN_APPLE, true);
     if (slot < 0) {

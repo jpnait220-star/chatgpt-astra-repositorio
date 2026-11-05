@@ -34,7 +34,11 @@ public final class MapPanels {
           "tamanho_da_box",
           "teia",
           "teia_no_pe",
-          "w_tap");
+          "w_tap",
+          "easy",
+          "hard",
+          "harder",
+          "insane_feature");
   public static final Map<String, MapPanelBlock> BLOCKS = new LinkedHashMap<>();
   public static BlockEntityType<MapPanelEntity> TYPE;
 

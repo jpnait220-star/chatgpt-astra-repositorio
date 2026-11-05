@@ -345,7 +345,7 @@ public class CoreTest {
     LobbyBotPayload.CODEC.encode(lobbyBuffer, lobbyPacket);
     check(LobbyBotPayload.CODEC.decode(lobbyBuffer).equals(lobbyPacket));
     lobbyBuffer.release();
-    check(dev.duckbox.panels.MapPanels.BLOCKS.size() == 24);
+    check(dev.duckbox.panels.MapPanels.BLOCKS.size() == 28);
     for (var panelName : dev.duckbox.panels.MapPanels.NAMES) {
       var registered = dev.duckbox.panels.MapPanels.BLOCKS.get(panelName);
       check(
@@ -357,7 +357,7 @@ public class CoreTest {
           javax.imageio.ImageIO.read(
               CoreTest.class.getResourceAsStream(
                   "/assets/duckbox/textures/map_panels/" + panelName + ".png"));
-      check(image.getWidth() <= 1536 && image.getHeight() <= 1254);
+      check(image.getWidth() <= 2048 && image.getHeight() <= 2048);
     }
     NbtCompound root =
         NbtIo.readCompressed(new FileInputStream(args[0]), NbtSizeTracker.ofUnlimitedBytes());

@@ -24,5 +24,9 @@
   "block.duckbox.painel_tamanho_da_box": "Painel: tamanho da box",
   "block.duckbox.painel_teia": "Painel: teia",
   "block.duckbox.painel_teia_no_pe": "Painel: teia no pe",
-  "block.duckbox.painel_w_tap": "Painel: w tap"
+  "block.duckbox.painel_w_tap": "Painel: w tap",
+  "block.duckbox.painel_easy": "Painel: Easy",
+  "block.duckbox.painel_hard": "Painel: Hard",
+  "block.duckbox.painel_harder": "Painel: Harder",
+  "block.duckbox.painel_insane_feature": "Painel: InsaneFeature"
 }

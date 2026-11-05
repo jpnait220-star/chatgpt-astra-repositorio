@@ -10,8 +10,8 @@ import net.minecraft.text.Text;
 
 public final class PanelMenu extends GenericContainerScreenHandler {
   private PanelMenu(int id, PlayerInventory inv, SimpleInventory contents) {
-    super(ScreenHandlerType.GENERIC_9X3, id, inv, contents, 3);
-    for (int i = 0; i < 27; i++) {
+    super(ScreenHandlerType.GENERIC_9X4, id, inv, contents, 4);
+    for (int i = 0; i < 36; i++) {
       Slot old = slots.get(i);
       Slot locked =
           new Slot(contents, i, old.x, old.y) {
@@ -29,7 +29,7 @@ public final class PanelMenu extends GenericContainerScreenHandler {
   }
 
   public static void open(ServerPlayerEntity p) {
-    var contents = new SimpleInventory(27);
+    var contents = new SimpleInventory(36);
     for (int i = 0; i < MapPanels.NAMES.size(); i++)
       contents.setStack(i, new ItemStack(MapPanels.BLOCKS.get(MapPanels.NAMES.get(i))));
     p.openHandledScreen(

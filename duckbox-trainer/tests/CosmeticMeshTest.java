@@ -118,11 +118,12 @@ public final class CosmeticMeshTest {
           0,
           false);
       float expectedHeight = name.equals("start_sheet") ? 2f / 3 : 1;
-      if (picture.vertices != 4 || Math.abs(picture.maxY - picture.minY - expectedHeight) > .001)
+      if (picture.vertices != (dev.duckbox.panels.PanelGraphics.whiteBackground(
+              net.minecraft.util.Identifier.of("duckbox", "textures/map_panels/" + name + ".png")) ? 8 : 4) || Math.abs(picture.maxY - picture.minY - expectedHeight) > .001)
         throw new AssertionError("Native panel item codec/quad geometry/aspect failed: " + name);
     }
     System.out.println(
-        "PASS PANEL ITEM MODELS:24 real native special-model JSON codecs, raw-texture quads, finite"
+        "PASS PANEL ITEM MODELS:28 real native special-model JSON codecs, raw-texture quads, finite"
             + " UVs and preserved3to2 sheet aspect without GPU");
     var legacyChest = LegacyChestModel.create();
     var chestVertices = new Recorder();

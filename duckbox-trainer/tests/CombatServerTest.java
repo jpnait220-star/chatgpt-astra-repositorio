@@ -1884,9 +1884,12 @@ public final class CombatServerTest {
       throw new AssertionError("Block catalog command did not open menu");
     if (owner.currentScreenHandler.getSlot(0).canTakeItems(owner))
       throw new AssertionError("Catalog templates must be locked");
+    if (owner.currentScreenHandler.getSlot(27).getStack().getItem()
+        != dev.duckbox.panels.MapPanels.BLOCKS.get("insane_feature").asItem())
+      throw new AssertionError("Fourth catalog row must include final difficulty panel");
     owner.closeHandledScreen();
     System.out.println(
-        "PASS MAP PANELS/HOLOGRAMS:24 native registered blocks, block entity world NBT, right-click"
+        "PASS MAP PANELS/HOLOGRAMS:28 native registered blocks, block entity world NBT, right-click"
             + " fixed text, two-click move preserves UUID/text, support removal and locked"
             + " catalog");
     BlockPos oldChestPos = new BlockPos(4, 64, 1);
@@ -2059,33 +2062,116 @@ public final class CombatServerTest {
     System.out.println(
         "PASS COMBAT STALL REGRESSIONS: bounded gap episode, guaranteed combat period, reserve"
             + " sword recovery and full refill with displaced weapons preserved");
-    // Speed fairness copies strength, duration and expiration without replenishing potions.
+    // Start actual recovery from the floor, controlling only the random draw.
+    var randomField = Session.class.getDeclaredField("random");
+    randomField.setAccessible(true);
+    for (int x = -8; x <= 8; x++) for (int z = -8; z <= 8; z++)
+      for (int y = 64; y < 63 + Arena.HEIGHT; y++)
+        world.setBlockState(new BlockPos(x, y, z), Blocks.AIR.getDefaultState(), 3);
+    for (var advanced : List.of(Options.Difficulty.HIGH, Options.Difficulty.EXPERT)) {
+      for (double draw : new double[] {.64, .66}) {
+        var flightOptions = new Options();
+        flightOptions.x = 0; flightOptions.y = 63; flightOptions.z = 0;
+        flightOptions.difficulty = advanced;
+        flightOptions.retotem = false; flightOptions.teia = false; flightOptions.strafe = false;
+        tacticBot.session = null;
+        Kits.give(tacticBot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+        ticks.setInt(server, server.getTicks() + 1);
+        tacticBot.tick(); // Apply equipment attributes before setting low health.
+        tacticBot.teleport(world, .5, 64, .5, Set.of(), 0, 0, false);
+        tacticBot.onTeleportationDone();
+        tacticBot.stopGliding(); tacticBot.stopUsingItem();
+        tacticBot.setPose(net.minecraft.entity.EntityPose.STANDING);
+        tacticBot.setOnGround(true); tacticBot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+        tacticBot.clearStatusEffects(); tacticBot.setHealth(35); tacticBot.setAbsorptionAmount(0);
+        owner.teleport(world, 4.5, 64, 4.5, Set.of(), 0, 0, false);
+        owner.onTeleportationDone(); owner.setHealth(owner.getMaxHealth());
+        var flightRecovery = new Session(owner, tacticBot, flightOptions);
+        randomField.set(flightRecovery, new java.util.Random(1) {
+          @Override public double nextDouble() { return draw; }
+        });
+        var airChoice = Session.class.getDeclaredField("airGap");
+        airChoice.setAccessible(true);
+        int initialGaps = tacticBot.getInventory().getStack(2).getCount();
+        boolean ateFlying = false, choseFlight = false;
+        int flightBase = server.getTicks() + 100;
+        for (int step = 0; step < (draw < .65 ? 100 : 1); step++) {
+          ticks.setInt(server, flightBase + step);
+          tacticBot.tick();
+          if (step == 0) {
+            choseFlight = airChoice.getBoolean(flightRecovery);
+            if (choseFlight != (draw < .65))
+              throw new AssertionError("High/Expert flight choice must use65percent threshold: draw=" + draw + " chosen=" + choseFlight + " health=" + tacticBot.getHealth() + "/" + tacticBot.getMaxHealth() + " pos=" + tacticBot.getPos());
+          }
+          if (tacticBot.isUsingItem() && tacticBot.getActiveItem().isOf(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE)) {
+            if (draw < .65 && tacticBot.isOnGround())
+              throw new AssertionError("Planned High/Expert air gap must not start eating on floor");
+            ateFlying |= tacticBot.isGliding();
+          }
+          for (var rocket : world.getEntitiesByType(net.minecraft.entity.EntityType.FIREWORK_ROCKET,
+              new net.minecraft.util.math.Box(-12, 60, -12, 12, 82, 12), e -> true)) rocket.tick();
+          if (tacticBot.getInventory().getStack(2).getCount() < initialGaps) break;
+        }
+        if (draw < .65 && (!ateFlying || tacticBot.getInventory().getStack(2).getCount() >= initialGaps))
+          throw new AssertionError("High/Expert must take off and consume a real gap while evading: " + advanced + " pos=" + tacticBot.getPos());
+        flightRecovery.closed = true; tacticBot.stopUsingItem();
+        for (var rocket : world.getEntitiesByType(net.minecraft.entity.EntityType.FIREWORK_ROCKET,
+            new net.minecraft.util.math.Box(-12, 60, -12, 12, 82, 12), e -> true)) rocket.discard();
+      }
+    }
+    System.out.println("PASS ADVANCED AIR GAP: High and Expert65percent boundary, real grounded takeoff, rocket physics and actual apple consumed while gliding");
+
+    // Real inventory potions, independent effects and strongest Speed priority.
     var fairOptions = new Options();
     fairOptions.x = 0; fairOptions.y = 63; fairOptions.z = 0;
     var fairSession = new Session(owner, tacticBot, fairOptions);
-    owner.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
-    tacticBot.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-        net.minecraft.entity.effect.StatusEffects.SPEED, 9000, 3));
-    fairSession.maintainRules();
-    if (tacticBot.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED))
-      throw new AssertionError("Bot must not keep unmatched speed");
-    owner.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-        net.minecraft.entity.effect.StatusEffects.SPEED, 1234, 1));
-    fairSession.maintainRules();
-    var matchedSpeed = tacticBot.getStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
-    if (matchedSpeed == null || matchedSpeed.getAmplifier() != 1 || matchedSpeed.getDuration() != 1234)
-      throw new AssertionError("Speed must match player strength and remaining time");
+    tacticBot.session = fairSession;
+    owner.teleport(world, 6.5, 64, 6.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    tacticBot.teleport(world, .5, 64, .5, Set.of(), 0, 0, false);
+    tacticBot.onTeleportationDone();
+    tacticBot.stopGliding(); tacticBot.stopUsingItem(); tacticBot.setOnGround(true);
+    tacticBot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    tacticBot.clearStatusEffects();
     owner.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
     owner.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-        net.minecraft.entity.effect.StatusEffects.SPEED, 120, 0));
-    fairSession.maintainRules();
-    matchedSpeed = tacticBot.getStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
-    if (matchedSpeed.getAmplifier() != 0 || matchedSpeed.getDuration() != 120)
-      throw new AssertionError("Replacing player speed with weaker/shorter effect must replace bot effect too");
-    owner.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+        net.minecraft.entity.effect.StatusEffects.SPEED, 1234, 0));
+    for (int slot = 0; slot < 36; slot++) tacticBot.getInventory().setStack(slot, net.minecraft.item.ItemStack.EMPTY);
+    tacticBot.getInventory().setStack(0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLDEN_SWORD));
+    var weakPotion = net.minecraft.component.type.PotionContentsComponent.createStack(
+        net.minecraft.item.Items.SPLASH_POTION, net.minecraft.potion.Potions.SWIFTNESS);
+    var strongPotion = net.minecraft.component.type.PotionContentsComponent.createStack(
+        net.minecraft.item.Items.SPLASH_POTION, net.minecraft.potion.Potions.STRONG_SWIFTNESS);
+    tacticBot.getInventory().setStack(5, weakPotion);
+    tacticBot.getInventory().setStack(22, strongPotion);
     fairSession.maintainRules();
     if (tacticBot.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED))
-      throw new AssertionError("Milk, totem or expiration must remove matched speed");
+      throw new AssertionError("Player Speed must not be mirrored to bot");
+    var potMethod = Session.class.getDeclaredMethod("useSpeedPotion", int.class);
+    potMethod.setAccessible(true);
+    if (!(boolean) potMethod.invoke(fairSession, 1) || !tacticBot.isSneaking()
+        || !tacticBot.getInventory().getStack(5).isOf(net.minecraft.item.Items.SPLASH_POTION)
+        || tacticBot.getInventory().getStack(4).getCount() != 0)
+      throw new AssertionError("Bot must use reserve SpeedII before hotbar SpeedI and crouch");
+    var thrownPotions = world.getEntitiesByType(net.minecraft.entity.EntityType.POTION,
+        new net.minecraft.util.math.Box(-8, 60, -8, 8, 80, 8), e -> true);
+    if (thrownPotions.size() != 1)
+      throw new AssertionError("Native splash potion projectile must actually spawn");
+    if ((boolean) potMethod.invoke(fairSession, 2))
+      throw new AssertionError("Must wait for thrown potion to land before using another");
+    for (int step = 0; step < 20; step++) for (var potion : thrownPotions)
+      if (!potion.isRemoved()) potion.tick();
+    var actualSpeed = tacticBot.getStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+    if (actualSpeed == null || actualSpeed.getAmplifier() != 1)
+      throw new AssertionError("Thrown native SpeedII must apply its real effect to bot");
+    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED).getAmplifier() != 0)
+      throw new AssertionError("Distant player must keep own independent effect");
+    if ((boolean) potMethod.invoke(fairSession, 30))
+      throw new AssertionError("Must not consume more potion while Speed is active");
+    tacticBot.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
+    if (!(boolean) potMethod.invoke(fairSession, 40))
+      throw new AssertionError("Bot must use remaining SpeedI after its effect is removed");
+    System.out.println("PASS REAL SPEED POTIONS: native splash projectile/effect, strongest reserve potion first, stock consumed, crouch, landing delay and no player effect synchronization");
 
     // Real survival mining with reserve shears: wool is faster; cobweb respects native tool speed.
     owner.teleport(world, 3.5, 64, .5, Set.of(), 0, 0, false);
@@ -2131,7 +2217,7 @@ public final class CombatServerTest {
     }
     if ((boolean) mineMethod.invoke(fairSession, new BlockPos(0, 63, 0), "Invalid"))
       throw new AssertionError("Shears must not permit mining arena structure");
-    System.out.println("PASS SHEARS/SPEED: real reserve shears mine wool faster and cut cobweb with native hardness, preserved tool and restored sword; matched speed strength, duration, downgrade and removal");
+    System.out.println("PASS SHEARS/SPEED: real reserve shears mine wool faster and cut cobweb with native hardness, preserved tool and restored sword; real independent inventory Speed potions");
     server.getPlayerManager().remove(tacticBot);
     System.out.println(
         "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"
