@@ -155,300 +155,305 @@ public final class DuckBox implements ModInitializer {
           return ActionResult.SUCCESS;
         });
     CommandRegistrationCallback.EVENT.register(
-        (dispatcher, registry, environment) ->
-            dispatcher.register(
-                literal("box")
-                    .requires(x -> x.hasPermissionLevel(2))
-                    .then(
-                        literal("golpes")
-                            .executes(
-                                c ->
-                                    run(
-                                        c.getSource(),
-                                        p -> {
-                                          if (session == null || session.owner != p)
-                                            throw new IllegalArgumentException(
-                                                "Inicie seu treino primeiro.");
-                                          say(p, session.bot.hitReport());
-                                        })))
-                    .then(
-                        literal("regras")
-                            .then(
-                                argument("tipo", StringArgumentType.word())
-                                    .suggests(
-                                        (c, b) ->
-                                            CommandSource.suggestMatching(
-                                                List.of("SPAM", "INSTA_KILL"), b))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  requireStopped();
-                                                  options.rules =
-                                                      Options.Rules.parse(
-                                                          StringArgumentType.getString(c, "tipo")
-                                                              .toUpperCase(Locale.ROOT));
-                                                  Arena.updateRulesLabel(
-                                                      p.getServerWorld(), options);
-                                                  save();
-                                                  say(p, "Regras: " + options.rules);
-                                                }))))
-                    .then(
-                        literal("cps")
-                            .executes(c -> run(c.getSource(), p -> control(p, "cps")))
-                            .then(
-                                argument("valor", IntegerArgumentType.integer(10, 15))
-                                    .suggests(
-                                        (c, b) ->
-                                            CommandSource.suggestMatching(
-                                                List.of("10", "13", "15"), b))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p ->
-                                                    setBotCps(
-                                                        p,
-                                                        IntegerArgumentType.getInteger(
-                                                            c, "valor"))))))
-                    .then(
-                        literal("giro")
-                            .then(
-                                argument("nivel", StringArgumentType.word())
-                                    .suggests(
-                                        (c, b) ->
-                                            CommandSource.suggestMatching(
-                                                List.of("BAIXO", "MEDIO", "ALTO", "EXTREMO"), b))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  options.spin =
-                                                      Options.SpinLevel.valueOf(
-                                                          StringArgumentType.getString(c, "nivel")
-                                                              .toUpperCase(Locale.ROOT));
-                                                  save();
-                                                  Arena.updateSpinLabel(world(), options);
-                                                  say(p, "Giro: " + options.spin);
-                                                }))))
-                    .then(
-                        literal("cosmetico")
-                            .then(
-                                argument("nome", StringArgumentType.word())
-                                    .suggests(
-                                        (c, b) ->
-                                            CommandSource.suggestMatching(
-                                                List.of("blood", "money", "oculos", "sapo"), b))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  switch (StringArgumentType.getString(c, "nome")) {
-                                                    case "blood" -> options.blood = !options.blood;
-                                                    case "money" -> options.money = !options.money;
-                                                    case "oculos" ->
-                                                        options.glasses = !options.glasses;
-                                                    case "sapo" -> options.frog = !options.frog;
-                                                    default ->
-                                                        throw new IllegalArgumentException(
-                                                            "Use blood, money, oculos ou sapo");
-                                                  }
-                                                  syncCosmetics();
-                                                  save();
-                                                  say(p, "Cosmetico atualizado.");
-                                                }))))));
-    CommandRegistrationCallback.EVENT.register(
-        (dispatcher, registry, environment) ->
-            dispatcher.register(
-                literal("box")
-                    .requires(s -> s.hasPermissionLevel(2))
+        (dispatcher, registry, environment) -> registerCommands(dispatcher));
+  }
+
+  public static void registerCommands(
+      com.mojang.brigadier.CommandDispatcher<ServerCommandSource> dispatcher) {
+    dispatcher.register(
+        literal("box")
+            .requires(x -> x.hasPermissionLevel(2))
+            .then(literal("configurar").executes(c -> run(c.getSource(), ConfigMenu::open)))
+            .then(
+                literal("golpes")
                     .executes(
                         c ->
                             run(
                                 c.getSource(),
                                 p -> {
-                                  say(
-                                      p,
-                                      "/box criar [9..41] | iniciar | parar | dificuldade"
-                                          + " LOW/MEDIUM/HIGH/EXPERT | habilidade nome | modo"
-                                          + " DUEL/TANK | kit salvar/padrao | atributo"
-                                          + " minecraft:max_health 100 HEAD");
-                                }))
-                    .then(literal("usar").executes(c -> run(c.getSource(), DuckBox::useCustomMap)))
+                                  if (session == null || session.owner != p)
+                                    throw new IllegalArgumentException(
+                                        "Inicie seu treino primeiro.");
+                                  say(p, session.bot.hitReport());
+                                })))
+            .then(
+                literal("regras")
                     .then(
-                        literal("criar")
-                            .executes(c -> run(c.getSource(), p -> Arena.create(p, options)))
-                            .then(
-                                argument("tamanho", IntegerArgumentType.integer(9, 17))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  requireStopped();
-                                                  int size =
-                                                      IntegerArgumentType.getInteger(c, "tamanho");
-                                                  if (size != 9 && size != 13 && size != 17)
-                                                    throw new IllegalArgumentException(
-                                                        "Tamanhos: 9, 13 ou 17.");
-                                                  options.size = size;
-                                                  Arena.create(p, options);
-                                                }))))
-                    .then(literal("iniciar").executes(c -> run(c.getSource(), DuckBox::start)))
+                        argument("tipo", StringArgumentType.word())
+                            .suggests(
+                                (c, b) ->
+                                    CommandSource.suggestMatching(List.of("SPAM", "INSTA_KILL"), b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          requireStopped();
+                                          options.rules =
+                                              Options.Rules.parse(
+                                                  StringArgumentType.getString(c, "tipo")
+                                                      .toUpperCase(Locale.ROOT));
+                                          Arena.updateRulesLabel(p.getServerWorld(), options);
+                                          save();
+                                          say(p, "Regras: " + options.rules);
+                                        }))))
+            .then(
+                literal("cps")
+                    .executes(c -> run(c.getSource(), p -> control(p, "cps")))
                     .then(
-                        literal("parar")
-                            .executes(c -> run(c.getSource(), p -> stop("Treino encerrado."))))
+                        argument("valor", IntegerArgumentType.integer(10, 15))
+                            .suggests(
+                                (c, b) ->
+                                    CommandSource.suggestMatching(List.of("10", "13", "15"), b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p ->
+                                            setBotCps(
+                                                p, IntegerArgumentType.getInteger(c, "valor"))))))
+            .then(
+                literal("giro")
                     .then(
-                        literal("dificuldade")
-                            .then(
-                                argument("nivel", StringArgumentType.word())
-                                    .suggests(
-                                        (c, b) ->
-                                            CommandSource.suggestMatching(
-                                                List.of("LOW", "MEDIUM", "HIGH", "EXPERT"), b))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  options.difficulty =
-                                                      Options.Difficulty.valueOf(
-                                                          StringArgumentType.getString(c, "nivel")
-                                                              .toUpperCase(Locale.ROOT));
-                                                  save();
-                                                  say(p, "Dificuldade: " + options.difficulty);
-                                                }))))
+                        argument("nivel", StringArgumentType.word())
+                            .suggests(
+                                (c, b) ->
+                                    CommandSource.suggestMatching(
+                                        List.of("BAIXO", "MEDIO", "ALTO", "EXTREMO"), b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          options.spin =
+                                              Options.SpinLevel.valueOf(
+                                                  StringArgumentType.getString(c, "nivel")
+                                                      .toUpperCase(Locale.ROOT));
+                                          save();
+                                          Arena.updateSpinLabel(world(), options);
+                                          say(p, "Giro: " + options.spin);
+                                        }))))
+            .then(
+                literal("cosmetico")
                     .then(
-                        literal("habilidade")
-                            .then(
-                                argument("nome", StringArgumentType.word())
-                                    .suggests(
-                                        (c, b) ->
-                                            CommandSource.suggestMatching(
-                                                List.of(
-                                                    "giro",
-                                                    "gap",
-                                                    "retotem",
-                                                    "teia",
-                                                    "wtap",
-                                                    "strafe",
-                                                    "foguete_teia"),
-                                                b))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  String key =
-                                                      StringArgumentType.getString(c, "nome");
-                                                  say(p, key + ": " + options.toggle(key));
-                                                  save();
-                                                }))))
+                        argument("nome", StringArgumentType.word())
+                            .suggests(
+                                (c, b) ->
+                                    CommandSource.suggestMatching(
+                                        List.of("blood", "money", "oculos", "sapo"), b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          switch (StringArgumentType.getString(c, "nome")) {
+                                            case "blood" -> options.blood = !options.blood;
+                                            case "money" -> options.money = !options.money;
+                                            case "oculos" -> options.glasses = !options.glasses;
+                                            case "sapo" -> options.frog = !options.frog;
+                                            default ->
+                                                throw new IllegalArgumentException(
+                                                    "Use blood, money, oculos ou sapo");
+                                          }
+                                          syncCosmetics();
+                                          save();
+                                          say(p, "Cosmetico atualizado.");
+                                        })))));
+    dispatcher.register(
+        literal("box")
+            .requires(s -> s.hasPermissionLevel(2))
+            .executes(
+                c ->
+                    run(
+                        c.getSource(),
+                        p -> {
+                          say(
+                              p,
+                              "/box configurar | criar [9/13/17] | usar | iniciar | parar | cps"
+                                  + " 10/13/15 | dificuldade LOW/MEDIUM/HIGH/EXPERT | habilidade"
+                                  + " nome | modo DUEL/TANK | kit salvar/padrao | atributo"
+                                  + " minecraft:max_health 100 HEAD");
+                        }))
+            .then(literal("usar").executes(c -> run(c.getSource(), DuckBox::useCustomMap)))
+            .then(
+                literal("criar")
+                    .executes(c -> run(c.getSource(), p -> Arena.create(p, options)))
                     .then(
-                        literal("modo")
-                            .then(
-                                argument("tipo", StringArgumentType.word())
-                                    .suggests(
-                                        (c, b) ->
-                                            CommandSource.suggestMatching(
-                                                List.of("DUEL", "TANK"), b))
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  String mode =
-                                                      StringArgumentType.getString(c, "tipo");
-                                                  if (!mode.equalsIgnoreCase("TANK")
-                                                      && !mode.equalsIgnoreCase("DUEL"))
-                                                    throw new IllegalArgumentException(
-                                                        "Use DUEL ou TANK.");
-                                                  options.tank = mode.equalsIgnoreCase("TANK");
-                                                  save();
-                                                  say(p, "Modo: " + mode);
-                                                }))))
+                        argument("tamanho", IntegerArgumentType.integer(9, 17))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          requireStopped();
+                                          int size = IntegerArgumentType.getInteger(c, "tamanho");
+                                          if (size != 9 && size != 13 && size != 17)
+                                            throw new IllegalArgumentException(
+                                                "Tamanhos: 9, 13 ou 17.");
+                                          options.size = size;
+                                          Arena.create(p, options);
+                                        }))))
+            .then(literal("iniciar").executes(c -> run(c.getSource(), DuckBox::start)))
+            .then(
+                literal("parar").executes(c -> run(c.getSource(), p -> stop("Treino encerrado."))))
+            .then(
+                literal("dificuldade")
                     .then(
-                        literal("kit")
-                            .then(
-                                literal("abrir").executes(c -> run(c.getSource(), KitEditor::open)))
-                            .then(
-                                literal("salvar")
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  requireStopped();
-                                                  storeKit(p, Kits.capture(p));
-                                                  save();
-                                                  say(
-                                                      p,
-                                                      "Kit salvo. Jogador e bot receberao copias"
-                                                          + " iguais.");
-                                                })))
-                            .then(
-                                literal("padrao")
-                                    .executes(
-                                        c ->
-                                            run(
-                                                c.getSource(),
-                                                p -> {
-                                                  requireStopped();
-                                                  if (disk.has("kits"))
-                                                    disk.getAsJsonObject("kits")
-                                                        .remove(options.rules.name());
-                                                  disk.remove("kit");
-                                                  save();
-                                                  say(p, "Kit padrao selecionado.");
-                                                }))))
+                        argument("nivel", StringArgumentType.word())
+                            .suggests(
+                                (c, b) ->
+                                    CommandSource.suggestMatching(
+                                        List.of("LOW", "MEDIUM", "HIGH", "EXPERT"), b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          options.difficulty =
+                                              Options.Difficulty.valueOf(
+                                                  StringArgumentType.getString(c, "nivel")
+                                                      .toUpperCase(Locale.ROOT));
+                                          save();
+                                          say(p, "Dificuldade: " + options.difficulty);
+                                        }))))
+            .then(
+                literal("habilidade")
                     .then(
-                        literal("atributo")
+                        argument("nome", StringArgumentType.word())
+                            .suggests(
+                                (c, b) ->
+                                    CommandSource.suggestMatching(
+                                        List.of(
+                                            "giro",
+                                            "gap",
+                                            "retotem",
+                                            "teia",
+                                            "wtap",
+                                            "strafe",
+                                            "foguete_teia"),
+                                        b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          String key = StringArgumentType.getString(c, "nome");
+                                          say(p, key + ": " + options.toggle(key));
+                                          save();
+                                        }))))
+            .then(
+                literal("modo")
+                    .then(
+                        argument("tipo", StringArgumentType.word())
+                            .suggests(
+                                (c, b) -> CommandSource.suggestMatching(List.of("DUEL", "TANK"), b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          String mode = StringArgumentType.getString(c, "tipo");
+                                          if (!mode.equalsIgnoreCase("TANK")
+                                              && !mode.equalsIgnoreCase("DUEL"))
+                                            throw new IllegalArgumentException("Use DUEL ou TANK.");
+                                          options.tank = mode.equalsIgnoreCase("TANK");
+                                          save();
+                                          say(p, "Modo: " + mode);
+                                        }))))
+            .then(
+                literal("kit")
+                    .then(literal("abrir").executes(c -> run(c.getSource(), KitEditor::open)))
+                    .then(
+                        literal("salvar")
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          requireStopped();
+                                          storeKit(p, Kits.capture(p));
+                                          save();
+                                          say(
+                                              p,
+                                              "Kit salvo. Jogador e bot receberao copias"
+                                                  + " iguais.");
+                                        })))
+                    .then(
+                        literal("padrao")
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p -> {
+                                          requireStopped();
+                                          if (disk.has("kits"))
+                                            disk.getAsJsonObject("kits")
+                                                .remove(options.rules.name());
+                                          disk.remove("kit");
+                                          save();
+                                          say(p, "Kit padrao selecionado.");
+                                        }))))
+            .then(
+                literal("atributo")
+                    .then(
+                        argument("atributo", IdentifierArgumentType.identifier())
                             .then(
-                                argument("atributo", IdentifierArgumentType.identifier())
+                                argument("valor", DoubleArgumentType.doubleArg(-1024, 1024))
                                     .then(
-                                        argument("valor", DoubleArgumentType.doubleArg(-1024, 1024))
-                                            .then(
-                                                argument("slot", StringArgumentType.word())
-                                                    .suggests(
-                                                        (c, b) ->
-                                                            CommandSource.suggestMatching(
-                                                                List.of(
-                                                                    "HEAD",
-                                                                    "CHEST",
-                                                                    "LEGS",
-                                                                    "FEET",
-                                                                    "MAINHAND",
-                                                                    "OFFHAND",
-                                                                    "ANY"),
-                                                                b))
-                                                    .executes(
-                                                        c ->
-                                                            run(
-                                                                c.getSource(),
-                                                                p -> {
-                                                                  requireStopped();
-                                                                  Kits.attribute(
-                                                                      p,
-                                                                      IdentifierArgumentType
-                                                                          .getIdentifier(
-                                                                              c, "atributo")
-                                                                          .toString(),
-                                                                      DoubleArgumentType.getDouble(
-                                                                          c, "valor"),
-                                                                      AttributeModifierSlot.valueOf(
-                                                                          StringArgumentType
-                                                                              .getString(c, "slot")
-                                                                              .toUpperCase(
-                                                                                  Locale.ROOT)));
-                                                                  say(
-                                                                      p,
-                                                                      "Item alterado. Use /box kit"
-                                                                          + " salvar para atualizar"
-                                                                          + " o kit.");
-                                                                }))))))));
+                                        argument("slot", StringArgumentType.word())
+                                            .suggests(
+                                                (c, b) ->
+                                                    CommandSource.suggestMatching(
+                                                        List.of(
+                                                            "HEAD",
+                                                            "CHEST",
+                                                            "LEGS",
+                                                            "FEET",
+                                                            "MAINHAND",
+                                                            "OFFHAND",
+                                                            "ANY"),
+                                                        b))
+                                            .executes(
+                                                c ->
+                                                    run(
+                                                        c.getSource(),
+                                                        p -> {
+                                                          requireStopped();
+                                                          Kits.attribute(
+                                                              p,
+                                                              IdentifierArgumentType.getIdentifier(
+                                                                      c, "atributo")
+                                                                  .toString(),
+                                                              DoubleArgumentType.getDouble(
+                                                                  c, "valor"),
+                                                              AttributeModifierSlot.valueOf(
+                                                                  StringArgumentType.getString(
+                                                                          c, "slot")
+                                                                      .toUpperCase(Locale.ROOT)));
+                                                          say(
+                                                              p,
+                                                              "Item alterado. Use /box kit"
+                                                                  + " salvar para atualizar"
+                                                                  + " o kit.");
+                                                        })))))));
+  }
+
+  public static ServerPlayerEntity resolveCommandPlayer(ServerCommandSource source) {
+    if (source.getEntity() instanceof ServerPlayerEntity p && !(p instanceof TrainingBot)) return p;
+    return source.getWorld().getPlayers().stream()
+        .filter(
+            p ->
+                !(p instanceof TrainingBot)
+                    && p.isAlive()
+                    && !p.isDisconnected()
+                    && !p.isSpectator())
+        .min(
+            java.util.Comparator.comparingDouble(
+                p -> p.getPos().squaredDistanceTo(source.getPosition())))
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Nenhum jogador real neste mundo. Use execute as @p at @s run box ..."));
   }
 
   private interface Task {
@@ -457,7 +462,7 @@ public final class DuckBox implements ModInitializer {
 
   private static int run(ServerCommandSource s, Task task) {
     try {
-      task.run(s.getPlayerOrThrow());
+      task.run(resolveCommandPlayer(s));
       return 1;
     } catch (Exception e) {
       s.sendError(Text.literal("DuckBox: " + e.getMessage()));
@@ -692,7 +697,7 @@ public final class DuckBox implements ModInitializer {
     Session s = session;
     if (s == null) return;
     s.closed = true;
-    if (ServerPlayNetworking.canSend(s.owner, TrainingPayload.ID))
+    if (canSendTraining(s.owner))
       ServerPlayNetworking.send(
           s.owner, new TrainingPayload(s.owner.getUuid(), new UUID(0, 0), false));
     session = null;
@@ -762,10 +767,14 @@ public final class DuckBox implements ModInitializer {
                 p.getUuid(), session != null ? session.bot.getUuid() : new UUID(0, 0), mask));
   }
 
+  private static boolean canSendTraining(ServerPlayerEntity player) {
+    return net.fabricmc.loader.api.FabricLoader.getInstance()
+            .isModLoaded("fabric-networking-api-v1")
+        && ServerPlayNetworking.canSend(player, TrainingPayload.ID);
+  }
+
   public static void sync() {
-    if (session != null
-        && !session.owner.isDisconnected()
-        && ServerPlayNetworking.canSend(session.owner, TrainingPayload.ID))
+    if (session != null && !session.owner.isDisconnected() && canSendTraining(session.owner))
       ServerPlayNetworking.send(
           session.owner,
           new TrainingPayload(

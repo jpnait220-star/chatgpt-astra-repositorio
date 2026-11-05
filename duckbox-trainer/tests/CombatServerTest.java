@@ -1212,7 +1212,85 @@ public final class CombatServerTest {
     }
     System.out.println(
         "PASS CPS SETTINGS: saved JSON, actionbar value,10/13/15 cycle and invalid rates rejected");
+    var boxDispatcher = server.getCommandManager().getDispatcher();
+    DuckBox.registerCommands(boxDispatcher);
+    BlockPos commandPos = new BlockPos(-100, 78, 111);
+    world.setBlockState(commandPos, Blocks.COMMAND_BLOCK.getDefaultState(), 3);
+    var commandTile =
+        (net.minecraft.block.entity.CommandBlockBlockEntity) world.getBlockEntity(commandPos);
+    var blockSource = commandTile.getCommandExecutor().getSource();
+    owner.teleport(world, -97.5, 79, 111.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, -99.5, 79, 111.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    if (blockSource.getEntity() != null || DuckBox.resolveCommandPlayer(blockSource) != owner)
+      throw new AssertionError("Real command block must resolve human, not closer bot");
+    for (String cmd :
+        new String[] {
+          "box cps 10",
+          "box cps",
+          "box dificuldade MEDIUM",
+          "box giro EXTREMO",
+          "box regras SPAM",
+          "box modo TANK",
+          "box habilidade wtap",
+          "box cosmetico blood"
+        })
+      if (boxDispatcher.execute(cmd, blockSource) != 1)
+        throw new AssertionError("Command block failed: " + cmd);
+    if (DuckBox.options.cps != 13
+        || DuckBox.options.difficulty != Options.Difficulty.MEDIUM
+        || !DuckBox.options.tank) throw new AssertionError("Command block settings not applied");
+    if (boxDispatcher.execute("box cps 11", blockSource) != 0 || DuckBox.options.cps != 13)
+      throw new AssertionError("Invalid CB option must fail without changing setting");
+    if (boxDispatcher.execute("box kit abrir", blockSource) != 1
+        || !(owner.currentScreenHandler instanceof KitEditor)
+        || !owner.currentScreenHandler.canUse(owner))
+      throw new AssertionError("Remote CB kit editor must stay open");
+    owner.closeHandledScreen();
+    var beforeMenu = Kits.capture(owner);
+    if (boxDispatcher.execute("box configurar", blockSource) != 1
+        || !(owner.currentScreenHandler instanceof ConfigMenu))
+      throw new AssertionError("Command block configuration menu failed");
+    var configMenu = owner.currentScreenHandler;
+    if (configMenu.getSlot(5).canTakeItems(owner)
+        || configMenu
+            .getSlot(5)
+            .canInsert(new net.minecraft.item.ItemStack(net.minecraft.item.Items.STONE))
+        || !configMenu.quickMove(owner, 5).isEmpty())
+      throw new AssertionError("Config icons must not be transferable");
+    configMenu.onSlotClick(5, 0, net.minecraft.screen.slot.SlotActionType.PICKUP, owner);
+    if (DuckBox.options.cps != 15) throw new AssertionError("Config menu CPS selection failed");
+    for (int i = 0; i < 41; i++)
+      if (!net.minecraft.item.ItemStack.areEqual(
+          beforeMenu.get(i), owner.getInventory().getStack(i)))
+        throw new AssertionError("Config menu altered player inventory");
+    owner.closeHandledScreen();
+    if (DuckBox.resolveCommandPlayer(blockSource.withEntity(owner)) != owner)
+      throw new AssertionError("Explicit execute-as actor must be respected");
+    if (boxDispatcher.execute(
+            "box cps 10", blockSource.withWorld(server.getWorld(net.minecraft.world.World.NETHER)))
+        != 0) throw new AssertionError("Must not target players in another world");
+    try {
+      boxDispatcher.execute("box cps 10", owner.getCommandSource().withLevel(0));
+      throw new AssertionError("Player permission gate bypassed");
+    } catch (com.mojang.brigadier.exceptions.CommandSyntaxException expected) {
+    }
     server.getPlayerManager().remove(bot);
+    if (boxDispatcher.execute("box iniciar", blockSource) != 1
+        || DuckBox.session == null
+        || DuckBox.session.owner != owner
+        || !DuckBox.session.countingDown())
+      throw new AssertionError("Real command block must start nearest player's round");
+    if (boxDispatcher.execute("box parar", blockSource) != 1 || DuckBox.session != null)
+      throw new AssertionError("Real command block must stop round and restore player");
+    System.out.println(
+        "PASS REAL COMMAND BLOCKS: native source/Brigadier start-stop/settings/GUI, excludes NPC,"
+            + " explicit actor, same-world targeting, permissions, kit editor remote anchor and"
+            + " locked menu icons");
+    if (server.getPlayerManager().getPlayer(bot.getUuid()) == bot)
+      server.getPlayerManager().remove(bot);
+
     server.getPlayerManager().remove(owner);
     server.shutdown();
     System.exit(0);

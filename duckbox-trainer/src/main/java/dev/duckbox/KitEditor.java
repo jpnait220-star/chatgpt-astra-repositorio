@@ -15,6 +15,8 @@ public final class KitEditor extends GenericContainerScreenHandler {
   private final ServerPlayerEntity owner;
   private final SimpleInventory contents;
   private boolean committed;
+  private final net.minecraft.util.math.Vec3d openingPosition;
+  private final net.minecraft.world.World openingWorld;
 
   public static int logicalSlot(int chestSlot) {
     if (chestSlot >= 0 && chestSlot < 27) return chestSlot + 9;
@@ -36,6 +38,8 @@ public final class KitEditor extends GenericContainerScreenHandler {
       SimpleInventory contents) {
     super(ScreenHandlerType.GENERIC_9X6, syncId, playerInventory, contents, 6);
     this.owner = owner;
+    openingPosition = owner.getPos();
+    openingWorld = owner.getWorld();
     this.contents = contents;
     for (int i = 0; i < 54; i++)
       if (logicalSlot(i) < 0) {
@@ -109,10 +113,8 @@ public final class KitEditor extends GenericContainerScreenHandler {
   public boolean canUse(PlayerEntity p) {
     return p == owner
         && DuckBox.session == null
-        && p.getWorld() == DuckBox.world()
-        && p.squaredDistanceTo(
-                net.minecraft.util.math.Vec3d.ofCenter(Arena.kitChest(DuckBox.options)))
-            < 100;
+        && p.getWorld() == openingWorld
+        && p.getPos().squaredDistanceTo(openingPosition) < 100;
   }
 
   private void commit() {
