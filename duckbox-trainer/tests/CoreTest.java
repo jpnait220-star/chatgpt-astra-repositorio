@@ -26,6 +26,14 @@ public class CoreTest {
       check(Math.abs(Aim.wrap(Aim.approach(i, 137, 17) - i)) <= 17.001);
     }
     check(Math.abs(Aim.wrap(Aim.approach(179, -179, 5) + 179)) < 0.01);
+    check(
+        dev.duckbox.cosmetic.BotSkin.ROBOT
+            .elytraTexture()
+            .equals(dev.duckbox.cosmetic.BotSkin.CAPE));
+    var capePng =
+        javax.imageio.ImageIO.read(
+            CoreTest.class.getResourceAsStream("/assets/duckbox/textures/entity/yellow_cape.png"));
+    check(capePng.getWidth() == 64 && capePng.getHeight() == 32);
     var robotId = java.util.UUID.randomUUID();
     var humanId = java.util.UUID.randomUUID();
     dev.duckbox.cosmetic.CosmeticState.set(new CosmeticPayload(humanId, robotId, 0));

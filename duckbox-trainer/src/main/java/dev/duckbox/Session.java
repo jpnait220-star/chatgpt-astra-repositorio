@@ -19,7 +19,7 @@ public final class Session {
   public String finish;
   private final Random random = new Random();
   private long clock;
-  private final CpsCadence clicks = new CpsCadence(15);
+  private final CpsCadence clicks;
   private int buildAt;
   private BlockPos breakingWeb;
   private float webBreakProgress;
@@ -37,6 +37,19 @@ public final class Session {
   private int side = 1, damageCount, gapsLeft, healingStartedAt, appleCountBefore, escapeUntil;
   private float lastHealth, fullHealth;
   private boolean healing, escaping, airGap, strafeActive;
+
+  private enum WebRoute {
+    NONE,
+    AIR,
+    TOWER
+  }
+
+  private WebRoute webRoute = WebRoute.NONE;
+  private BlockPos routeTarget, trappedHead;
+  private int routeUntil, headWebSince, cageIndex, cageAt;
+  private Vec3d recoveryLastPos;
+  private int recoveryStuckTicks;
+
   private String phase = "Preparando";
   private Vec3d recoveryPoint;
   private double aimX, aimY, aimZ;
@@ -45,6 +58,7 @@ public final class Session {
     owner = p;
     bot = b;
     o = options;
+    clicks = new CpsCadence(options.rules == Options.Rules.INSTA_KILL ? 15 : 8);
     b.session = this;
     lastHealth = b.getHealth() + b.getAbsorptionAmount();
     aimX = p.getX();
@@ -62,10 +76,10 @@ public final class Session {
   public void beginCountdown() {
     countdownTicks = 100;
     double offset = o.size / 2.0 - 1.5;
-    ownerCorner = new Vec3d(o.x - offset, o.y + 1, o.z - offset);
-    botCorner = new Vec3d(o.x + offset, o.y + 1, o.z + offset);
-    moveToCorner(owner, ownerCorner, -45);
-    moveToCorner(bot, botCorner, 135);
+    ownerCorner = new Vec3d(o.x - offset, o.y + 1, o.z + 0.5);
+    botCorner = new Vec3d(o.x + offset, o.y + 1, o.z + 0.5);
+    moveToCorner(owner, ownerCorner, -90);
+    moveToCorner(bot, botCorner, 90);
     bot.setLoaded(true);
     bot.onTeleportationDone();
     for (var p : List.of(owner, bot)) p.setHealth(p.getMaxHealth());
@@ -237,6 +251,31 @@ public final class Session {
       escapeUntil = t + 26;
       if (!escaping) startApple(t);
     }
+    if ((healing || escaping) && recoveryPoint != null) {
+      if (recoveryLastPos != null && bot.getPos().squaredDistanceTo(recoveryLastPos) < 0.012)
+        recoveryStuckTicks++;
+      else recoveryStuckTicks = 0;
+      recoveryLastPos = bot.getPos();
+      double edge = o.size / 2.0 - 1.8;
+      if (recoveryStuckTicks > 12
+          || Math.abs(bot.getX() - o.x) > edge
+          || Math.abs(bot.getZ() - o.z) > edge) {
+        // Move across the box instead of repeatedly staring into a corner/ceiling.
+        recoveryPoint =
+            new Vec3d(
+                o.x - Math.signum(bot.getX() - o.x) * Math.max(1, edge - 1.0),
+                Math.min(bot.getY() + 0.4, o.y + Arena.HEIGHT - 2),
+                o.z - Math.signum(bot.getZ() - o.z) * Math.max(1, edge - 1.0));
+        recoveryStuckTicks = 0;
+        if (escaping && t >= escapeUntil) {
+          escaping = false;
+          startApple(t);
+        }
+      }
+    } else {
+      recoveryLastPos = null;
+      recoveryStuckTicks = 0;
+    }
     if (escaping && (bot.getY() > o.y + 2.8 || t >= escapeUntil)) {
       escaping = false;
       startApple(t);
@@ -286,19 +325,40 @@ public final class Session {
       }
     }
 
-    boolean elevatedWeb = webAtOwner() != null && owner.getY() > bot.getY() + 1.8;
-    if (!healing && !escaping && !o.tank && elevatedWeb) {
-      if (scaffold(t)) return;
-      aim = owner.getEyePos();
-      phase = "Alcancando alvo na teia";
+    BlockPos trapped = webAtOwner();
+    boolean elevatedWeb = trapped != null && owner.getY() > o.y + 2.5;
+    if (!elevatedWeb) {
+      webRoute = WebRoute.NONE;
+      routeTarget = null;
+    } else if (webRoute == WebRoute.NONE || !trapped.equals(routeTarget) || t >= routeUntil) {
+      routeTarget = trapped;
+      routeUntil = t + 140;
+      webRoute = buildingSlot() < 0 || random.nextBoolean() ? WebRoute.AIR : WebRoute.TOWER;
     }
-    if (!healing && !escaping && !o.tank && breakTargetWeb()) return;
+    if (!healing && !escaping && !o.tank) {
+      if (cageHead(t)) return;
+      if (elevatedWeb) {
+        if (webRoute == WebRoute.TOWER && !onTowerAtTarget()) {
+          if (scaffold(t)) return;
+          if (buildingSlot() < 0) webRoute = WebRoute.AIR;
+        }
+        if (webRoute == WebRoute.TOWER) bot.stopGliding();
+        aim =
+            webRoute == WebRoute.TOWER && bot.getY() < owner.getY() - 0.6
+                ? new Vec3d(owner.getX(), bot.getEyeY(), owner.getZ())
+                : owner.getEyePos();
+        phase = webRoute == WebRoute.TOWER ? "Aproximando para torre" : "Voando ate o alvo na teia";
+      }
+      if (breakTargetWeb()) return;
+      if (headWeb() != null)
+        aim = owner.getPos().add(0, Math.min(0.18, owner.getHeight() * 0.35), 0);
+    }
     look(aim, d.aimSpeed);
     bot.setHeadYaw(bot.getYaw());
     bot.setBodyYaw(bot.getYaw());
     bot.setSprinting(!healing);
     bot.forwardSpeed = healing || escaping || o.tank ? 1 : dist > 2.3 ? 1 : 0.15f;
-    if (o.strafe && !healing && !escaping && strafeActive) bot.sidewaysSpeed = side;
+    if (o.strafe && !healing && !escaping && !elevatedWeb && strafeActive) bot.sidewaysSpeed = side;
     if (o.wtap && !escaping && owner.getY() > bot.getY() + 1 && dist < 12 && t % 18 < 3)
       bot.forwardSpeed = 0;
     if (bot.isOnGround() && t >= jumpAt) {
@@ -306,12 +366,14 @@ public final class Session {
       jumpAt = t + 8 + random.nextInt(4);
     } else if (!bot.isOnGround()
         && !bot.isGliding()
+        && !(elevatedWeb && webRoute == WebRoute.TOWER)
         && bot.getVelocity().y > -0.6
         && bot.getVelocity().y < 0.35) bot.checkGliding();
     // Match crouching to actual elytra flight, including the tick it starts.
     bot.setSneaking(bot.isGliding());
     if (escaping && bot.isGliding()) useRocket(t);
     if (elevatedWeb
+        && webRoute == WebRoute.AIR
         && !healing
         && !escaping
         && !o.tank
@@ -526,6 +588,8 @@ public final class Session {
             -Math.toDegrees(Math.atan2(delta.y, Math.sqrt(delta.x * delta.x + delta.z * delta.z)));
     bot.setYaw(Aim.approach(bot.getYaw(), yaw, max));
     bot.setPitch(MathHelper.clamp(Aim.approach(bot.getPitch(), pitch, max), -85, 85));
+    bot.setHeadYaw(bot.getYaw());
+    bot.setBodyYaw(bot.getYaw());
   }
 
   private double attackReach() {
@@ -542,7 +606,7 @@ public final class Session {
                 new RaycastContext(
                     start,
                     target,
-                    RaycastContext.ShapeType.COLLIDER,
+                    RaycastContext.ShapeType.OUTLINE,
                     RaycastContext.FluidHandling.NONE,
                     bot))
             .getType()
@@ -577,7 +641,7 @@ public final class Session {
   }
 
   private boolean breakTargetWeb() {
-    BlockPos target = owner.getY() > o.y + 2.5 ? webAtOwner() : null;
+    BlockPos target = onTowerAtTarget() ? webAtOwner() : null;
     var world = bot.getServerWorld();
     boolean reachable =
         target != null && bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(target)) < 20;
@@ -630,20 +694,120 @@ public final class Session {
     return true;
   }
 
-  private boolean scaffold(int t) {
-    double dx = owner.getX() - bot.getX(), dz = owner.getZ() - bot.getZ();
-    if (dx * dx + dz * dz > 2.0 || owner.getY() <= bot.getY() + 2) return false;
-    BlockPos place = bot.getBlockPos().down();
-    if (place.getY() < o.y || place.getY() >= o.y + Arena.HEIGHT - 1) return false;
-    int slot = -1;
+  private boolean onTowerAtTarget() {
+    return webRoute == WebRoute.TOWER
+        && bot.isOnGround()
+        && bot.getY() >= owner.getY() - 0.6
+        && builtBlocks.containsKey(bot.getBlockPos().down());
+  }
+
+  private int buildingSlot() {
     for (int i = 0; i < 36; i++) {
       var stack = bot.getInventory().getStack(i);
       if (stack.getItem() instanceof BlockItem block
-          && block.getBlock().getDefaultState().isFullCube(bot.getServerWorld(), place)) {
-        slot = find(stack.getItem(), true);
-        break;
+          && block.getBlock().getDefaultState().isFullCube(bot.getServerWorld(), bot.getBlockPos()))
+        return find(stack.getItem(), true);
+    }
+    return -1;
+  }
+
+  public boolean isTrainingBlock(BlockPos pos) {
+    return builtBlocks.containsKey(pos);
+  }
+
+  private BlockPos headWeb() {
+    BlockPos pos = BlockPos.ofFloored(owner.getEyePos());
+    return bot.getServerWorld().getBlockState(pos).isOf(net.minecraft.block.Blocks.COBWEB)
+        ? pos
+        : null;
+  }
+
+  private boolean cageHead(int t) {
+    BlockPos head = headWeb();
+    if (head == null) {
+      trappedHead = null;
+      cageIndex = 0;
+      return false;
+    }
+    if (!head.equals(trappedHead)) {
+      trappedHead = head;
+      headWebSince = t;
+      cageIndex = 0;
+    }
+    if (t - headWebSince < 60 || t < cageAt || cageIndex >= 5) return false;
+    Direction dir =
+        new Direction[] {
+              Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
+            }
+            [cageIndex];
+    BlockPos pos = head.offset(dir);
+    if (!insideArena(pos) || !bot.getServerWorld().getBlockState(pos).isAir()) {
+      cageIndex++;
+      return false;
+    }
+    if (bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(pos)) > 9 || buildingSlot() < 0)
+      return false;
+    if (placeBuildingBlock(pos)) {
+      cageIndex++;
+      cageAt = t + 8;
+      heldUntil = t + 2;
+      return true;
+    }
+    // An entity occupying this side must not stall the other faces forever.
+    cageIndex++;
+    return false;
+  }
+
+  private boolean insideArena(BlockPos pos) {
+    return Math.abs(pos.getX() - o.x) < o.size / 2
+        && Math.abs(pos.getZ() - o.z) < o.size / 2
+        && pos.getY() > o.y
+        && pos.getY() < o.y + Arena.HEIGHT;
+  }
+
+  private boolean placeBuildingBlock(BlockPos pos) {
+    int slot = buildingSlot();
+    if (slot < 0 || !insideArena(pos)) return false;
+    var w = bot.getServerWorld();
+    for (Direction dir : Direction.values()) {
+      BlockPos support = pos.offset(dir);
+      if (w.getBlockState(support).isAir()) continue;
+      Vec3d face = Vec3d.ofCenter(support).subtract(Vec3d.of(dir.getVector()).multiply(0.499));
+      var ray =
+          w.raycast(
+              new RaycastContext(
+                  bot.getEyePos(),
+                  face,
+                  RaycastContext.ShapeType.OUTLINE,
+                  RaycastContext.FluidHandling.NONE,
+                  bot));
+      if (ray.getType() != HitResult.Type.BLOCK || !ray.getBlockPos().equals(support)) continue;
+      int previous = bot.getInventory().selectedSlot;
+      bot.getInventory().selectedSlot = slot;
+      look(face, 180);
+      var result =
+          bot.interactionManager.interactBlock(
+              bot,
+              w,
+              bot.getMainHandStack(),
+              Hand.MAIN_HAND,
+              new BlockHitResult(face, dir.getOpposite(), support, false));
+      bot.getInventory().selectedSlot = previous;
+      if (result.isAccepted() && !w.getBlockState(pos).isAir()) {
+        builtBlocks.put(pos.toImmutable(), w.getBlockState(pos));
+        bot.swingHand(Hand.MAIN_HAND);
+        return true;
       }
     }
+    return false;
+  }
+
+  private boolean scaffold(int t) {
+    double dx = owner.getX() - bot.getX(), dz = owner.getZ() - bot.getZ();
+    if (dx * dx + dz * dz > 2.0 || owner.getY() <= bot.getY() + 0.5) return false;
+    BlockPos place = bot.getBlockPos().down();
+    if (place.getY() < o.y || place.getY() >= o.y + Arena.HEIGHT - 1) return false;
+    int slot = buildingSlot();
     if (slot < 0) return false;
     bot.stopGliding();
     bot.setSneaking(false);
@@ -684,8 +848,11 @@ public final class Session {
   }
 
   private boolean placeWeb(BlockPos pos, int t) {
-    if (!bot.getServerWorld().getBlockState(pos).isAir()
-        || bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(pos)) > 20) return false;
+    if (!bot.isOnGround()
+        || pos.getY() < o.y + 1
+        || pos.getY() > o.y + 3
+        || !bot.getServerWorld().getBlockState(pos).isAir()
+        || bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(pos)) > 9) return false;
     int slot = find(Items.COBWEB, true);
     if (slot < 0) return false;
     for (Direction dir : Direction.values()) {

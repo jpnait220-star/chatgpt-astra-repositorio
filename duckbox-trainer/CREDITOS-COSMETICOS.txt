@@ -11,3 +11,8 @@ Skin Robot Duck fornecida/requisitada pelo usuario, PNG original sem alteracoes.
 Pagina publica: https://www.minecraftskins.com/skin/23064604/robot-duck/
 Arquivo: https://www.minecraftskins.com/uploads/skins/2025/02/16/robot-duck-23064604.png?v974
 O credito e os direitos da skin pertencem ao criador original; MIT cobre apenas o codigo.
+
+Capa/elytra amarela e verde: textura Vanilla Cape original de Mojang, sem alteracoes.
+Fonte: https://minecraft.wiki/w/Vanilla_Cape
+Textura: https://textures.minecraft.net/texture/f9a76537647989f9a0b6d001e320dac591c359e9e61a31f4ce11c88f207f0ad4
+Aplicacao local apenas ao NPC, sem alterar direitos de capas na conta do jogador.

@@ -113,22 +113,17 @@ public final class DuckBox implements ModInitializer {
                 || p != session.owner
                 || w != world()
                 || state.isOf(net.minecraft.block.Blocks.COBWEB)
+                || (pos.getY() > options.y
+                    && pos.getY() < options.y + Arena.HEIGHT
+                    && (session.isTrainingBlock(pos)
+                        || state.isIn(net.minecraft.registry.tag.BlockTags.WOOL)))
                 || Math.abs(pos.getX() - options.x) > options.size / 2
                 || Math.abs(pos.getZ() - options.z) > options.size / 2
                 || pos.getY() < options.y
                 || pos.getY() > options.y + 10);
     ServerLivingEntityEvents.ALLOW_DAMAGE.register(
         (entity, source, amount) -> allowTrainingDamage(entity, source));
-    ServerLivingEntityEvents.ALLOW_DEATH.register(
-        (entity, source, amount) -> {
-          if (session != null && (entity == session.owner || entity == session.bot)) {
-            entity.setHealth(1);
-            session.finish =
-                entity == session.bot ? "Voce venceu!" : "O bot venceu. Tente novamente!";
-            return false;
-          }
-          return true;
-        });
+    ServerLivingEntityEvents.ALLOW_DEATH.register(DuckBox::allowTrainingDeath);
     UseBlockCallback.EVENT.register(
         (p, w, hand, hit) -> {
           if (session != null && session.countingDown() && (p == session.owner || p == session.bot))
@@ -447,7 +442,13 @@ public final class DuckBox implements ModInitializer {
   }
 
   public static void say(ServerPlayerEntity p, String message) {
-    p.sendMessage(Text.literal("[DuckBox] " + message), false);
+    p.sendMessage(
+        Text.empty()
+            .append(Text.literal("Duck").formatted(Formatting.YELLOW, Formatting.BOLD))
+            .append(Text.literal("Box ").formatted(Formatting.GOLD, Formatting.BOLD))
+            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal(message).formatted(Formatting.GRAY)),
+        false);
   }
 
   public static List<ItemStack> currentKit(ServerPlayerEntity p) {
@@ -475,6 +476,22 @@ public final class DuckBox implements ModInitializer {
     if (!disk.has("kits")) disk.add("kits", new JsonObject());
     disk.getAsJsonObject("kits").add(options.rules.name(), Kits.encode(p, kit));
     save();
+  }
+
+  public static boolean allowTrainingDeath(
+      net.minecraft.entity.LivingEntity entity,
+      net.minecraft.entity.damage.DamageSource source,
+      float amount) {
+    if (session == null || (entity != session.owner && entity != session.bot)) return true;
+    // Fabric asks BEFORE vanilla tries death protection, not after the totem.
+    if (!source.isIn(net.minecraft.registry.tag.DamageTypeTags.BYPASSES_INVULNERABILITY))
+      for (Hand hand : Hand.values())
+        if (entity
+            .getStackInHand(hand)
+            .contains(net.minecraft.component.DataComponentTypes.DEATH_PROTECTION)) return true;
+    entity.setHealth(1);
+    session.finish = entity == session.bot ? "Voce venceu!" : "O bot venceu. Tente novamente!";
+    return false;
   }
 
   public static boolean allowTrainingDamage(

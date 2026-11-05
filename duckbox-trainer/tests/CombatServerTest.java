@@ -15,6 +15,11 @@ import net.minecraft.world.level.storage.LevelStorage;
 /** Real vanilla test server: no socket, no EULA flow, no substituted world/player/physics. */
 public final class CombatServerTest {
   public static void main(String[] args) throws Exception {
+    Thread.setDefaultUncaughtExceptionHandler(
+        (thread, error) -> {
+          error.printStackTrace();
+          System.exit(1);
+        });
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
     var storage = LevelStorage.create(Path.of(args[0]));
@@ -140,6 +145,9 @@ public final class CombatServerTest {
     owner
         .getInventory()
         .setStack(40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    if (!DuckBox.allowTrainingDeath(owner, world.getDamageSources().generic(), 100000)
+        || active.finish != null)
+      throw new AssertionError("Fabric death guard must allow vanilla totem before interception");
     owner.setHealth(1);
     if (!owner.damage(world, world.getDamageSources().generic(), 100000)
         || owner.getHealth() <= 0
@@ -156,6 +164,22 @@ public final class CombatServerTest {
         != 0) throw new AssertionError("Insta Kill resistance must beI");
     options.rules = Options.Rules.NORMAL_SPAM;
     active.maintainRules();
+    bot.getInventory()
+        .setStack(40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    bot.setHealth(1);
+    bot.setAbsorptionAmount(0);
+    bot.timeUntilRegen = 0;
+    if (!DuckBox.allowTrainingDeath(bot, world.getDamageSources().generic(), 100000)
+        || !bot.damage(world, world.getDamageSources().generic(), 100000)
+        || bot.getHealth() <= 0
+        || !bot.getOffHandStack().isEmpty()
+        || active.finish != null)
+      throw new AssertionError("Bot vanilla pop must not finish session");
+    bot.getInventory().setStack(40, Kits.duckCharm());
+    bot.getInventory().selectedSlot = 0;
+    if (DuckBox.allowTrainingDeath(bot, world.getDamageSources().generic(), 100000)
+        || active.finish == null) throw new AssertionError("No totem must end round without drops");
+    active.finish = null;
     owner.getInventory().setStack(40, Kits.duckCharm());
     owner.setHealth(135);
     bot.setHealth(40);
@@ -230,7 +254,7 @@ public final class CombatServerTest {
     bot.onTeleportationDone();
     world.setBlockState(new BlockPos(0, 68, 0), Blocks.COBWEB.getDefaultState(), 3);
     bot.getInventory()
-        .setStack(5, new net.minecraft.item.ItemStack(net.minecraft.item.Items.WHITE_WOOL, 8));
+        .setStack(5, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BLACK_WOOL, 8));
     var scaffold = Session.class.getDeclaredMethod("scaffold", int.class);
     scaffold.setAccessible(true);
     if (!(boolean) scaffold.invoke(DuckBox.session, 1000))
@@ -238,7 +262,7 @@ public final class CombatServerTest {
     bot.teleport(world, 0.5, 65.1, 0.5, Set.of(), 0, 0, false);
     bot.onTeleportationDone();
     if (!(boolean) scaffold.invoke(DuckBox.session, 1005)
-        || !world.getBlockState(new BlockPos(0, 64, 0)).isOf(Blocks.WHITE_WOOL)
+        || !world.getBlockState(new BlockPos(0, 64, 0)).isOf(Blocks.BLACK_WOOL)
         || bot.getInventory().getStack(5).getCount() != 7)
       throw new AssertionError("Native tower stock/placement");
     DuckBox.session.cleanupBuilding();
@@ -248,6 +272,19 @@ public final class CombatServerTest {
     bot.onTeleportationDone();
     var breakWeb = Session.class.getDeclaredMethod("breakTargetWeb");
     breakWeb.setAccessible(true);
+    if ((boolean) breakWeb.invoke(DuckBox.session))
+      throw new AssertionError("Never break web from below/air route");
+    var routeField = Session.class.getDeclaredField("webRoute");
+    routeField.setAccessible(true);
+    routeField.set(DuckBox.session, java.lang.Enum.valueOf((Class) routeField.getType(), "TOWER"));
+    bot.teleport(world, 1.5, 68, 0.5, Set.of(), 90, 0, false);
+    bot.onTeleportationDone();
+    bot.setOnGround(true);
+    var builtField = Session.class.getDeclaredField("builtBlocks");
+    builtField.setAccessible(true);
+    ((Map) builtField.get(DuckBox.session))
+        .put(new BlockPos(1, 67, 0), Blocks.BLACK_WOOL.getDefaultState());
+    world.setBlockState(new BlockPos(1, 67, 0), Blocks.BLACK_WOOL.getDefaultState(), 3);
     boolean triedBreak = false;
     for (int n = 0;
         n < 400 && world.getBlockState(new BlockPos(0, 68, 0)).isOf(Blocks.COBWEB);
@@ -263,13 +300,99 @@ public final class CombatServerTest {
     bot.teleport(world, 1.5, 64, 0.5, Set.of(), 0, 0, false);
     bot.onTeleportationDone();
     world.setBlockState(new BlockPos(0, 65, -1), Blocks.STONE.getDefaultState(), 3);
+    bot.setOnGround(true);
     var placeWeb = Session.class.getDeclaredMethod("placeWeb", BlockPos.class, int.class);
     placeWeb.setAccessible(true);
     if (!(boolean) placeWeb.invoke(DuckBox.session, BlockPos.ofFloored(owner.getEyePos()), 2000)
         || !world.getBlockState(BlockPos.ofFloored(owner.getEyePos())).isOf(Blocks.COBWEB))
       throw new AssertionError("Head web placement");
+    bot.setOnGround(false);
+    if ((boolean) placeWeb.invoke(DuckBox.session, new BlockPos(1, 65, -1), 2010))
+      throw new AssertionError("Airborne bot must not web");
+    bot.setOnGround(true);
+    if ((boolean) placeWeb.invoke(DuckBox.session, new BlockPos(0, 67, 0), 2010))
+      throw new AssertionError("Web above three blocks must be refused");
+    bot.getInventory()
+        .setStack(5, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BLACK_WOOL, 8));
+    var cage = Session.class.getDeclaredMethod("cageHead", int.class);
+    cage.setAccessible(true);
+    if ((boolean) cage.invoke(DuckBox.session, 2020)
+        || (boolean) cage.invoke(DuckBox.session, 2079))
+      throw new AssertionError("Head cage must wait three seconds");
+    if (!(boolean) cage.invoke(DuckBox.session, 2080)
+        || !world.getBlockState(new BlockPos(0, 66, 0)).isOf(Blocks.BLACK_WOOL)
+        || bot.getInventory().getStack(5).getCount() != 7)
+      throw new AssertionError("Head cage must place black wool after three seconds");
+    DuckBox.session.cleanupBuilding();
+    var webMelee = Session.class.getDeclaredMethod("canHit");
+    webMelee.setAccessible(true);
+    bot.setPose(net.minecraft.entity.EntityPose.STANDING);
+    owner.setPose(net.minecraft.entity.EntityPose.STANDING);
+    bot.setYaw(90);
+    bot.setHeadYaw(90);
+    bot.setPitch(0);
+    if ((boolean) webMelee.invoke(DuckBox.session))
+      throw new AssertionError("No hit through head web");
+    bot.setPitch(56);
+    if (!(boolean) webMelee.invoke(DuckBox.session))
+      throw new AssertionError(
+          "Exposed feet must remain hittable below head web: eye="
+              + bot.getEyePos()
+              + " rotation="
+              + bot.getRotationVec(1)
+              + " bbox="
+              + owner.getBoundingBox()
+              + " owner="
+              + owner.getPos());
     world.setBlockState(new BlockPos(0, 65, -1), Blocks.AIR.getDefaultState(), 3);
     world.setBlockState(BlockPos.ofFloored(owner.getEyePos()), Blocks.AIR.getDefaultState(), 3);
+    // Full AI/physics route, not just a direct placement helper: black wool must become a tower.
+    owner.teleport(world, 0.5, 68, 0.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, 1.5, 64, 0.5, Set.of(), 90, 0, false);
+    bot.onTeleportationDone();
+    bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    bot.setOnGround(true);
+    bot.stopGliding();
+    bot.clearStatusEffects();
+    bot.setHealth(bot.getMaxHealth());
+    bot.getInventory()
+        .setStack(5, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BLACK_WOOL, 32));
+    world.setBlockState(new BlockPos(0, 69, 0), Blocks.COBWEB.getDefaultState(), 3);
+    options.gap = false;
+    options.retotem = false;
+    options.giro = false;
+    options.teia = false;
+    DuckBox.session = new Session(owner, bot, options);
+    routeField.set(DuckBox.session, java.lang.Enum.valueOf((Class) routeField.getType(), "TOWER"));
+    var routeTargetField = Session.class.getDeclaredField("routeTarget");
+    routeTargetField.setAccessible(true);
+    routeTargetField.set(DuckBox.session, new BlockPos(0, 69, 0));
+    var routeUntilField = Session.class.getDeclaredField("routeUntil");
+    routeUntilField.setAccessible(true);
+    routeUntilField.setInt(DuckBox.session, 10000);
+    boolean climbed = false;
+    for (int n = 0; n < 240; n++) {
+      ticks.setInt(server, 3000 + n);
+      bot.tick();
+      if (bot.getY() >= 67.4 && bot.getInventory().getStack(5).getCount() < 32) {
+        climbed = true;
+        break;
+      }
+    }
+    if (!climbed)
+      throw new AssertionError(
+          "Full AI black-wool tower failed: bot="
+              + bot.getPos()
+              + " stock="
+              + bot.getInventory().getStack(5));
+    DuckBox.session.cleanupBuilding();
+    world.setBlockState(new BlockPos(0, 69, 0), Blocks.AIR.getDefaultState(), 3);
+    DuckBox.session.closed = true;
+    DuckBox.session = new Session(owner, bot, options);
+    System.out.println(
+        "PASS FULL NATIVE NAVIGATION: AI climbed with black wool using real ticks/physics and"
+            + " consumed stock");
     owner.getInventory().selectedSlot = 2;
     owner
         .getInventory()
@@ -329,6 +452,8 @@ public final class CombatServerTest {
     countdownSession.beginCountdown();
     if (!countdownSession.countingDown()
         || owner.distanceTo(bot) < options.size - 4
+        || Math.abs(owner.getZ() - (options.z + 0.5)) > 0.001
+        || Math.abs(bot.getZ() - owner.getZ()) > 0.001
         || DuckBox.allowTrainingDamage(owner, world.getDamageSources().playerAttack(bot)))
       throw new AssertionError("Countdown corners/protection");
     owner.setPosition(owner.getPos().add(1, 0, 0));
@@ -369,6 +494,10 @@ public final class CombatServerTest {
     options.wtap = true;
     if (!(boolean) canHit.invoke(countdownSession))
       throw new AssertionError("Wtap-on should allow normal reach");
+    world.setBlockState(new BlockPos(0, 65, 2), Blocks.COBWEB.getDefaultState(), 3);
+    if ((boolean) canHit.invoke(countdownSession))
+      throw new AssertionError("Melee ray must not pass through full web");
+    world.setBlockState(new BlockPos(0, 65, 2), Blocks.AIR.getDefaultState(), 3);
     owner.setPosition(0.5, 64, 4.0);
     if ((boolean) canHit.invoke(countdownSession))
       throw new AssertionError("Bot must not exceed3block ray reach");

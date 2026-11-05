@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.6-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.7-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.6 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.7 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -25,7 +25,10 @@ A pausa agachada para repor totens continua funcionando.
 
 O bot confirma seu proprio carregamento e teleporte, pois nao tem um cliente
 para enviar essas confirmacoes. Isso remove a protecao indevida de carregamento
-no inicio do treino. Tambem foi removida a restauracao de vida nos primeiros
+no inicio do treino. O evento Fabric de morte agora permite que o totem
+vanilla seja processado antes de encerrar a rodada: somente a derrota sem
+protecao termina o treino. O corante amarelo continua sendo bonus, sem pop;
+o jogador precisa equipar um totem vanilla numa das maos. Tambem foi removida a restauracao de vida nos primeiros
 ticks de combate que podia apagar dano recebido logo depois do inicio.
 A invulnerabilidade vanilla entre danos continua:15 CPS
 nao significa15 perdas de vida por segundo. Resistencia, Protecao e absorcao
@@ -42,14 +45,15 @@ reproduzida em cliente grafico.
 O bot usa Robot Duck, PNG64x64 incluido no mod, com bracos Steve. A textura
 carrega localmente, sem consulta a servidores de skins. A cabeca equipada fica
 oculta apenas na renderizacao do bot para mostrar seu rosto; Protecao60 e os
-atributos do item permanecem. A skin do jogador nao e alterada.
+atributos do item permanecem. A skin do jogador nao e alterada. O NPC tambem usa a textura original Vanilla
+Cape, amarela e verde, na capa e na elytra. Ela vem no JAR e usa os UVs nativos.
 
 ## Comecar
 
 Abra o mundo, aguarde a montagem e escolha **DUEL** para combate. **TANK** e
 um treino separado de sobrevivencia/evasao: nesse modo o bot nao ataca.
 Escolha as regras, edite o bau do kit se quiser e clique em iniciar.
-Os dois ficam em cantos opostos por5 segundos (5,4,3,2,1,VAI!), com movimento e
+Os dois ficam frente a frente na faixa amarela por5 segundos (5,4,3,2,1,VAI!), com movimento e
 dano bloqueados durante a espera. Os efeitos da gap comecam na liberacao.
 Sem W-tap o bot usa alcance maximo2,4; com W-tap, no maximo3 blocos da camera
 ate a hitbox, sempre exigindo mira e caminho livre.
@@ -69,10 +73,11 @@ ao lado: use um local sem construcoes suas nesse volume.
 
 Afiacao54 permanece no preset. Os valores de dano sao modificadores: ataque
 base, encantamento, armadura e efeitos continuam calculados pelo Minecraft.
-A cadencia e15 tentativas em20 ticks elegiveis, em todas as dificuldades;
-a20TPS equivale a15 CPS. Nao ignora invulnerabilidade entre danos nem alcance.
+A cadencia do Normal Spam e8 CPS; Insta Kill usa15 CPS (a20TPS), em todas
+as dificuldades. O set mantem a velocidade de ataque alta para spam sem
+precisar carregar o golpe, como no combate1.8. Nao ignora invulnerabilidade entre danos nem alcance.
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.6, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.7, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -138,18 +143,34 @@ para adicionar/editar nosso modificador daquele slot. `attack_damage` e dano;
 - O nivel de giro e independente da mira: BAIXO, MEDIO, ALTO, EXTREMO.
   EXTREMO permite usar foguetes/reposicionar com mais frequencia; consome o
   estoque real. A mira continua limitada pela dificuldade, sem hits automaticos.
-- Teia na posicao real da cabeca (inclusive planando), com suporte, alcance/visibilidade e intervalo padrao10s.
+- O bot so coloca teia estando no chao, do piso ate3 blocos de altura, com
+  suporte, alcance/visibilidade e intervalo padrao10s. A mira usa a cabeca real.
 - A extensao foguete-na-teia e sincronizada apenas para os participantes durante
-  um impulso real. Mantem70% de movimento horizontal e65% vertical, em vez de
+  um impulso real. Usa multiplicadores0,45 horizontal e0,35 vertical, em vez de
   ignorar totalmente a teia; sem impulso, a teia segue vanilla. Nao altera
   outros jogadores/mundos fora do treino.
 - Durante voo de elytra, clicar num bloco com foguete usa o impulso em vez de
   lancar um foguete solto, nas duas maos e apenas durante o treino.
-- Contra alvo preso no alto, o bot tenta perseguir de elytra/foguete ou, estando
-  perto por baixo e tendo blocos solidos no kit, subir pulando e colocando
-  blocos. Depois quebra a teia com a espada antes de atacar. Coloque la/blocos
-  no bau do kit para permitir a subida; o estoque e consumido normalmente.
-  Os blocos que o bot colocou sao removidos ao encerrar a rodada.
+- Contra alvo preso no alto, o bot varia entre perseguir de elytra/foguete e
+  subir pulando/colocando blocos. A rota de torre aproxima pelo chao, sem ativar
+  a elytra, e so quebra a teia depois de estar apoiado na propria torre, na
+  altura do alvo. A rota aerea tenta acertar a parte exposta sem quebrar a teia.
+- A linha exata de ataque considera a teia como obstaculo. A hitbox do NPC nao
+  foi aumentada. Com teia na cabeca, ele mira nos pes quando ha caminho livre.
+- Apos3 segundos continuos de teia na cabeca, tenta colocar blocos acima e nos
+  quatro lados, com intervalo entre colocacoes e respeitando colisao/alcance.
+  La preta funciona, assim como outras cores e blocos solidos; e preciso
+  coloca-los no bau do kit. Ele consome o estoque e pode ficar sem blocos.
+  As construcoes do bot sao removidas ao encerrar a rodada; podem ser quebradas.
+- Quando fica travado numa quina durante a gap, troca o destino para atravessar
+  a arena, evitando insistir olhando para o teto.
+
+O JAR foguete-1.0 do usuario foi analisado sem ser instalado: seu listener
+cancela RIGHT_CLICK_BLOCK quando ha elytra ativa/foguete e chama boostElytra.
+Nao altera a teia. A imagem mostra tolerancias de validacao de movimento do
+Spigot, que nao sao parametros de lentidao da teia nem configuracoes de Fabric.
+O treinador reproduz o uso do foguete e aplica uma adaptacao de lentidao parcial,
+limitada ao treino durante o impulso; nao e uma copia da fisica de um servidor.
 
 ## Cosmeticos no proprio mod
 
@@ -201,8 +222,12 @@ Num TestServer vanilla sem janela, com entidades, itens e fisica reais, foram
 verificados dano/locomocao, buffs iniciais, consumo de totem vanilla, resistencia
 apos pop, troca corante/totem, reposicao de reserva, consumo de duas macas,
 bau/JSON independente por modo e montagem do mapa. Tambem foram verificados
-colocacao de teia na cabeca, torre com consumo/limpeza dos blocos, quebra nativa
-da teia e uso de um foguete por clique durante voo. O cancelamento ambiental
+colocacao de teia no chao/limite de altura, torre com la preta em ciclo completo
+de IA/fisica, armadilha de cabeca apos60ticks, consumo/limpeza dos blocos,
+quebra apenas em cima da torre, linha de ataque bloqueada pela teia com pes
+expostos ainda acertaveis e uso de um foguete por clique durante voo. O guard
+de morte foi testado separadamente com o contrato antes do pop de Fabric e
+consumo de totem dos dois pelo Minecraft; nao e execucao completa do launcher. O cancelamento ambiental
 foi conferido como predicado usado pelo evento; a integracao Fabric e aplicada
 em jogo. Os testes de rede validam codecs; nao simulam uma conexao grafica.
 
