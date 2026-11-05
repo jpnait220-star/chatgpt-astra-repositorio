@@ -37,6 +37,12 @@ public final class Session {
       gapWait,
       heldUntil;
   private int retotemRetryAt;
+  private int refillCount;
+
+  public int refillCount() {
+    return refillCount;
+  }
+
   private int side = 1, damageCount, gapsLeft, healingStartedAt, appleCountBefore, escapeUntil;
   private float lastHealth, fullHealth;
   private boolean healing, escaping, airGap, strafeActive;
@@ -556,45 +562,48 @@ public final class Session {
       swapAt = t + o.difficulty.swapDelay;
       return true;
     }
-    if (protector || (!low && !bot.getOffHandStack().isEmpty())) return false;
+    // Refill before losing the last offhand totem, not only after it pops.
+    if (find(Items.TOTEM_OF_UNDYING, false) >= 0) {
+      refillAt = -1;
+      return false;
+    }
     int reserve = -1;
     for (int i = 9; i < 36; i++)
       if (bot.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
         reserve = i;
         break;
       }
-    if (reserve < 0) return false;
-    phase = "Repondo3totems";
+    if (reserve < 0) {
+      refillAt = -1;
+      return false;
+    }
+    phase = "Repondo 3 totens";
     bot.setSneaking(true);
     if (refillAt < 0) refillAt = t + o.difficulty.reaction + 4;
     if (t < refillAt) return true;
-    for (int slot = 6; slot <= 8; slot++)
-      if (Kits.isCharm(bot.getInventory().getStack(slot))) {
-        for (int free = 9; free < 36; free++)
-          if (bot.getInventory().getStack(free).isEmpty()) {
-            bot.getInventory().setStack(free, bot.getInventory().getStack(slot));
-            bot.getInventory().setStack(slot, ItemStack.EMPTY);
-            break;
-          }
-      }
-    for (int target = 6; target <= 8; target++)
-      if (bot.getInventory().getStack(target).isEmpty())
-        for (int i = 9; i < 36; i++)
-          if (bot.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
-            bot.getInventory().setStack(target, bot.getInventory().getStack(i));
-            bot.getInventory().setStack(i, ItemStack.EMPTY);
-            break;
-          }
-    // With a packed custom hotbar, exchange a reserve totem with a non-sword slot instead of
-    // deleting an item.
-    if (find(Items.TOTEM_OF_UNDYING, false) < 0) {
-      int slot = 8;
-      ItemStack previous = bot.getInventory().getStack(slot);
-      bot.getInventory().setStack(slot, bot.getInventory().getStack(reserve));
-      bot.getInventory().setStack(reserve, previous);
+    int moved = 0;
+    for (int target = 6; target <= 8; target++) {
+      var displaced = bot.getInventory().getStack(target);
+      if (displaced.isOf(Items.TOTEM_OF_UNDYING)
+          || displaced.isIn(net.minecraft.registry.tag.ItemTags.SWORDS)) continue;
+      int source = -1;
+      for (int i = 9; i < 36; i++)
+        if (bot.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
+          source = i;
+          break;
+        }
+      if (source < 0) break;
+      // Swap rather than overwrite: even a full inventory keeps every displaced item.
+      bot.getInventory().setStack(target, bot.getInventory().getStack(source));
+      bot.getInventory().setStack(source, displaced);
+      moved++;
     }
     refillAt = -1;
-    bot.getInventory().markDirty();
+    if (moved > 0) {
+      refillCount++;
+      bot.getInventory().markDirty();
+      return retotem(t);
+    }
     return false;
   }
 
@@ -1005,7 +1014,9 @@ public final class Session {
                 + "/"
                 + Math.round(bot.getMaxHealth())
                 + " | Totems "
-                + countTotems()),
+                + countTotems()
+                + " | Refill "
+                + refillCount),
         true);
   }
 

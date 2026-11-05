@@ -824,6 +824,74 @@ public final class CombatServerTest {
     System.out.println(
         "PASS RETOTEM DIFFICULTY: seeded Medium20percent failure preserves stock, retries"
             + " successfully; High/Expert do not randomly miss");
+    options.difficulty = Options.Difficulty.HIGH;
+    options.retotem = true;
+    options.gap = false;
+    options.giro = false;
+    options.tank = true;
+    Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+    bot.setHealth(1);
+    bot.clearStatusEffects();
+    bot.setAbsorptionAmount(0);
+    DuckBox.session = new Session(owner, bot, options);
+    int refillTick = 12000;
+    for (int pop = 0; pop < 12; pop++) {
+      boolean readyTotem = false;
+      for (int n = 0; n < 100; n++) {
+        ticks.setInt(server, refillTick++);
+        bot.tick();
+        if (bot.getOffHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)
+            && !bot.getMainHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)) {
+          readyTotem = true;
+          break;
+        }
+      }
+      if (!readyTotem) throw new AssertionError("No retotem/refill for pop " + pop);
+      if (pop == 2) {
+        for (int n = 0; n < 20; n++) {
+          ticks.setInt(server, refillTick++);
+          bot.tick();
+        }
+        int hotTotems = 0;
+        for (int i = 0; i < 9; i++)
+          if (bot.getInventory().getStack(i).isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING))
+            hotTotems++;
+        if (hotTotems != 3
+            || DuckBox.session.refillCount() < 1
+            || !bot.getOffHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING))
+          throw new AssertionError(
+              "Refill must happen proactively while offhand is still protected");
+      }
+      int beforePop = DuckBox.session.countTotems();
+      bot.timeUntilRegen = 0;
+      bot.clearStatusEffects();
+      bot.setAbsorptionAmount(0);
+      bot.setHealth(1);
+      if (!DuckBox.allowTrainingDeath(bot, world.getDamageSources().generic(), 1000000)
+          || !bot.damage(world, world.getDamageSources().generic(), 1000000)
+          || bot.getHealth() <= 0
+          || DuckBox.session.countTotems() != beforePop - 1)
+        throw new AssertionError("Real vanilla totem pop/conservation failed at " + pop);
+    }
+    if (DuckBox.session.countTotems() != 0 || DuckBox.session.refillCount() != 3)
+      throw new AssertionError(
+          "Expected all12 totems consumed and three reserve refills: "
+              + DuckBox.session.countTotems()
+              + "/"
+              + DuckBox.session.refillCount());
+    for (int n = 0; n < 30; n++) {
+      ticks.setInt(server, refillTick++);
+      bot.tick();
+    }
+    if (DuckBox.session.countTotems() != 0)
+      throw new AssertionError("Refill must not generate new totems");
+    DuckBox.session.closed = true;
+    DuckBox.session = null;
+    options.tank = false;
+    options.retotem = false;
+    System.out.println(
+        "PASS FULL RETOTEM/REFILL:12 real vanilla pops, proactive3-totem refill while protected,"
+            + " three refills, stock exhausted without duplication");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);
