@@ -617,9 +617,8 @@ public final class Session {
   }
 
   private boolean readyToAttack() {
-    return o.rules == Options.Rules.INSTA_KILL
-        ? clicks.next()
-        : bot.getAttackCooldownProgress(0.5f) >= 1.0f;
+    return clicks.next()
+        && (o.rules == Options.Rules.INSTA_KILL || bot.getAttackCooldownProgress(0.5f) >= 1.0f);
   }
 
   private double attackReach() {

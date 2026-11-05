@@ -632,24 +632,28 @@ public final class CombatServerTest {
     ticks.setInt(server, 10000);
     bot.tick();
     bot.resetLastAttackedTicks();
-    if ((boolean) ready.invoke(cooldownSession))
-      throw new AssertionError("Normal must respect uncharged vanilla attack");
+    for (int n = 0; n < 20; n++)
+      if ((boolean) ready.invoke(cooldownSession))
+        throw new AssertionError(
+            "Normal must respect uncharged vanilla attack on every scheduled attempt");
     for (int n = 0; n < 10; n++) {
       ticks.setInt(server, 10001 + n);
       bot.tick();
     }
-    if (!(boolean) ready.invoke(cooldownSession))
-      throw new AssertionError("Normal must accept full native cooldown");
+    int chargedNormal = 0;
+    for (int n = 0; n < 20; n++) if ((boolean) ready.invoke(cooldownSession)) chargedNormal++;
+    if (chargedNormal != 15)
+      throw new AssertionError("Normal must schedule15 attacks when natively charged");
     bot.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, oldElytra);
     ticks.setInt(server, 10020);
     bot.tick();
     bot.resetLastAttackedTicks();
     ticks.setInt(server, 10021);
     bot.tick();
-    for (int n = 0; n < 20; n++)
-      if (!(boolean) ready.invoke(cooldownSession))
-        throw new AssertionError(
-            "Elytra attack speed must control Normal without artificial CPS gate");
+    int elytraNormal = 0;
+    for (int n = 0; n < 20; n++) if ((boolean) ready.invoke(cooldownSession)) elytraNormal++;
+    if (elytraNormal != 15)
+      throw new AssertionError("Normal with255 attack speed must retain15 CPS");
     options.rules = Options.Rules.INSTA_KILL;
     var instaCadenceSession = new Session(owner, bot, options);
     instaCadenceSession.closed = true;
@@ -659,8 +663,8 @@ public final class CombatServerTest {
       throw new AssertionError("Insta Kill cadence changed: " + instaAttempts);
     options.rules = Options.Rules.NORMAL_SPAM;
     System.out.println(
-        "PASS COMBAT RULES: Normal waits only for native cooldown/elytra attack speed; Insta Kill"
-            + " retains15/20 attempts");
+        "PASS COMBAT RULES: both modes15/20 attempts; Normal also respects native cooldown and"
+            + " elytra attack speed; Insta Kill unchanged");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);
