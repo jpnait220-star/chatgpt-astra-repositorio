@@ -60,7 +60,7 @@ public final class Session {
     owner = p;
     bot = b;
     o = options;
-    clicks = new CpsCadence(options.rules == Options.Rules.INSTA_KILL ? 15 : 8);
+    clicks = new CpsCadence(15);
     b.session = this;
     lastHealth = b.getHealth() + b.getAbsorptionAmount();
     aimX = p.getX();
@@ -429,7 +429,7 @@ public final class Session {
         && placeWeb(BlockPos.ofFloored(owner.getEyePos()), t)) return;
     if (!o.tank && !healing && !escaping && heldUntil <= t) {
       int sword = selectSword();
-      if (sword >= 0 && dist < CombatPlan.meleeIntentRange(attackReach()) && clicks.next()) {
+      if (sword >= 0 && dist < CombatPlan.meleeIntentRange(attackReach()) && readyToAttack()) {
         bot.swingHand(Hand.MAIN_HAND);
         if (canHit()) bot.attack(owner);
       }
@@ -614,6 +614,12 @@ public final class Session {
     bot.setPitch(MathHelper.clamp(Aim.approach(bot.getPitch(), pitch, max), -85, 85));
     bot.setHeadYaw(bot.getYaw());
     bot.setBodyYaw(bot.getYaw());
+  }
+
+  private boolean readyToAttack() {
+    return o.rules == Options.Rules.INSTA_KILL
+        ? clicks.next()
+        : bot.getAttackCooldownProgress(0.5f) >= 1.0f;
   }
 
   private double attackReach() {

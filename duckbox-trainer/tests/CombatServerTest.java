@@ -621,6 +621,46 @@ public final class CombatServerTest {
     System.out.println(
         "PASS WOOL: native black wool destruction, other blocks rejected, all16 colors/web cleaned"
             + " with floor/stone preserved");
+    bot.session = null;
+    options.rules = Options.Rules.NORMAL_SPAM;
+    var cooldownSession = new Session(owner, bot, options);
+    cooldownSession.closed = true;
+    var ready = Session.class.getDeclaredMethod("readyToAttack");
+    ready.setAccessible(true);
+    var oldElytra = bot.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST).copy();
+    bot.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
+    ticks.setInt(server, 10000);
+    bot.tick();
+    bot.resetLastAttackedTicks();
+    if ((boolean) ready.invoke(cooldownSession))
+      throw new AssertionError("Normal must respect uncharged vanilla attack");
+    for (int n = 0; n < 10; n++) {
+      ticks.setInt(server, 10001 + n);
+      bot.tick();
+    }
+    if (!(boolean) ready.invoke(cooldownSession))
+      throw new AssertionError("Normal must accept full native cooldown");
+    bot.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, oldElytra);
+    ticks.setInt(server, 10020);
+    bot.tick();
+    bot.resetLastAttackedTicks();
+    ticks.setInt(server, 10021);
+    bot.tick();
+    for (int n = 0; n < 20; n++)
+      if (!(boolean) ready.invoke(cooldownSession))
+        throw new AssertionError(
+            "Elytra attack speed must control Normal without artificial CPS gate");
+    options.rules = Options.Rules.INSTA_KILL;
+    var instaCadenceSession = new Session(owner, bot, options);
+    instaCadenceSession.closed = true;
+    int instaAttempts = 0;
+    for (int n = 0; n < 20; n++) if ((boolean) ready.invoke(instaCadenceSession)) instaAttempts++;
+    if (instaAttempts != 15)
+      throw new AssertionError("Insta Kill cadence changed: " + instaAttempts);
+    options.rules = Options.Rules.NORMAL_SPAM;
+    System.out.println(
+        "PASS COMBAT RULES: Normal waits only for native cooldown/elytra attack speed; Insta Kill"
+            + " retains15/20 attempts");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);

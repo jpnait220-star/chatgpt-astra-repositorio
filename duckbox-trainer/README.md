@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.10-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.11-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.10 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.11 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -73,11 +73,14 @@ ao lado: use um local sem construcoes suas nesse volume.
 
 Afiacao54 permanece no preset. Os valores de dano sao modificadores: ataque
 base, encantamento, armadura e efeitos continuam calculados pelo Minecraft.
-A cadencia do Normal Spam e8 CPS; Insta Kill usa15 CPS (a20TPS), em todas
-as dificuldades. O set mantem a velocidade de ataque alta para spam sem
-precisar carregar o golpe, como no combate1.8. Nao ignora invulnerabilidade entre danos nem alcance.
+Normal Spam usa somente a recarga nativa: o bot espera o ataque estar totalmente
+carregado; nao ha agendamento artificial de8 ou15 CPS nesse modo. O atributo
++255 attack_speed da elytra permanece e determina essa recarga com os demais
+atributos do kit. Isso torna a recarga muito curta; nao e uma promessa de dano
+mais lento nem altera as formulas nativas de dano. Insta Kill mantem o sistema
+de spam anterior, com15 tentativas por segundo a20TPS. Nao ignora invulnerabilidade entre danos nem alcance.
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.10, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.11, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -263,7 +266,7 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.10 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.11 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
