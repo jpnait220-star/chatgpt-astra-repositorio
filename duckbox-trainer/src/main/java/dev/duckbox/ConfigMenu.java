@@ -35,7 +35,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     "sapo",
     "profile",
     "nao_correr_retotem",
-    "teia_pe"
+    "teia_pe",
+    "resistencia2"
   };
   private static final Item[] ICONS = {
     Items.LIME_DYE,
@@ -60,7 +61,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     Items.LILY_PAD,
     Items.WRITABLE_BOOK,
     Items.TOTEM_OF_UNDYING,
-    Items.COBWEB
+    Items.COBWEB,
+    Items.IRON_CHESTPLATE
   };
   private static final String[] LABELS = {
     "Iniciar treino",
@@ -85,7 +87,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     "Chapeu de sapo",
     "Perfil do kit",
     "Nao correr no retotem",
-    "Teia no pe"
+    "Teia no pe",
+    "Resistencia II (Spam)"
   };
   private final ServerPlayerEntity owner;
   private final SimpleInventory contents;
@@ -151,7 +154,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
       on(o.frog),
       Integer.toString(o.profile),
       on(o.noRetreatRetotem),
-      on(o.footWeb)
+      on(o.footWeb),
+      on(o.resistance2)
     };
     for (int i = 0; i < 27; i++) {
       var stack = new ItemStack(i < KEYS.length ? ICONS[i] : Items.GRAY_STAINED_GLASS_PANE);

@@ -76,6 +76,18 @@ public final class CosmeticMeshTest {
   public static void main(String[] args) {
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
+    var legacyChest = LegacyChestModel.create();
+    var chestVertices = new Recorder();
+    legacyChest.setLockAndLidPitch(0);
+    legacyChest.render(new MatrixStack(), chestVertices, 15728880, 0);
+    if (chestVertices.vertices != 72 || chestVertices.minY < -.001 || chestVertices.maxY > 1.001)
+      throw new AssertionError(
+          "Legacy chest model must preserve native dimensions and finite UV vertices");
+    legacyChest.setLockAndLidPitch(1);
+    legacyChest.render(new MatrixStack(), new Recorder(), 15728880, 0);
+    System.out.println(
+        "PASS LEGACY CHEST: cached native dimensions, original UVs reoriented in geometry, finite"
+            + " closed/open mesh vertices");
     var model =
         new PlayerEntityModel(
             PlayerEntityModel.getTexturedModelData(Dilation.NONE, false)

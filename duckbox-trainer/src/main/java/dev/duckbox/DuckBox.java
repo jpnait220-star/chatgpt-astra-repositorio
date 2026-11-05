@@ -244,7 +244,8 @@ public final class DuckBox implements ModInitializer {
                         argument("tipo", StringArgumentType.word())
                             .suggests(
                                 (c, b) ->
-                                    CommandSource.suggestMatching(List.of("SPAM", "INSTA_KILL"), b))
+                                    CommandSource.suggestMatching(
+                                        List.of("SPAM", "SEMI_INSTA", "INSTA_KILL"), b))
                             .executes(
                                 c ->
                                     run(
@@ -256,6 +257,7 @@ public final class DuckBox implements ModInitializer {
                                                   StringArgumentType.getString(c, "tipo")
                                                       .toUpperCase(Locale.ROOT));
                                           Arena.updateRulesLabel(p.getServerWorld(), options);
+                                          Arena.applyTheme(p.getServerWorld(), options);
                                           save();
                                           setting(p, "Regras: " + options.rules);
                                         }))))
@@ -341,6 +343,17 @@ public final class DuckBox implements ModInitializer {
                         }))
             .then(literal("usar").executes(c -> run(c.getSource(), DuckBox::useCustomMap)))
             .then(
+                literal("limparpainel")
+                    .executes(
+                        c ->
+                            run(
+                                c.getSource(),
+                                p -> {
+                                  requireStopped();
+                                  Arena.clearOldPanel(p.getServerWorld(), options);
+                                  setting(p, "Painel antigo removido. Use /box configurar.");
+                                })))
+            .then(
                 literal("criar")
                     .executes(c -> run(c.getSource(), p -> Arena.create(p, options)))
                     .then(
@@ -397,7 +410,8 @@ public final class DuckBox implements ModInitializer {
                                             "strafe",
                                             "foguete_teia",
                                             "nao_correr_retotem",
-                                            "teia_pe"),
+                                            "teia_pe",
+                                            "resistencia2"),
                                         b))
                             .executes(
                                 c ->
@@ -572,6 +586,7 @@ public final class DuckBox implements ModInitializer {
           case "gap" -> "Gap";
           case "nao_correr_retotem" -> "Nao correr no retotem";
           case "teia_pe" -> "Teia no pe";
+          case "resistencia2" -> "Resistencia II (Spam)";
           case "teia" -> "Teia";
           case "wtap" -> "W-tap";
           case "strafe" -> "Strafe";
@@ -703,6 +718,7 @@ public final class DuckBox implements ModInitializer {
         if (entity
             .getStackInHand(hand)
             .contains(net.minecraft.component.DataComponentTypes.DEATH_PROTECTION)) return true;
+    say(session.owner, "DuckBot » " + session.roundMessage(entity == session.bot));
     entity.setHealth(1);
     session.finish = entity == session.bot ? "Voce venceu!" : "O bot venceu. Tente novamente!";
     return false;
@@ -761,6 +777,7 @@ public final class DuckBox implements ModInitializer {
                 ? Options.Rules.INSTA_KILL
                 : Options.Rules.NORMAL_SPAM;
         Arena.updateRulesLabel(p.getServerWorld(), options);
+        Arena.applyTheme(p.getServerWorld(), options);
         save();
         setting(p, "Regras: " + options.rules);
       }

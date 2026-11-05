@@ -584,14 +584,14 @@ public final class CombatServerTest {
     bot.clearStatusEffects();
     countdownSession.beginCountdown();
     if (!countdownSession.countingDown()
-        || owner.distanceTo(bot) < options.size - 4
+        || Math.abs(owner.distanceTo(bot) - (options.size - 5)) > .001
         || Math.abs(owner.getZ() - (options.z + 0.5)) > 0.001
         || Math.abs(bot.getZ() - owner.getZ()) > 0.001
         || DuckBox.allowTrainingDamage(owner, world.getDamageSources().playerAttack(bot)))
       throw new AssertionError("Countdown corners/protection");
     owner.setPosition(owner.getPos().add(1, 0, 0));
     countdownSession.control();
-    double offset = options.size / 2.0 - 1.5;
+    double offset = options.size / 2.0 - 2.5;
     if (Math.abs(owner.getX() - (options.x - offset)) > 0.001
         || owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.REGENERATION))
       throw new AssertionError("Countdown must hold corner and postpone buffs");
@@ -951,7 +951,7 @@ public final class CombatServerTest {
     String actionBar = hudSession.statusText().getString();
     if (!actionBar.contains("Spam")
         || !actionBar.contains("◆")
-        || !actionBar.contains("↻")
+        || actionBar.contains("↻")
         || actionBar.contains("NORMAL_SPAM")
         || actionBar.contains("Combate")
         || actionBar.contains(" | Bot "))
@@ -1193,26 +1193,25 @@ public final class CombatServerTest {
       if (++batches > 100) throw new AssertionError("Arena build stalled");
     }
     if (!options.built
-        || !world.getBlockState(Arena.kitChest(options)).isOf(Blocks.CHEST)
+        || !options.arenaOnly
         || !world
             .getBlockState(new BlockPos(options.x + options.size / 2, options.y + 1, options.z))
-            .isOf(Blocks.LIGHT_BLUE_STAINED_GLASS)
+            .isOf(Blocks.BLUE_STAINED_GLASS)
         || !world
             .getBlockState(new BlockPos(options.x, options.y + Arena.HEIGHT, options.z))
             .isOf(Blocks.GLASS))
       throw new AssertionError("Detailed arena/chest/roof construction failed");
-    if (!world
-        .getBlockState(new BlockPos(options.x - 31, options.y + 1, options.z - 4))
-        .isOf(Blocks.STONE_BUTTON)) throw new AssertionError("Mode must be a separate button");
+    if (!world.getBlockState(new BlockPos(options.x - 31, options.y + 1, options.z - 4)).isAir())
+      throw new AssertionError("Arena-only generator must not build remote control buttons");
     DuckBox.control(owner, "modo");
     if (!options.tank) throw new AssertionError("Tank selection");
     DuckBox.control(owner, "modo");
     if (options.tank) throw new AssertionError("Duel selection");
     Arena.controls.clear();
     if (Arena.control(new BlockPos(options.x - 31, options.y + 1, options.z - 8), world, options)
-        == null) throw new AssertionError("Controls after reload");
+        != null) throw new AssertionError("Removed lobby controls must stay disabled after reload");
     System.out.println(
-        "PASS REAL MAP BUILD:13x13 arena,8-high roof, blue glass, kit chest, duck lobby and"
+        "PASS REAL MAP BUILD:13x13 arena,8-high roof, blue glass, no generated lobby and"
             + " restored controls; "
             + batches
             + " bounded batches");
@@ -1250,7 +1249,7 @@ public final class CombatServerTest {
             .get("cps")
             .getAsInt();
     if (savedCps != 13
-        || !new Session(owner, bot, DuckBox.options).statusText().getString().contains("13 CPS"))
+        || new Session(owner, bot, DuckBox.options).statusText().getString().contains("13 CPS"))
       throw new AssertionError("CPS choice must persist and display");
     for (int expected : new int[] {15, 10, 13}) {
       DuckBox.control(owner, "cps");
@@ -1348,7 +1347,7 @@ public final class CombatServerTest {
     ticks.setInt(server, server.getTicks() + 41);
     feedbackConnection.messages.clear();
     DuckBox.session.status();
-    if (!feedbackConnection.overlay("Refill"))
+    if (!feedbackConnection.overlay("Totens"))
       throw new AssertionError("Normal status did not resume after setting display");
     feedbackConnection.messages.clear();
     DuckBox.say(owner, "Ajuda importante");
@@ -1578,6 +1577,52 @@ public final class CombatServerTest {
     world.setBlockState(ownFeet, Blocks.AIR.getDefaultState(), 3);
     if ((boolean) footFight.invoke(tactics, 151, 64.0) || planted.get(tactics) != null)
       throw new AssertionError("Removed foot web must release bot back to normal combat");
+    tacticOptions.resistance2 = false;
+    tactics.maintainRules();
+    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
+            != 0
+        || tacticBot
+                .getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE)
+                .getAmplifier()
+            != 0)
+      throw new AssertionError("Disabling ResistanceII must preserve ResistanceI from gap");
+    tacticOptions.resistance2 = true;
+    tactics.maintainRules();
+    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
+        != 1) throw new AssertionError("ResistanceII toggle did not apply to both sides");
+    var tacticClock = Session.class.getDeclaredField("clock");
+    tacticClock.setAccessible(true);
+    var tacticRandom = Session.class.getDeclaredField("random");
+    tacticRandom.setAccessible(true);
+    ((Random) tacticRandom.get(tactics)).setSeed(123456);
+    tacticBot.setHealth(4);
+    owner.setHealth(owner.getMaxHealth());
+    int allowedRetreats = 0;
+    for (int decision = 0; decision < 1000; decision++) {
+      tacticClock.setLong(tactics, 1000L + decision * 200L);
+      boolean choice = tactics.mayRecover(false, 4);
+      for (int repeated = 0; repeated < 5; repeated++)
+        if (tactics.mayRecover(false, 4) != choice)
+          throw new AssertionError("Retreat chance must not re-roll every tick");
+      if (choice) allowedRetreats++;
+    }
+    if (allowedRetreats < 430 || allowedRetreats > 570)
+      throw new AssertionError(
+          "Expected approximately 50% losing-health retreats: " + allowedRetreats);
+    String compactStatus = tactics.statusText().getString();
+    if (compactStatus.contains("CPS")
+        || compactStatus.contains("Refill")
+        || compactStatus.contains("Perfil")
+        || compactStatus.contains("Combate"))
+      throw new AssertionError("Actionbar still contains removed fields");
+    if (Options.Rules.parse("SEMI_INSTA") != Options.Rules.INSTA_KILL
+        || !Options.Rules.INSTA_KILL.toString().equals("Semi Insta"))
+      throw new AssertionError("Semi Insta rename must retain legacy rule identity");
+    if (tactics.roundMessage(true).isBlank() || tactics.roundMessage(false).isBlank())
+      throw new AssertionError("Missing round-end messages");
+    System.out.println(
+        "PASS SETTINGS: compact actionbar, SemiInsta alias, ResistanceII optional, stable 50percent"
+            + " retreat decisions when losing health and win/loss bot messages");
     server.getPlayerManager().remove(tacticBot);
     System.out.println(
         "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"

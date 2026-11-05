@@ -34,10 +34,11 @@ public final class Options {
 
     @Override
     public String toString() {
-      return this == NORMAL_SPAM ? "Spam" : "Insta Kill";
+      return this == NORMAL_SPAM ? "Spam" : "Semi Insta";
     }
 
     public static Rules parse(String name) {
+      if (name.equalsIgnoreCase("SEMI_INSTA")) return INSTA_KILL;
       return name.equalsIgnoreCase("SPAM")
           ? NORMAL_SPAM
           : valueOf(name.toUpperCase(java.util.Locale.ROOT));
@@ -72,6 +73,7 @@ public final class Options {
       webRocket = true,
       tank = false;
   public boolean noRetreatRetotem = false, footWeb = false;
+  public boolean arenaOnly = true, resistance2 = true;
   public int revision = 2, size = 13, webCooldown = 200;
   public int cps = 15;
   public int profile = 1;
@@ -103,6 +105,7 @@ public final class Options {
     return switch (key) {
       case "nao_correr_retotem" -> noRetreatRetotem = !noRetreatRetotem;
       case "teia_pe" -> footWeb = !footWeb;
+      case "resistencia2" -> resistance2 = !resistance2;
       case "giro" -> giro = !giro;
       case "gap" -> gap = !gap;
       case "retotem" -> retotem = !retotem;

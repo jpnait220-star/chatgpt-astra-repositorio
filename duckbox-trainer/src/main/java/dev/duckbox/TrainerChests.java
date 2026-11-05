@@ -57,6 +57,7 @@ public final class TrainerChests {
         .encodeStart(registries.getOps(net.minecraft.nbt.NbtOps.INSTANCE), components)
         .result()
         .ifPresent(value -> result.put("components", value));
+    result.putInt("duckbox_visual_role", profile(chest));
     return result;
   }
 

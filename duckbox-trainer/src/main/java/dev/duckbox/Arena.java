@@ -60,6 +60,7 @@ public final class Arena {
       o.dimension = player.getServerWorld().getRegistryKey().getValue().toString();
     }
     o.customMap = false;
+    o.arenaOnly = true;
     o.size = Options.allowedSize(o.size);
     buildingWorld = player.getServerWorld();
     options = o;
@@ -79,7 +80,9 @@ public final class Arena {
             if (y == 0)
               block =
                   (edge
-                          ? Blocks.POLISHED_BLACKSTONE_BRICKS
+                          ? (o.rules == Options.Rules.INSTA_KILL
+                              ? Blocks.RED_CONCRETE
+                              : Blocks.BLUE_CONCRETE)
                           : (Math.abs(x) <= 1 || Math.abs(z) <= 1)
                               ? Blocks.YELLOW_TERRACOTTA
                               : (Math.floorMod(x + z, 2) == 0
@@ -94,34 +97,15 @@ public final class Arena {
               block =
                   (y == HEIGHT
                           ? Blocks.POLISHED_BLACKSTONE_BRICKS
-                          : Blocks.LIGHT_BLUE_STAINED_GLASS)
+                          : (o.rules == Options.Rules.INSTA_KILL
+                              ? Blocks.RED_STAINED_GLASS
+                              : Blocks.BLUE_STAINED_GLASS))
                       .getDefaultState();
             else if (y == HEIGHT) block = Blocks.GLASS.getDefaultState();
           }
           pending.add(new Edit(new BlockPos(o.x + x, o.y + y, o.z + z), block));
         }
-    for (int x = -34; x <= -20; x++)
-      for (int z = -16; z <= 12; z++)
-        for (int y = 0; y <= 7; y++)
-          pending.add(
-              new Edit(
-                  new BlockPos(o.x + x, o.y + y, o.z + z),
-                  y == 0
-                      ? ((x == -34 || x == -20 || z == -16 || z == 12)
-                              ? Blocks.POLISHED_BLACKSTONE_BRICKS
-                              : (Math.floorMod(x + z, 2) == 0
-                                  ? Blocks.SMOOTH_QUARTZ
-                                  : Blocks.QUARTZ_BRICKS))
-                          .getDefaultState()
-                      : Blocks.AIR.getDefaultState()));
-    for (int x = -20; x < -h; x++)
-      for (int z = -2; z <= 2; z++)
-        pending.add(
-            new Edit(
-                new BlockPos(o.x + x, o.y, o.z + z),
-                (Math.abs(z) == 2 ? Blocks.POLISHED_BLACKSTONE_BRICKS : Blocks.YELLOW_TERRACOTTA)
-                    .getDefaultState()));
-    player.teleport(buildingWorld, o.x - 27.5, o.y + 1, o.z + 9.5, Set.of(), 180, 0, false);
+    player.teleport(buildingWorld, o.x, o.y + HEIGHT + 1, o.z, Set.of(), 180, 0, false);
     DuckBox.say(player, "Montando arena em lotes. Aguarde alguns segundos.");
   }
 
@@ -132,7 +116,7 @@ public final class Arena {
         buildingWorld.setBlockState(e.pos, e.state, 3);
     }
     if (pending.isEmpty() && buildingWorld != null) {
-      panel();
+      controls.clear();
       options.built = true;
       DuckBox.save();
       buildingWorld = null;
@@ -220,7 +204,8 @@ public final class Arena {
   }
 
   public static void updateCpsLabel(ServerWorld w, Options o) {
-    if (w == null
+    if (o.arenaOnly
+        || w == null
         || o.customMap
         || !w.getRegistryKey().getValue().toString().equals(o.dimension)
         || (!o.built && w != buildingWorld)) return;
@@ -234,7 +219,8 @@ public final class Arena {
   }
 
   public static void ensureCpsControl(ServerWorld w, Options o) {
-    if (w == null
+    if (o.arenaOnly
+        || w == null
         || o.customMap
         || !o.built
         || !w.getRegistryKey().getValue().toString().equals(o.dimension)) return;
@@ -250,7 +236,8 @@ public final class Arena {
   }
 
   public static void updateSpinLabel(ServerWorld w, Options o) {
-    if (w == null
+    if (o.arenaOnly
+        || w == null
         || !w.getRegistryKey().getValue().toString().equals(o.dimension)
         || (!o.built && w != buildingWorld)) return;
     sign(
@@ -263,7 +250,8 @@ public final class Arena {
   }
 
   public static void updateRulesLabel(ServerWorld w, Options o) {
-    if (w == null
+    if (o.arenaOnly
+        || w == null
         || !w.getRegistryKey().getValue().toString().equals(o.dimension)
         || (!o.built && w != buildingWorld)) return;
     sign(
@@ -276,6 +264,7 @@ public final class Arena {
   }
 
   public static void updateModeLabel(ServerWorld w, Options o) {
+    if (o.arenaOnly) return;
     sign(
         w,
         new BlockPos(o.x - 31, o.y + 1, o.z - 3),
@@ -286,7 +275,7 @@ public final class Arena {
   }
 
   private static void sign(ServerWorld w, BlockPos pos, String... lines) {
-    if (DuckBox.options != null && DuckBox.options.customMap) return;
+    if (DuckBox.options != null && (DuckBox.options.customMap || DuckBox.options.arenaOnly)) return;
     w.setBlockState(pos, Blocks.OAK_SIGN.getDefaultState(), 3);
     if (w.getBlockEntity(pos) instanceof SignBlockEntity sign) {
       var text = sign.getFrontText();
@@ -302,7 +291,8 @@ public final class Arena {
   }
 
   public static boolean isKitChest(BlockPos pos, ServerWorld w, Options o) {
-    return o.built
+    return !o.arenaOnly
+        && o.built
         && !o.customMap
         && w.getRegistryKey().getValue().toString().equals(o.dimension)
         && pos.equals(kitChest(o));
@@ -323,14 +313,72 @@ public final class Arena {
   }
 
   public static String control(BlockPos p, ServerWorld w, Options o) {
-    if (o.customMap || !o.built || !w.getRegistryKey().getValue().toString().equals(o.dimension))
-      return null;
+    if (o.arenaOnly
+        || o.customMap
+        || !o.built
+        || !w.getRegistryKey().getValue().toString().equals(o.dimension)) return null;
     for (int i = 0; i < KEYS.length; i++)
       if (p.equals(new BlockPos(o.x - 31 + i % 3 * 4, o.y + 1, o.z - 8 + i / 3 * 4))) {
         controls.put(p, KEYS[i]);
         return KEYS[i];
       }
     return null;
+  }
+
+  public static void applyTheme(ServerWorld w, Options o) {
+    if (w == null || !o.built || !w.getRegistryKey().getValue().toString().equals(o.dimension))
+      return;
+    boolean red = o.rules == Options.Rules.INSTA_KILL;
+    int h = o.size / 2;
+    for (int x = -h; x <= h; x++)
+      for (int z = -h; z <= h; z++) {
+        if (Math.abs(x) != h && Math.abs(z) != h) continue;
+        for (int y = 0; y <= HEIGHT; y++) {
+          var pos = new BlockPos(o.x + x, o.y + y, o.z + z);
+          var state = w.getBlockState(pos);
+          if (state.isOf(Blocks.LIGHT_BLUE_STAINED_GLASS)
+              || state.isOf(Blocks.BLUE_STAINED_GLASS)
+              || state.isOf(Blocks.RED_STAINED_GLASS))
+            w.setBlockState(
+                pos,
+                (red ? Blocks.RED_STAINED_GLASS : Blocks.BLUE_STAINED_GLASS).getDefaultState(),
+                3);
+          else if (y == 0
+              && (state.isOf(Blocks.BLUE_CONCRETE)
+                  || state.isOf(Blocks.RED_CONCRETE)
+                  || state.isOf(Blocks.POLISHED_BLACKSTONE_BRICKS)))
+            w.setBlockState(
+                pos, (red ? Blocks.RED_CONCRETE : Blocks.BLUE_CONCRETE).getDefaultState(), 3);
+        }
+      }
+  }
+
+  public static void clearOldPanel(ServerWorld w, Options o) {
+    if (!w.getRegistryKey().getValue().toString().equals(o.dimension))
+      throw new IllegalArgumentException("Volte para a dimensao da arena.");
+    for (int x = -34; x <= -20; x++)
+      for (int z = -16; z <= 12; z++)
+        for (int y = 0; y <= 7; y++) {
+          BlockPos pos = new BlockPos(o.x + x, o.y + y, o.z + z);
+          var block = w.getBlockState(pos).getBlock();
+          if (Set.of(
+                  Blocks.POLISHED_BLACKSTONE_BRICKS,
+                  Blocks.SMOOTH_QUARTZ,
+                  Blocks.QUARTZ_BRICKS,
+                  Blocks.YELLOW_CONCRETE,
+                  Blocks.ORANGE_CONCRETE,
+                  Blocks.BLACK_CONCRETE,
+                  Blocks.POLISHED_BLACKSTONE_WALL,
+                  Blocks.SEA_LANTERN,
+                  Blocks.OAK_SIGN,
+                  Blocks.LEVER,
+                  Blocks.STONE_BUTTON,
+                  Blocks.CHEST)
+              .contains(block)) w.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+        }
+    controls.clear();
+    o.arenaOnly = true;
+    DuckBox.save();
   }
 
   public static void clearWebs(ServerWorld w, Options o) {

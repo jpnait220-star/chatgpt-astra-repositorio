@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.20-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.21-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,16 +7,16 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.20 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.21 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
-  o mod reconstrui o painel para incluir os controles novos e mover o bau.
+  as configuracoes e os baus continuam salvos; use /box configurar para os controles.
 - Ha um jogador contra um bot por mundo. Comandos/controles exigem operador;
   o mundo do pacote ja permite comandos. Servidor privado: mod e Fabric API
   tambem no cliente de quem vai treinar. Nao e um bot para servidor publico.
 
 Fabric API: https://modrinth.com/mod/fabric-api/version/0.119.3+1.21.4
-O ZIP inclui um template de mundo plano; arena e lobby sao gerados pelo mod.
+O ZIP inclui um template de mundo plano; apenas a arena e gerada pelo mod.
 
 O bot agacha durante o voo de elytra e solta ao parar de planar.
 A pausa agachada para repor totens continua funcionando.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.20, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.21, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.20 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.21 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.20 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.21 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.20 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.21 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.20 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.21 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.20 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.21 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -415,8 +415,9 @@ participantes recebem copias do kit do perfil selecionado ao iniciar.
 
 Os comandos tambem funcionam em command blocks com o mesmo alvo dos demais.
 O cofre usa o PNG roxo original; os baus de perfil usam o PNG azul original.
-Coloque-os separados, com um bloco de distancia entre baus, para manter o
-formato simples e a textura correta. Os perfis nao dependem da posicao fisica
+Os baus especiais usam renderizacao propria de bloco simples, inclusive
+quando encostados. A textura azul usa o mapeamento antigo de UV adaptado no
+modelo, preservando os pixels originais. Os perfis nao dependem da posicao fisica
 do bau: pode mover/colocar novos exemplares pelo comando.
 
 ## Nomes com cores e gradientes
@@ -446,8 +447,9 @@ com botoes em `/box configurar` e comandos em chat/command block:
 
 - `/box habilidade nao_correr_retotem`: segura o combate, pulando, atacando e
   fazendo retotem/refill normalmente. Nao foge para comer enquanto o jogador
-  continua atacando; so permite recuperar quando o jogador se afasta mais de
-  tres blocos e esta comendo. Nao altera alcance ou velocidade dos golpes.
+  continua atacando. Se estiver perdendo em vida relativa, tem50% de chance de
+  recuperar por oportunidade, com decisao mantida10 segundos. Tambem pode
+  recuperar quando o jogador se afasta mais de tres blocos e esta comendo. Nao altera alcance ou velocidade dos golpes.
 - `/box habilidade teia_pe`: permite plantar uma teia nos proprios pes no
   chao quando o jogador esta no chao, se afasta ou o bot perde vida relativa.
   Tambem adota essa tecnica quando o jogador teia seus pes. Nessa postura
@@ -456,3 +458,31 @@ com botoes em `/box configurar` e comandos em chat/command block:
   minera a propria teia com a quebra normal e volta a perseguir; pode repetir
   depois. Depende de Teia estar ligada e de ter teias no inventario para por
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
+
+
+## Alteracoes0.3.21
+
+- `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
+  mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
+  A escolha e salva e reaplicada depois de um totem.
+- `/box regras SEMI_INSTA` e o nome novo de Insta Kill. `INSTA_KILL` continua
+  aceito e os kits/perfis salvos preservam a mesma identidade.
+- A actionbar mostra dificuldade, modo e totens. CPS, perfil, refill e fase
+  cinza foram removidos; confirmacoes de configuracao continuam temporarias.
+- Os dois pontos da contagem foram movidos um bloco para dentro da arena.
+- O bot responde no chat ao terminar: mensagens de boa partida, quase e,
+  quando o jogador vence com ate2 totens restantes, elogios de luta apertada.
+- O gerador agora cria somente a arena, sem lobby, pato, caminho e painel de
+  botoes. Use `/box configurar` ou seus command blocks no mapa personalizado.
+  `/box usar` continua vinculando o mapa pronto sem reconstruir sua schematic.
+  `/box criar` gera a caixa e substitui os blocos dentro do volume da arena.
+- Spam usa vidro/concreto azul; Semi Insta usa vermelho. Trocar as regras
+  recolore apenas esses materiais nas bordas da caixa, preservando a estrutura.
+- `/box limparpainel` e opcional para remover o antigo lobby gerado, na antiga
+  area externa a oeste. Nao use se construiu algo la que queira preservar.
+  A atualizacao nao apaga essa area automaticamente.
+- Baus especiais colocados no mundo agora usam renderizador proprio e sincronizam
+  o papel visual no NBT. Reabra o mundo apos instalar para recarregar os baus.
+
+A validacao inclui testes nativos de servidor/Mixin e malhas sem GPU. Ainda
+precisa conferir as texturas e o combate dentro do cliente grafico.

@@ -19,6 +19,8 @@
     "BotSkinEntryMixin",
     "BotSkinStateMixin",
     "LocalInstaHitDelayMixin",
-    "TrainerChestTextureMixin"
+    "TrainerChestTextureMixin",
+    "TrainerChestRenderMixin",
+    "TrainerChestItemMixin"
   ]
 }

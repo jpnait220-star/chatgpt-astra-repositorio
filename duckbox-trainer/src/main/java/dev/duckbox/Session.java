@@ -73,8 +73,22 @@ public final class Session {
   private int footRetryAt, footAttackWebAt;
 
   /** In this aggressive mode recovery is allowed only when the opponent retreats to eat. */
+  private int recoveryChoiceAt;
+
+  private boolean recoveryChoice;
+
   public boolean mayRecover(boolean opponentEating, double squaredDistance) {
-    return !o.noRetreatRetotem || (opponentEating && squaredDistance > 9);
+    if (!o.noRetreatRetotem || (opponentEating && squaredDistance > 9)) return true;
+    boolean losing =
+        Aim.fraction(bot.getHealth(), bot.getMaxHealth()) + .04
+            < Aim.fraction(owner.getHealth(), owner.getMaxHealth());
+    if (!losing) return false;
+    // One 50% decision per opportunity, held for ten seconds (never rolled every tick).
+    if (clock >= recoveryChoiceAt) {
+      recoveryChoice = random.nextBoolean();
+      recoveryChoiceAt = (int) clock + 200;
+    }
+    return recoveryChoice;
   }
 
   private String phase = "Preparando";
@@ -103,7 +117,7 @@ public final class Session {
 
   public void beginCountdown() {
     countdownTicks = 100;
-    double offset = o.size / 2.0 - 1.5;
+    double offset = o.size / 2.0 - 2.5;
     ownerCorner = new Vec3d(o.x - offset, o.y + 1, o.z + 0.5);
     botCorner = new Vec3d(o.x + offset, o.y + 1, o.z + 0.5);
     moveToCorner(owner, ownerCorner, -90);
@@ -177,7 +191,7 @@ public final class Session {
   }
 
   public void maintainRules() {
-    int amplifier = o.rules == Options.Rules.NORMAL_SPAM ? 1 : 0;
+    int amplifier = o.rules == Options.Rules.NORMAL_SPAM && o.resistance2 ? 1 : 0;
     for (var p : List.of(owner, bot)) {
       var effect = p.getStatusEffect(StatusEffects.RESISTANCE);
       if (effect == null || effect.getAmplifier() != amplifier || !effect.isInfinite()) {
@@ -250,7 +264,14 @@ public final class Session {
             && owner.getActiveItem().contains(net.minecraft.component.DataComponentTypes.FOOD);
     if (!mayRecover(opponentEatingNow, dist) && (healing || escaping || landingForGap))
       endRecovery(t, 10);
-    if (footWebFight(t, dist)) return;
+    boolean retreatForHealth =
+        o.noRetreatRetotem
+            && mayRecover(opponentEatingNow, dist)
+            && bot.getHealth() < bot.getMaxHealth() - 4
+            && apples() > 0
+            && o.gap;
+    if (retreatForHealth && plantedFootWeb != null) leavingFootWeb = true;
+    if ((!retreatForHealth || plantedFootWeb != null) && footWebFight(t, dist)) return;
     if (!healing && !escaping && !landingForGap && escapeOwnWeb(t)) return;
     // A consumed apple decreases the real inventory count; interruption does not.
     if (healing && !bot.isUsingItem()) {
@@ -1065,6 +1086,7 @@ public final class Session {
       return true;
     }
     if (plantedFootWeb == null) {
+      if (leavingFootWeb) return false;
       if (!o.footWeb || !o.teia || !bot.isOnGround() || distance > 25 || t < footRetryAt)
         return false;
       boolean losing =
@@ -1151,6 +1173,22 @@ public final class Session {
     return false;
   }
 
+  public String roundMessage(boolean playerWon) {
+    if (playerWon) {
+      int remaining = 0;
+      for (int i = 0; i < owner.getInventory().size(); i++)
+        if (owner.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING))
+          remaining += owner.getInventory().getStack(i).getCount();
+      String[] lines =
+          remaining <= 2
+              ? new String[] {"Seloko, jogou muito!", "Quaseee! Mandou bem!", "Foi por pouco! GG!"}
+              : new String[] {"GG! Jogou bem!", "Boa! Bora mais uma?", "Mandou bem nessa!"};
+      return lines[random.nextInt(lines.length)];
+    }
+    String[] lines = {"GG, foi bem!", "Boa luta! Bora de novo?", "Quase! Na proxima voce leva!"};
+    return lines[random.nextInt(lines.length)];
+  }
+
   public Text statusText() {
     var text =
         Text.empty()
@@ -1159,16 +1197,8 @@ public final class Session {
             .append(Text.literal(o.difficulty.toString()).formatted(Formatting.AQUA))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
             .append(Text.literal(o.rules.toString()).formatted(Formatting.YELLOW))
-            .append(Text.literal(" / ").formatted(Formatting.DARK_GRAY))
-            .append(DuckBox.profileName(o.profile))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-            .append(Text.literal(o.cps + " CPS").formatted(Formatting.WHITE))
-            .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-            .append(Text.literal("◇ Totens " + countTotems()).formatted(Formatting.GREEN))
-            .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-            .append(Text.literal("↻ Refill " + refillCount).formatted(Formatting.LIGHT_PURPLE));
-    if (!phase.equals("Combate") && !phase.isBlank())
-      text.append(Text.literal("  • " + phase).formatted(Formatting.GRAY));
+            .append(Text.literal("◇ Totens " + countTotems()).formatted(Formatting.GREEN));
     return text;
   }
 

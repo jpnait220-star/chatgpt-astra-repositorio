@@ -10,6 +10,7 @@ import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import net.minecraft.registry.RegistryWrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BlockEntity.class)
@@ -20,6 +21,25 @@ public abstract class TrainerChestSyncMixin {
     if ((Object) this instanceof ChestBlockEntity chest && TrainerChests.profile(chest) >= 0) {
       // Sync only the role component, never the supply inventory on every chunk packet.
       cir.setReturnValue(TrainerChests.visualData(chest, registries, cir.getReturnValue()));
+    }
+  }
+
+  @Inject(method = "method_58690", at = @At("TAIL"), remap = false)
+  private void duckbox$readRole(
+      NbtCompound data, RegistryWrapper.WrapperLookup registries, CallbackInfo ci) {
+    if ((Object) this instanceof ChestBlockEntity chest && data.contains("duckbox_visual_role")) {
+      int role = data.getInt("duckbox_visual_role");
+      if (role >= 0 && role <= 4) {
+        var marker = new NbtCompound();
+        marker.putInt("duckbox_chest_profile", role);
+        chest.setComponents(
+            ComponentMap.builder()
+                .addAll(chest.getComponents())
+                .add(
+                    DataComponentTypes.CUSTOM_DATA,
+                    net.minecraft.component.type.NbtComponent.of(marker))
+                .build());
+      }
     }
   }
 
