@@ -32,7 +32,10 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     "blood",
     "money",
     "oculos",
-    "sapo"
+    "sapo",
+    "profile",
+    "nao_correr_retotem",
+    "teia_pe"
   };
   private static final Item[] ICONS = {
     Items.LIME_DYE,
@@ -54,7 +57,10 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     Items.REDSTONE,
     Items.EMERALD,
     Items.SPYGLASS,
-    Items.LILY_PAD
+    Items.LILY_PAD,
+    Items.WRITABLE_BOOK,
+    Items.TOTEM_OF_UNDYING,
+    Items.COBWEB
   };
   private static final String[] LABELS = {
     "Iniciar treino",
@@ -76,7 +82,10 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     "Punho Blood",
     "Aura Money",
     "Oculos gamer",
-    "Chapeu de sapo"
+    "Chapeu de sapo",
+    "Perfil do kit",
+    "Nao correr no retotem",
+    "Teia no pe"
   };
   private final ServerPlayerEntity owner;
   private final SimpleInventory contents;
@@ -139,7 +148,10 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
       on(o.blood),
       on(o.money),
       on(o.glasses),
-      on(o.frog)
+      on(o.frog),
+      Integer.toString(o.profile),
+      on(o.noRetreatRetotem),
+      on(o.footWeb)
     };
     for (int i = 0; i < 27; i++) {
       var stack = new ItemStack(i < KEYS.length ? ICONS[i] : Items.GRAY_STAINED_GLASS_PANE);
@@ -150,7 +162,7 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
                       ? LABELS[i] + (values[i].isEmpty() ? "" : " » " + values[i])
                       : " ")
               .formatted(
-                  i >= 9 && i < KEYS.length
+                  (i >= 9 && i < 20) || i >= 21 && i < KEYS.length
                       ? values[i].equals("Ligado") ? Formatting.GREEN : Formatting.RED
                       : Formatting.YELLOW));
       contents.setStack(i, stack);
@@ -190,7 +202,7 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
         return;
       }
       if (key.equals("iniciar") || key.equals("parar")) owner.closeHandledScreen();
-      if (index >= 16) {
+      if (index >= 16 && index < 20) {
         switch (key) {
           case "blood" -> DuckBox.options.blood = !DuckBox.options.blood;
           case "money" -> DuckBox.options.money = !DuckBox.options.money;
@@ -198,6 +210,7 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
           case "sapo" -> DuckBox.options.frog = !DuckBox.options.frog;
         }
         DuckBox.save();
+        DuckBox.toggleSetting(owner, key, DuckBox.cosmeticEnabled(key));
       } else DuckBox.control(owner, key);
       if (owner.currentScreenHandler == this) refresh();
     } catch (Exception e) {

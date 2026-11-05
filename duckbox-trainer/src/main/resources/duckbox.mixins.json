@@ -7,7 +7,9 @@
     "RocketBoostMixin",
     "TrainingPvpMixin",
     "WebMovementAccess",
-    "WebPacketMovementMixin"
+    "WebPacketMovementMixin",
+    "TrainerChestSyncMixin",
+    "TrainerChestPlacementMixin"
   ],
   "injectors": {
     "defaultRequire": 1
@@ -16,6 +18,7 @@
     "CosmeticArmMixin",
     "BotSkinEntryMixin",
     "BotSkinStateMixin",
-    "LocalInstaHitDelayMixin"
+    "LocalInstaHitDelayMixin",
+    "TrainerChestTextureMixin"
   ]
 }

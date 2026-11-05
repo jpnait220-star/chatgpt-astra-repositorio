@@ -18,6 +18,18 @@ public class CoreTest {
     if (!value) throw new AssertionError("case " + count);
   }
 
+  static java.util.List<Integer> colors(net.minecraft.text.Text text) {
+    var result = new java.util.ArrayList<Integer>();
+    text.visit(
+        (style, value) -> {
+          if (!value.isEmpty())
+            result.add(style.getColor() == null ? -1 : style.getColor().getRgb());
+          return java.util.Optional.empty();
+        },
+        net.minecraft.text.Style.EMPTY);
+    return result;
+  }
+
   public static void main(String[] args) throws Exception {
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
@@ -239,6 +251,37 @@ public class CoreTest {
     dev.duckbox.cosmetic.CosmeticState.clear();
     check(!dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(), 1));
 
+    check(RichNames.parse("&aPato &lForte").getString().equals("Pato Forte"));
+    check(colors(RichNames.parse("&#12abEFDuck")).getFirst() == 0x12abef);
+    check(RichNames.parse("&x&f&f&0&0&8&8Duck").getString().equals("Duck"));
+    var gradient = RichNames.parse("<gradient:#ff0000:#0000ff>ABC</gradient>");
+    check(gradient.getString().equals("ABC"));
+    check(colors(gradient).getFirst() == 0xff0000);
+    check(colors(gradient).getLast() == 0x0000ff);
+    check(RichNames.parse("<rainbow>Duck</rainbow>").getString().equals("Duck"));
+    check(RichNames.parse("<bold><#123456>Duck</#123456></bold>").getString().equals("Duck"));
+    boolean rejected = false;
+    try {
+      RichNames.parse("<gradient:#oops:#ffffff>A</gradient>");
+    } catch (IllegalArgumentException expected) {
+      rejected = true;
+    }
+    check(rejected);
+    for (int profile = 0; profile <= 4; profile++) {
+      var chest = TrainerChests.item(profile);
+      check(chest.isOf(Items.CHEST));
+      check(
+          chest.get(DataComponentTypes.CUSTOM_DATA).copyNbt().getInt("duckbox_chest_profile")
+              == profile);
+    }
+    for (String name : new String[] {"stock", "profile"}) {
+      var chestPng =
+          javax.imageio.ImageIO.read(
+              CoreTest.class.getResourceAsStream(
+                  "/assets/duckbox/textures/entity/chest/" + name + ".png"));
+      check(chestPng.getWidth() == 64 && chestPng.getHeight() == 64);
+      check(CoreTest.class.getResource("/assets/duckbox/items/" + name + "_chest.json") != null);
+    }
     NbtCompound root =
         NbtIo.readCompressed(new FileInputStream(args[0]), NbtSizeTracker.ofUnlimitedBytes());
     NbtCompound data = root.getCompound("Data");

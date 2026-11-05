@@ -21,6 +21,12 @@ public final class Session {
   private long clock;
   private CpsCadence clicks;
   private int clickRate;
+  private int settingsVisibleUntil;
+
+  public void holdSettingMessage() {
+    settingsVisibleUntil = bot.getServer().getTicks() + 40;
+  }
+
   private int buildAt;
   private BlockPos breakingWeb;
   private float webBreakProgress;
@@ -62,6 +68,14 @@ public final class Session {
   private Vec3d recoveryLastPos;
   private int recoveryStuckTicks;
   private int webEscapeSince = -1;
+  private BlockPos plantedFootWeb;
+  private boolean leavingFootWeb;
+  private int footRetryAt, footAttackWebAt;
+
+  /** In this aggressive mode recovery is allowed only when the opponent retreats to eat. */
+  public boolean mayRecover(boolean opponentEating, double squaredDistance) {
+    return !o.noRetreatRetotem || (opponentEating && squaredDistance > 9);
+  }
 
   private String phase = "Preparando";
   private Vec3d recoveryPoint;
@@ -231,6 +245,12 @@ public final class Session {
       finish = "Voce saiu da arena.";
       return;
     }
+    boolean opponentEatingNow =
+        owner.isUsingItem()
+            && owner.getActiveItem().contains(net.minecraft.component.DataComponentTypes.FOOD);
+    if (!mayRecover(opponentEatingNow, dist) && (healing || escaping || landingForGap))
+      endRecovery(t, 10);
+    if (footWebFight(t, dist)) return;
     if (!healing && !escaping && !landingForGap && escapeOwnWeb(t)) return;
     // A consumed apple decreases the real inventory count; interruption does not.
     if (healing && !bot.isUsingItem()) {
@@ -251,6 +271,7 @@ public final class Session {
         && !landingForGap
         && gapsLeft == 0
         && o.gap
+        && mayRecover(otherEating, dist)
         && t > gapWait
         && (health < bot.getMaxHealth() - 4 || tankGroundDue)
         && (behind || otherEating || o.tank || health < bot.getMaxHealth() * 0.55)
@@ -1027,12 +1048,72 @@ public final class Session {
     builtBlocks.clear();
   }
 
+  /** Ground-only web dueling: keep native reach/CPS and native mining when leaving. */
+  private boolean footWebFight(int t, double distance) {
+    var world = bot.getServerWorld();
+    if (plantedFootWeb != null
+        && !world.getBlockState(plantedFootWeb).isOf(net.minecraft.block.Blocks.COBWEB)) {
+      plantedFootWeb = null;
+      leavingFootWeb = false;
+      footRetryAt = t + 60;
+    }
+    if (plantedFootWeb != null
+        && (!o.footWeb || !o.teia || distance > 25 || Math.abs(owner.getY() - bot.getY()) > 2.0))
+      leavingFootWeb = true;
+    if (plantedFootWeb != null && leavingFootWeb) {
+      breakTrainingBlock(plantedFootWeb, "Saindo da teia dos pes / perseguindo");
+      return true;
+    }
+    if (plantedFootWeb == null) {
+      if (!o.footWeb || !o.teia || !bot.isOnGround() || distance > 25 || t < footRetryAt)
+        return false;
+      boolean losing =
+          Aim.fraction(bot.getHealth(), bot.getMaxHealth())
+              < Aim.fraction(owner.getHealth(), owner.getMaxHealth());
+      BlockPos feet = bot.getBlockPos();
+      boolean alreadyWebbed = world.getBlockState(feet).isOf(net.minecraft.block.Blocks.COBWEB);
+      if (!alreadyWebbed && !owner.isOnGround() && distance <= 9 && !losing) return false;
+      if (!alreadyWebbed && !placeWebAt(feet, t, true)) {
+        footRetryAt = t + 10;
+        return false;
+      }
+      plantedFootWeb = feet.toImmutable();
+      footAttackWebAt = t + 20;
+      if (healing || escaping || landingForGap) endRecovery(t, 20);
+    }
+    bot.stopGliding();
+    bot.setSneaking(false);
+    bot.setSprinting(false);
+    bot.forwardSpeed = bot.sidewaysSpeed = 0;
+    phase = "Teia no pe / combate";
+    look(owner.getEyePos(), o.difficulty.aimSpeed);
+    bot.setHeadYaw(bot.getYaw());
+    bot.setBodyYaw(bot.getYaw());
+    if (owner.isOnGround() && distance <= 9 && t >= footAttackWebAt) {
+      footAttackWebAt = t + 40;
+      if (placeWebAt(owner.getBlockPos(), t, true)) return true;
+    }
+    if (selectSword() >= 0 && heldUntil <= t && distance <= 36 && readyToAttack()) {
+      bot.swingHand(Hand.MAIN_HAND);
+      if (canHit()) bot.attack(owner);
+    }
+    return true;
+  }
+
   private boolean placeWeb(BlockPos pos, int t) {
+    return placeWebAt(pos, t, false);
+  }
+
+  private boolean placeWebAt(BlockPos pos, int t, boolean feet) {
     if (!bot.isOnGround()
-        || !pos.equals(BlockPos.ofFloored(owner.getEyePos()))
-        || pos.getY() <= owner.getBlockPos().getY()
-        || pos.getY() < o.y + 2
-        || pos.getY() > o.y + 3
+        || (feet
+            ? !(pos.equals(bot.getBlockPos()) || pos.equals(owner.getBlockPos()))
+                || pos.getY() < o.y + 1
+                || pos.getY() > o.y + 2
+            : !pos.equals(BlockPos.ofFloored(owner.getEyePos()))
+                || pos.getY() <= owner.getBlockPos().getY()
+                || pos.getY() < o.y + 2
+                || pos.getY() > o.y + 3)
         || !bot.getServerWorld().getBlockState(pos).isAir()
         || bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(pos)) > 9) return false;
     int slot = find(Items.COBWEB, true);
@@ -1061,7 +1142,7 @@ public final class Session {
               Hand.MAIN_HAND,
               new BlockHitResult(face, dir.getOpposite(), support, false));
       if (result.isAccepted()) {
-        webAt = t + o.webCooldown;
+        if (!feet) webAt = t + o.webCooldown;
         heldUntil = t + 2;
         bot.swingHand(Hand.MAIN_HAND);
         return true;
@@ -1078,6 +1159,8 @@ public final class Session {
             .append(Text.literal(o.difficulty.toString()).formatted(Formatting.AQUA))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
             .append(Text.literal(o.rules.toString()).formatted(Formatting.YELLOW))
+            .append(Text.literal(" / ").formatted(Formatting.DARK_GRAY))
+            .append(DuckBox.profileName(o.profile))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
             .append(Text.literal(o.cps + " CPS").formatted(Formatting.WHITE))
             .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
@@ -1090,6 +1173,7 @@ public final class Session {
   }
 
   public void status() {
+    if (bot.getServer().getTicks() < settingsVisibleUntil) return;
     if (countingDown() ? countdownTicks % 10 != 0 : clock % 10 != 0) return;
     owner.sendMessage(statusText(), true);
   }

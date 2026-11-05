@@ -82,7 +82,7 @@ public final class TrainingBot extends ServerPlayerEntity {
     }
   }
 
-  public static final class LocalConnection extends ClientConnection {
+  public static class LocalConnection extends ClientConnection {
     private net.minecraft.network.listener.PacketListener listener;
 
     public LocalConnection() {

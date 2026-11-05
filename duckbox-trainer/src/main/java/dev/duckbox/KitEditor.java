@@ -15,6 +15,8 @@ public final class KitEditor extends GenericContainerScreenHandler {
   private final ServerPlayerEntity owner;
   private final SimpleInventory contents;
   private boolean committed;
+  private final int profile;
+  private final Options.Rules rules;
   private final net.minecraft.util.math.Vec3d openingPosition;
   private final net.minecraft.world.World openingWorld;
 
@@ -35,9 +37,12 @@ public final class KitEditor extends GenericContainerScreenHandler {
       int syncId,
       PlayerInventory playerInventory,
       ServerPlayerEntity owner,
-      SimpleInventory contents) {
+      SimpleInventory contents,
+      int profile) {
     super(ScreenHandlerType.GENERIC_9X6, syncId, playerInventory, contents, 6);
     this.owner = owner;
+    this.profile = profile;
+    this.rules = DuckBox.options.rules;
     openingPosition = owner.getPos();
     openingWorld = owner.getWorld();
     this.contents = contents;
@@ -76,9 +81,14 @@ public final class KitEditor extends GenericContainerScreenHandler {
   }
 
   public static void open(ServerPlayerEntity p) {
+    open(p, DuckBox.options.profile);
+  }
+
+  public static void open(ServerPlayerEntity p, int profile) {
+    DuckBox.checkProfile(profile);
     DuckBox.requireStopped();
     SimpleInventory contents = new SimpleInventory(54);
-    List<ItemStack> kit = DuckBox.currentKit(p);
+    List<ItemStack> kit = DuckBox.currentKit(p, profile);
     String[] labels = {
       "Cabeca acima",
       "Elytra acima",
@@ -103,10 +113,12 @@ public final class KitEditor extends GenericContainerScreenHandler {
     p.openHandledScreen(
         new SimpleNamedScreenHandlerFactory(
             (id, inventory, who) -> {
-              active = new KitEditor(id, inventory, p, contents);
+              active = new KitEditor(id, inventory, p, contents, profile);
               return active;
             },
-            Text.literal("Kit dos dois: " + DuckBox.options.rules)));
+            Text.literal("Kit: ")
+                .append(DuckBox.profileName(profile))
+                .append(" • " + DuckBox.options.rules)));
   }
 
   @Override
@@ -124,7 +136,7 @@ public final class KitEditor extends GenericContainerScreenHandler {
       int logical = logicalSlot(i);
       if (logical >= 0) kit.set(logical, contents.getStack(i).copy());
     }
-    DuckBox.storeKit(owner, kit);
+    DuckBox.storeKit(owner, kit, profile, rules);
     committed = true;
     if (active == this) active = null;
   }

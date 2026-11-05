@@ -71,8 +71,10 @@ public final class Options {
       strafe = true,
       webRocket = true,
       tank = false;
+  public boolean noRetreatRetotem = false, footWeb = false;
   public int revision = 2, size = 13, webCooldown = 200;
   public int cps = 15;
+  public int profile = 1;
 
   public static boolean allowedCps(int cps) {
     return cps == 10 || cps == 13 || cps == 15;
@@ -99,6 +101,8 @@ public final class Options {
 
   public boolean toggle(String key) {
     return switch (key) {
+      case "nao_correr_retotem" -> noRetreatRetotem = !noRetreatRetotem;
+      case "teia_pe" -> footWeb = !footWeb;
       case "giro" -> giro = !giro;
       case "gap" -> gap = !gap;
       case "retotem" -> retotem = !retotem;

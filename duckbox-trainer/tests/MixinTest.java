@@ -41,13 +41,18 @@ public class MixinTest {
     for (String target :
         (args.length > 2
             ? new String[] {
-              "net/minecraft/class_1007", "net/minecraft/class_640", "net/minecraft/class_310"
+              "net/minecraft/class_1007",
+              "net/minecraft/class_640",
+              "net/minecraft/class_310",
+              "net/minecraft/class_4722"
             }
             : new String[] {
               "net/minecraft/class_1297",
               "net/minecraft/class_1671",
               "net/minecraft/class_3222",
-              "net/minecraft/class_3244"
+              "net/minecraft/class_3244",
+              "net/minecraft/class_2586",
+              "net/minecraft/class_1747"
             })) {
       ClassNode old = read(target);
       ClassWriter w = new ClassWriter(0);

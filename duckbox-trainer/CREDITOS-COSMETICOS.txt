@@ -20,3 +20,7 @@ Aplicacao local apenas ao NPC, sem alterar direitos de capas na conta do jogador
 MouseTweaks Unified BETA17: JAR fornecido pelo usuario; licencas originais mantidas.
 Patch remove apenas camada global de cooldown/dano e limita os callbacks locais
 ao Insta Kill durante DuckBox. Fontes do patch em patch_mouse.py/tests.
+
+Texturas originais dos baus indicadas pelo usuario (sem edicao):
+Azul, бравл старс ящик, NovaSkin https://minecraft.novaskin.me/skin/3527393028
+Roxo, cofre pequeño, NovaSkin https://minecraft.novaskin.me/skin/4850063036

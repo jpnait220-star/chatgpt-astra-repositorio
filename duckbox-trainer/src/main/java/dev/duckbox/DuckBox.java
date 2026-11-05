@@ -132,6 +132,8 @@ public final class DuckBox implements ModInitializer {
           if (rocketUse.isAccepted()) return rocketUse;
           if (w.isClient() || hand != Hand.MAIN_HAND || p instanceof TrainingBot)
             return ActionResult.PASS;
+          ActionResult trainerChest = TrainerChests.open(p, (ServerWorld) w, hand, hit);
+          if (trainerChest.isAccepted()) return trainerChest;
           if (Arena.isKitChest(hit.getBlockPos(), (ServerWorld) w, options)) {
             if (!p.hasPermissionLevel(2)) return ActionResult.FAIL;
             try {
@@ -165,6 +167,66 @@ public final class DuckBox implements ModInitializer {
             .requires(x -> x.hasPermissionLevel(2))
             .then(literal("configurar").executes(c -> run(c.getSource(), ConfigMenu::open)))
             .then(
+                literal("profile")
+                    .then(
+                        argument("numero", IntegerArgumentType.integer(1, 4))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p ->
+                                            setProfile(
+                                                p, IntegerArgumentType.getInteger(c, "numero"))))))
+            .then(
+                literal("rename")
+                    .then(
+                        literal("profile")
+                            .then(
+                                argument("numero", IntegerArgumentType.integer(1, 4))
+                                    .then(
+                                        argument("nome", StringArgumentType.greedyString())
+                                            .executes(
+                                                c ->
+                                                    run(
+                                                        c.getSource(),
+                                                        p ->
+                                                            renameProfile(
+                                                                p,
+                                                                IntegerArgumentType.getInteger(
+                                                                    c, "numero"),
+                                                                StringArgumentType.getString(
+                                                                    c, "nome")))))))
+                    .then(
+                        argument("nome", StringArgumentType.greedyString())
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p ->
+                                            renameItem(
+                                                p, StringArgumentType.getString(c, "nome"))))))
+            .then(
+                literal("chest")
+                    .then(
+                        literal("profile")
+                            .then(
+                                argument("numero", IntegerArgumentType.integer(1, 4))
+                                    .executes(
+                                        c ->
+                                            run(
+                                                c.getSource(),
+                                                p ->
+                                                    TrainerChests.give(
+                                                        p,
+                                                        IntegerArgumentType.getInteger(
+                                                            c, "numero"))))))
+                    .then(
+                        literal("stock")
+                            .executes(c -> run(c.getSource(), p -> TrainerChests.give(p, 0))))
+                    .then(
+                        literal("cofre")
+                            .executes(c -> run(c.getSource(), p -> TrainerChests.give(p, 0)))))
+            .then(
                 literal("golpes")
                     .executes(
                         c ->
@@ -195,7 +257,7 @@ public final class DuckBox implements ModInitializer {
                                                       .toUpperCase(Locale.ROOT));
                                           Arena.updateRulesLabel(p.getServerWorld(), options);
                                           save();
-                                          say(p, "Regras: " + options.rules);
+                                          setting(p, "Regras: " + options.rules);
                                         }))))
             .then(
                 literal("cps")
@@ -231,7 +293,7 @@ public final class DuckBox implements ModInitializer {
                                                       .toUpperCase(Locale.ROOT));
                                           save();
                                           Arena.updateSpinLabel(world(), options);
-                                          say(p, "Giro: " + options.spin);
+                                          setting(p, "Giro: " + options.spin);
                                         }))))
             .then(
                 literal("cosmetico")
@@ -257,7 +319,8 @@ public final class DuckBox implements ModInitializer {
                                           }
                                           syncCosmetics();
                                           save();
-                                          say(p, "Cosmetico atualizado.");
+                                          String name = StringArgumentType.getString(c, "nome");
+                                          toggleSetting(p, name, cosmeticEnabled(name));
                                         })))));
     dispatcher.register(
         literal("box")
@@ -272,7 +335,9 @@ public final class DuckBox implements ModInitializer {
                               "/box configurar | criar [9/13/17] | usar | iniciar | parar | cps"
                                   + " 10/13/15 | dificuldade LOW/MEDIUM/HIGH/EXPERT | habilidade"
                                   + " nome | modo DUEL/TANK | kit salvar/padrao | atributo"
-                                  + " minecraft:max_health 100 HEAD");
+                                  + " minecraft:max_health 100 HEAD | profile 1..4 | chest profile"
+                                  + " 1..4 | chest stock | rename nome | rename profile numero nome"
+                                  + " | habilidade nao_correr_retotem/teia_pe");
                         }))
             .then(literal("usar").executes(c -> run(c.getSource(), DuckBox::useCustomMap)))
             .then(
@@ -314,7 +379,7 @@ public final class DuckBox implements ModInitializer {
                                                   StringArgumentType.getString(c, "nivel")
                                                       .toUpperCase(Locale.ROOT));
                                           save();
-                                          say(p, "Dificuldade: " + options.difficulty);
+                                          setting(p, "Dificuldade: " + options.difficulty);
                                         }))))
             .then(
                 literal("habilidade")
@@ -330,7 +395,9 @@ public final class DuckBox implements ModInitializer {
                                             "teia",
                                             "wtap",
                                             "strafe",
-                                            "foguete_teia"),
+                                            "foguete_teia",
+                                            "nao_correr_retotem",
+                                            "teia_pe"),
                                         b))
                             .executes(
                                 c ->
@@ -338,7 +405,7 @@ public final class DuckBox implements ModInitializer {
                                         c.getSource(),
                                         p -> {
                                           String key = StringArgumentType.getString(c, "nome");
-                                          say(p, key + ": " + options.toggle(key));
+                                          toggleSetting(p, key, options.toggle(key));
                                           save();
                                         }))))
             .then(
@@ -358,7 +425,7 @@ public final class DuckBox implements ModInitializer {
                                             throw new IllegalArgumentException("Use DUEL ou TANK.");
                                           options.tank = mode.equalsIgnoreCase("TANK");
                                           save();
-                                          say(p, "Modo: " + mode);
+                                          setting(p, "Modo: " + mode);
                                         }))))
             .then(
                 literal("kit")
@@ -386,11 +453,7 @@ public final class DuckBox implements ModInitializer {
                                         c.getSource(),
                                         p -> {
                                           requireStopped();
-                                          if (disk.has("kits"))
-                                            disk.getAsJsonObject("kits")
-                                                .remove(options.rules.name());
-                                          disk.remove("kit");
-                                          save();
+                                          resetKit(p);
                                           say(p, "Kit padrao selecionado.");
                                         }))))
             .then(
@@ -470,17 +533,64 @@ public final class DuckBox implements ModInitializer {
     }
   }
 
-  public static void say(ServerPlayerEntity p, String message) {
-    p.sendMessage(
-        Text.empty()
-            .append(Text.literal("Duck").formatted(Formatting.YELLOW, Formatting.BOLD))
-            .append(Text.literal("Box ").formatted(Formatting.GOLD, Formatting.BOLD))
-            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
-            .append(Text.literal(message).formatted(Formatting.GRAY)),
-        false);
+  private static Text feedback(String message, Formatting color) {
+    return Text.empty()
+        .append(Text.literal("Duck").formatted(Formatting.YELLOW, Formatting.BOLD))
+        .append(Text.literal("Box ").formatted(Formatting.GOLD, Formatting.BOLD))
+        .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
+        .append(Text.literal(message).formatted(color));
   }
 
-  public static List<ItemStack> currentKit(ServerPlayerEntity p) {
+  public static void say(ServerPlayerEntity p, String message) {
+    p.sendMessage(feedback(message, Formatting.GRAY), false);
+  }
+
+  public static void setting(ServerPlayerEntity p, String message) {
+    showSetting(p, message, Formatting.AQUA);
+  }
+
+  private static void showSetting(ServerPlayerEntity p, String message, Formatting color) {
+    p.sendMessage(feedback(message, color), true);
+    if (session != null && session.owner == p) session.holdSettingMessage();
+  }
+
+  public static boolean cosmeticEnabled(String key) {
+    return switch (key) {
+      case "blood" -> options.blood;
+      case "money" -> options.money;
+      case "oculos" -> options.glasses;
+      case "sapo" -> options.frog;
+      default -> false;
+    };
+  }
+
+  public static void toggleSetting(ServerPlayerEntity p, String key, boolean value) {
+    String name =
+        switch (key) {
+          case "giro" -> "Giro";
+          case "retotem" -> "Retotem";
+          case "gap" -> "Gap";
+          case "nao_correr_retotem" -> "Nao correr no retotem";
+          case "teia_pe" -> "Teia no pe";
+          case "teia" -> "Teia";
+          case "wtap" -> "W-tap";
+          case "strafe" -> "Strafe";
+          case "foguete_teia" -> "Foguete na teia";
+          case "blood" -> "Punho Blood";
+          case "money" -> "Aura Money";
+          case "oculos" -> "Oculos gamer";
+          case "sapo" -> "Chapeu de sapo";
+          default -> key;
+        };
+    showSetting(p, name + " " + (value ? "ON" : "OFF"), value ? Formatting.GREEN : Formatting.RED);
+  }
+
+  public static void checkProfile(int id) {
+    if (id < 1 || id > 4) throw new IllegalArgumentException("Perfil deve ser1,2,3 ou4.");
+  }
+
+  private static JsonObject profileKits(ServerPlayerEntity p, int id) {
+    checkProfile(id);
     if (!disk.has("kits")) disk.add("kits", new JsonObject());
     if (disk.has("kit")) {
       var old = Kits.decode(p, disk.getAsJsonArray("kit"));
@@ -493,21 +603,93 @@ public final class DuckBox implements ModInitializer {
                   : new ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
       disk.getAsJsonObject("kits").add(Options.Rules.INSTA_KILL.name(), Kits.encode(p, old));
       disk.remove("kit");
-      save();
     }
-    var kits = disk.getAsJsonObject("kits");
+    if (!disk.has("kitProfiles")) disk.add("kitProfiles", new JsonObject());
+    var profiles = disk.getAsJsonObject("kitProfiles");
+    if (!profiles.has("1")) profiles.add("1", new JsonObject());
+    var legacy = disk.getAsJsonObject("kits");
+    if (legacy.size() > 0) {
+      var first = profiles.getAsJsonObject("1");
+      for (var entry : legacy.entrySet())
+        if (!first.has(entry.getKey())) first.add(entry.getKey(), entry.getValue());
+      disk.remove("kits");
+      save();
+    } else disk.remove("kits");
+    String key = Integer.toString(id);
+    if (!profiles.has(key)) profiles.add(key, new JsonObject());
+    return profiles.getAsJsonObject(key);
+  }
+
+  public static List<ItemStack> currentKit(ServerPlayerEntity p) {
+    return currentKit(p, options.profile);
+  }
+
+  public static List<ItemStack> currentKit(ServerPlayerEntity p, int profile) {
+    var kits = profileKits(p, profile);
     var kit =
         kits.has(options.rules.name())
             ? Kits.decode(p, kits.getAsJsonArray(options.rules.name()))
             : Kits.defaults(p.getRegistryManager(), options.rules);
-    if (options.rules == Options.Rules.NORMAL_SPAM && Kits.repairNormalKit(kit)) storeKit(p, kit);
+    if (options.rules == Options.Rules.NORMAL_SPAM && Kits.repairNormalKit(kit))
+      storeKit(p, kit, profile, options.rules);
     return kit;
   }
 
   public static void storeKit(ServerPlayerEntity p, List<ItemStack> kit) {
-    if (!disk.has("kits")) disk.add("kits", new JsonObject());
-    disk.getAsJsonObject("kits").add(options.rules.name(), Kits.encode(p, kit));
+    storeKit(p, kit, options.profile, options.rules);
+  }
+
+  public static void storeKit(
+      ServerPlayerEntity p, List<ItemStack> kit, int profile, Options.Rules rules) {
+    profileKits(p, profile).add(rules.name(), Kits.encode(p, kit));
     save();
+  }
+
+  public static void resetKit(ServerPlayerEntity p) {
+    profileKits(p, options.profile).remove(options.rules.name());
+    save();
+  }
+
+  public static Text profileName(int profile) {
+    checkProfile(profile);
+    if (disk.has("profileNames")
+        && disk.getAsJsonObject("profileNames").has(Integer.toString(profile)))
+      return RichNames.parse(
+          disk.getAsJsonObject("profileNames").get(Integer.toString(profile)).getAsString());
+    return Text.literal("Perfil " + profile).formatted(Formatting.AQUA);
+  }
+
+  public static void renameProfile(ServerPlayerEntity p, int id, String raw) {
+    checkProfile(id);
+    RichNames.parse(raw);
+    if (!disk.has("profileNames")) disk.add("profileNames", new JsonObject());
+    disk.getAsJsonObject("profileNames").addProperty(Integer.toString(id), raw);
+    save();
+    settingRich(p, Text.literal("Kit renomeado: ").append(profileName(id)));
+  }
+
+  public static void setProfile(ServerPlayerEntity p, int id) {
+    checkProfile(id);
+    requireStopped();
+    options.profile = id;
+    save();
+    settingRich(p, Text.literal("Perfil selecionado: ").append(profileName(id)));
+  }
+
+  public static void settingRich(ServerPlayerEntity p, Text text) {
+    p.sendMessage(
+        Text.empty().append(Text.literal("DuckBox » ").formatted(Formatting.GOLD)).append(text),
+        true);
+    if (session != null && session.owner == p) session.holdSettingMessage();
+  }
+
+  public static void renameItem(ServerPlayerEntity p, String raw) {
+    var held = p.getMainHandStack();
+    if (held.isEmpty()) throw new IllegalArgumentException("Segure o item para renomear.");
+    held.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, RichNames.parse(raw));
+    p.getInventory().markDirty();
+    p.currentScreenHandler.sendContentUpdates();
+    settingRich(p, Text.literal("Item renomeado: ").append(held.getName()));
   }
 
   public static boolean allowTrainingDeath(
@@ -554,7 +736,7 @@ public final class DuckBox implements ModInitializer {
       case "parar" -> stop("Treino encerrado.");
       case "dificuldade" -> {
         options.difficulty = Options.Difficulty.values()[(options.difficulty.ordinal() + 1) % 4];
-        say(p, "Dificuldade: " + options.difficulty);
+        setting(p, "Dificuldade: " + options.difficulty);
         save();
       }
       case "modo" -> {
@@ -562,14 +744,15 @@ public final class DuckBox implements ModInitializer {
         options.tank = !options.tank;
         Arena.updateModeLabel(p.getServerWorld(), options);
         save();
-        say(p, "Modo: " + (options.tank ? "TANK (o bot so tanka)" : "DUEL (combate)"));
+        setting(p, "Modo: " + (options.tank ? "Tank" : "Duel"));
       }
       case "cps" -> setBotCps(p, Options.nextCps(options.cps));
+      case "profile" -> setProfile(p, options.profile % 4 + 1);
       case "giro_nivel" -> {
         options.spin = Options.SpinLevel.values()[(options.spin.ordinal() + 1) % 4];
         save();
         Arena.updateSpinLabel(world(), options);
-        say(p, "Giro: " + options.spin);
+        setting(p, "Giro: " + options.spin);
       }
       case "regras" -> {
         requireStopped();
@@ -579,14 +762,14 @@ public final class DuckBox implements ModInitializer {
                 : Options.Rules.NORMAL_SPAM;
         Arena.updateRulesLabel(p.getServerWorld(), options);
         save();
-        say(p, "Regras: " + options.rules);
+        setting(p, "Regras: " + options.rules);
       }
       case "tamanho" -> {
         requireStopped();
         options.size = Options.nextSize(options.size);
         if (options.customMap) {
           save();
-          say(p, "Limites da arena: " + options.size + "x" + options.size);
+          setting(p, "Limites da arena: " + options.size + "x" + options.size);
           break;
         }
         Arena.create(p, options);
@@ -602,7 +785,7 @@ public final class DuckBox implements ModInitializer {
                   entry.getKey(), state.with(net.minecraft.block.LeverBlock.POWERED, active), 3);
           }
         save();
-        say(p, key + ": " + active);
+        toggleSetting(p, key, active);
       }
     }
   }
@@ -616,7 +799,7 @@ public final class DuckBox implements ModInitializer {
     options.cps = cps;
     Arena.updateCpsLabel(p.getServerWorld(), options);
     save();
-    say(p, "CPS do bot: " + cps);
+    setting(p, "CPS do bot: " + cps);
   }
 
   public static void useCustomMap(ServerPlayerEntity p) {
@@ -735,6 +918,7 @@ public final class DuckBox implements ModInitializer {
       if (options.spin == null) options.spin = Options.SpinLevel.MEDIO;
       options.size = Options.allowedSize(options.size);
       if (!Options.allowedCps(options.cps)) options.cps = 15;
+      if (options.profile < 1 || options.profile > 4) options.profile = 1;
       if (!disk.has("arenaPositionRevision")) {
         if (options.x != Options.ARENA_X
             || options.y != Options.ARENA_Y

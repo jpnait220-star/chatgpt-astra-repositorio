@@ -14,6 +14,56 @@ import net.minecraft.world.level.storage.LevelStorage;
 
 /** Real vanilla test server: no socket, no EULA flow, no substituted world/player/physics. */
 public final class CombatServerTest {
+  private static final class FeedbackConnection extends TrainingBot.LocalConnection {
+    final java.util.List<net.minecraft.network.packet.Packet<?>> messages =
+        new java.util.ArrayList<>();
+
+    private void record(net.minecraft.network.packet.Packet<?> packet) {
+      if (packet instanceof net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
+          || packet instanceof net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket)
+        messages.add(packet);
+    }
+
+    @Override
+    public void send(net.minecraft.network.packet.Packet<?> packet) {
+      record(packet);
+    }
+
+    @Override
+    public void send(
+        net.minecraft.network.packet.Packet<?> packet,
+        net.minecraft.network.PacketCallbacks callbacks) {
+      record(packet);
+    }
+
+    @Override
+    public void send(
+        net.minecraft.network.packet.Packet<?> packet,
+        net.minecraft.network.PacketCallbacks callbacks,
+        boolean flush) {
+      record(packet);
+    }
+
+    boolean chat() {
+      return messages.stream()
+          .anyMatch(
+              p ->
+                  p instanceof net.minecraft.network.packet.s2c.play.GameMessageS2CPacket m
+                      && !m.overlay());
+    }
+
+    boolean overlay(String text) {
+      return messages.stream()
+          .anyMatch(
+              p ->
+                  p instanceof net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket overlay
+                      ? overlay.text().getString().contains(text)
+                      : p instanceof net.minecraft.network.packet.s2c.play.GameMessageS2CPacket game
+                          && game.overlay()
+                          && game.content().getString().contains(text));
+    }
+  }
+
   public static void main(String[] args) throws Exception {
     Thread.setDefaultUncaughtExceptionHandler(
         (thread, error) -> {
@@ -43,10 +93,11 @@ public final class CombatServerTest {
             new GameProfile(UUID.randomUUID(), "TrainOwner"),
             SyncedClientOptions.createDefault());
     var bot = new TrainingBot(server, world);
+    var feedbackConnection = new FeedbackConnection();
     server
         .getPlayerManager()
         .onPlayerConnect(
-            new TrainingBot.LocalConnection(),
+            feedbackConnection,
             owner,
             ConnectedClientData.createDefault(owner.getGameProfile(), false));
     server
@@ -1276,6 +1327,38 @@ public final class CombatServerTest {
       throw new AssertionError("Player permission gate bypassed");
     } catch (com.mojang.brigadier.exceptions.CommandSyntaxException expected) {
     }
+    DuckBox.session = new Session(owner, bot, DuckBox.options);
+    feedbackConnection.messages.clear();
+    DuckBox.options.giro = true;
+    DuckBox.control(owner, "giro");
+    if (feedbackConnection.chat() || !feedbackConnection.overlay("Giro OFF"))
+      throw new AssertionError("Giro OFF must use actionbar only");
+    int shown = feedbackConnection.messages.size();
+    DuckBox.session.status();
+    if (feedbackConnection.messages.size() != shown)
+      throw new AssertionError("Status immediately overwrote setting confirmation");
+    feedbackConnection.messages.clear();
+    DuckBox.control(owner, "giro");
+    if (feedbackConnection.chat() || !feedbackConnection.overlay("Giro ON"))
+      throw new AssertionError("Giro ON must use actionbar only");
+    feedbackConnection.messages.clear();
+    DuckBox.setBotCps(owner, 13);
+    if (feedbackConnection.chat() || !feedbackConnection.overlay("CPS do bot: 13"))
+      throw new AssertionError("CPS setting must use actionbar only");
+    ticks.setInt(server, server.getTicks() + 41);
+    feedbackConnection.messages.clear();
+    DuckBox.session.status();
+    if (!feedbackConnection.overlay("Refill"))
+      throw new AssertionError("Normal status did not resume after setting display");
+    feedbackConnection.messages.clear();
+    DuckBox.say(owner, "Ajuda importante");
+    if (!feedbackConnection.chat())
+      throw new AssertionError("Important messages must remain in chat");
+    DuckBox.session.closed = true;
+    DuckBox.session = null;
+    System.out.println(
+        "PASS FEEDBACK PACKETS: GiroON/OFF and CPS only in actionbar, held40ticks before status"
+            + " resumes, important help remains chat");
     server.getPlayerManager().remove(bot);
     if (boxDispatcher.execute("box iniciar", blockSource) != 1
         || DuckBox.session == null
@@ -1290,6 +1373,215 @@ public final class CombatServerTest {
             + " locked menu icons");
     if (server.getPlayerManager().getPlayer(bot.getUuid()) == bot)
       server.getPlayerManager().remove(bot);
+
+    // Four profile inventories remain isolated and legacy saves migrate to profile1.
+    DuckBox.options.rules = Options.Rules.NORMAL_SPAM;
+    var oldProfileOne = DuckBox.currentKit(owner, 1);
+    for (int id = 1; id <= 4; id++) {
+      if (boxDispatcher.execute("box profile " + id, blockSource) != 1
+          || DuckBox.options.profile != id)
+        throw new AssertionError("Command-block profile selection failed: " + id);
+      var profileKit = new ArrayList<>(DuckBox.currentKit(owner));
+      profileKit.set(0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BLACK_WOOL, id));
+      DuckBox.storeKit(owner, profileKit);
+    }
+    for (int id = 1; id <= 4; id++)
+      if (DuckBox.currentKit(owner, id).get(0).getCount() != id)
+        throw new AssertionError("Profile inventory leaked: " + id);
+    if (boxDispatcher.execute(
+                "box rename profile 2 <gradient:#ff0000:#0000ff>Treino</gradient>", blockSource)
+            != 1
+        || !DuckBox.profileName(2).getString().equals("Treino"))
+      throw new AssertionError("RGB profile naming failed");
+    owner
+        .getInventory()
+        .setStack(
+            owner.getInventory().selectedSlot,
+            new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLDEN_SWORD));
+    if (boxDispatcher.execute("box rename &#ffaa00&lPato", blockSource) != 1
+        || !owner.getMainHandStack().getName().getString().equals("Pato"))
+      throw new AssertionError("Held item naming failed");
+    var savedProfiles =
+        com.google.gson.JsonParser.parseString(Files.readString(config)).getAsJsonObject();
+    if (savedProfiles.getAsJsonObject("kitProfiles").size() != 4
+        || savedProfiles.getAsJsonObject("options").get("profile").getAsInt() != 4)
+      throw new AssertionError("Profiles did not persist to world config");
+    DuckBox.setProfile(owner, 1);
+    KitEditor.open(owner, 3);
+    owner
+        .currentScreenHandler
+        .slots
+        .get(27)
+        .setStack(new net.minecraft.item.ItemStack(net.minecraft.item.Items.WHITE_WOOL, 17));
+    owner.closeHandledScreen();
+    if (DuckBox.currentKit(owner, 3).get(0).getCount() != 17
+        || DuckBox.currentKit(owner, 1).get(0).getCount() != 1
+        || DuckBox.options.profile != 1)
+      throw new AssertionError(
+          "Physical profile editor saved into selected profile instead of its own");
+
+    // Place marked chests using the real vanilla BlockItem placement path.
+    for (int id : new int[] {0, 2}) {
+      BlockPos base = new BlockPos(-96 + id, 78, 111);
+      world.setBlockState(base, Blocks.STONE.getDefaultState(), 3);
+      world.setBlockState(base.up(), Blocks.AIR.getDefaultState(), 3);
+      var marked = TrainerChests.item(id);
+      owner.setStackInHand(net.minecraft.util.Hand.MAIN_HAND, marked);
+      var placementHit =
+          new net.minecraft.util.hit.BlockHitResult(
+              net.minecraft.util.math.Vec3d.ofCenter(base).add(0, .5, 0),
+              net.minecraft.util.math.Direction.UP,
+              base,
+              false);
+      var context =
+          new net.minecraft.item.ItemPlacementContext(
+              owner, net.minecraft.util.Hand.MAIN_HAND, marked, placementHit);
+      var result = ((net.minecraft.item.BlockItem) marked.getItem()).place(context);
+      if (!result.isAccepted()
+          || !(world.getBlockEntity(base.up())
+              instanceof net.minecraft.block.entity.ChestBlockEntity placedChest)
+          || TrainerChests.profile(placedChest) != id)
+        throw new AssertionError("Vanilla placedStockChest placement lost profile marker: " + id);
+      var placedStockChest =
+          (net.minecraft.block.entity.ChestBlockEntity) world.getBlockEntity(base.up());
+      var chestNbt = placedStockChest.createNbtWithIdentifyingData(world.getRegistryManager());
+      var visualOnly =
+          TrainerChests.visualData(
+              placedStockChest, world.getRegistryManager(), new net.minecraft.nbt.NbtCompound());
+      var visualClientChest =
+          new net.minecraft.block.entity.ChestBlockEntity(
+              base.up(), placedStockChest.getCachedState());
+      visualClientChest.read(visualOnly, world.getRegistryManager());
+      if (TrainerChests.profile(visualClientChest) != id || visualOnly.contains("Items"))
+        throw new AssertionError(
+            "Chest role must sync through native read without copying stock inventory");
+
+      var restoredChest =
+          net.minecraft.block.entity.BlockEntity.createFromNbt(
+              base.up(), placedStockChest.getCachedState(), chestNbt, world.getRegistryManager());
+      if (!(restoredChest instanceof net.minecraft.block.entity.ChestBlockEntity restored)
+          || TrainerChests.profile(restored) != id)
+        throw new AssertionError("Chest role did not survive NBT world save");
+      var chestHit =
+          new net.minecraft.util.hit.BlockHitResult(
+              net.minecraft.util.math.Vec3d.ofCenter(base.up()),
+              net.minecraft.util.math.Direction.UP,
+              base.up(),
+              false);
+      if (id > 0) {
+        if (!TrainerChests.open(owner, world, net.minecraft.util.Hand.MAIN_HAND, chestHit)
+                .isAccepted()
+            || !(owner.currentScreenHandler instanceof KitEditor))
+          throw new AssertionError(
+              "Physical profile placedStockChest did not open profileKit editor");
+        owner.closeHandledScreen();
+      } else {
+        placedStockChest.setStack(
+            0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+        placedStockChest.setStack(
+            1, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BLACK_WOOL, 64));
+        owner.setSneaking(false);
+        if (!TrainerChests.open(owner, world, net.minecraft.util.Hand.MAIN_HAND, chestHit)
+                .isAccepted()
+            || !(owner.currentScreenHandler instanceof StockChestMenu))
+          throw new AssertionError("Stock placedStockChest did not open protected infinite menu");
+        var stock = owner.currentScreenHandler;
+        stock.onSlotClick(0, 0, net.minecraft.screen.slot.SlotActionType.PICKUP, owner);
+        if (!stock.getCursorStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)
+            || placedStockChest.getStack(0).getCount() != 1)
+          throw new AssertionError("Supply pickup consumed template");
+        stock.setCursorStack(net.minecraft.item.ItemStack.EMPTY);
+        stock.onSlotClick(1, 1, net.minecraft.screen.slot.SlotActionType.PICKUP, owner);
+        if (stock.getCursorStack().getCount() != 1 || placedStockChest.getStack(1).getCount() != 64)
+          throw new AssertionError("Supply right-click should copy only one");
+        stock.setCursorStack(net.minecraft.item.ItemStack.EMPTY);
+        owner.getInventory().clear();
+        stock.quickMove(owner, 1);
+        if (owner.getInventory().count(net.minecraft.item.Items.BLACK_WOOL) != 64
+            || placedStockChest.getStack(1).getCount() != 64)
+          throw new AssertionError("Supply shift-click lost stock or failed copy");
+        owner.closeHandledScreen();
+      }
+    }
+    System.out.println(
+        "PASS PROFILES/CHESTS: four isolated saved kits, command-block selection, RGB item/profile"
+            + " names, explicit editor profile, actual vanilla chest placement+NBT and infinite"
+            + " stock pickup/right-click/shift-click");
+
+    // New tactics exercise real native placement/mining, not direct position writes.
+    owner.closeHandledScreen();
+    world.setBlockState(new BlockPos(-2, 63, 0), Blocks.STONE.getDefaultState(), 3);
+    world.setBlockState(new BlockPos(0, 63, 0), Blocks.STONE.getDefaultState(), 3);
+    owner.teleport(world, 0.5, 64, .5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    var tacticBot = new TrainingBot(server, world);
+    server
+        .getPlayerManager()
+        .onPlayerConnect(
+            new TrainingBot.LocalConnection(),
+            tacticBot,
+            net.minecraft.server.network.ConnectedClientData.createDefault(
+                tacticBot.getGameProfile(), false));
+    tacticBot.teleport(world, -1.5, 64, .5, Set.of(), -90, 0, false);
+    tacticBot.onTeleportationDone();
+    tacticBot.setOnGround(true);
+    owner.setOnGround(true);
+    var tacticOptions = new Options();
+    tacticOptions.x = 0;
+    tacticOptions.y = 63;
+    tacticOptions.z = 0;
+    tacticOptions.footWeb = true;
+    tacticOptions.noRetreatRetotem = true;
+    tacticOptions.retotem = false;
+    tacticBot.getInventory().clear();
+    tacticBot
+        .getInventory()
+        .setStack(0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLDEN_SWORD));
+    tacticBot
+        .getInventory()
+        .setStack(1, new net.minecraft.item.ItemStack(net.minecraft.item.Items.COBWEB, 16));
+    var tactics = new Session(owner, tacticBot, tacticOptions);
+    if (tactics.mayRecover(false, 4)
+        || tactics.mayRecover(true, 4)
+        || !tactics.mayRecover(true, 16))
+      throw new AssertionError(
+          "No-retreat mode must allow gap only when opponent retreats and eats");
+    var footFight = Session.class.getDeclaredMethod("footWebFight", int.class, double.class);
+    footFight.setAccessible(true);
+    BlockPos ownFeet = tacticBot.getBlockPos();
+    world.setBlockState(ownFeet, Blocks.AIR.getDefaultState(), 3);
+    if (!(boolean) footFight.invoke(tactics, 100, 4.0)
+        || !world.getBlockState(ownFeet).isOf(Blocks.COBWEB)
+        || tacticBot.getInventory().getStack(1).getCount() != 15
+        || tacticBot.isGliding()
+        || tacticBot.forwardSpeed != 0)
+      throw new AssertionError(
+          "Foot tactic must place real web, spend item, stop flight and hold ground");
+    footFight.invoke(tactics, 121, 4.0);
+    if (!world.getBlockState(owner.getBlockPos()).isOf(Blocks.COBWEB)
+        || tacticBot.getInventory().getStack(1).getCount() != 14)
+      throw new AssertionError(
+          "Foot tactic must place opponent foot web with real placement and stock");
+    var planted = Session.class.getDeclaredField("plantedFootWeb");
+    planted.setAccessible(true);
+    if (!ownFeet.equals(planted.get(tactics))) throw new AssertionError("Foot camp not tracked");
+    owner.teleport(world, 6.5, 64, .5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    footFight.invoke(tactics, 150, 64.0);
+    if (!world.getBlockState(ownFeet).isOf(Blocks.COBWEB))
+      throw new AssertionError(
+          "Leaving foot camp must mine with native progress, never instant delete");
+    var leaving = Session.class.getDeclaredField("leavingFootWeb");
+    leaving.setAccessible(true);
+    if (!leaving.getBoolean(tactics))
+      throw new AssertionError("Retreating opponent must trigger leaving the web");
+    world.setBlockState(ownFeet, Blocks.AIR.getDefaultState(), 3);
+    if ((boolean) footFight.invoke(tactics, 151, 64.0) || planted.get(tactics) != null)
+      throw new AssertionError("Removed foot web must release bot back to normal combat");
+    server.getPlayerManager().remove(tacticBot);
+    System.out.println(
+        "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"
+            + " flight/spin, opponent retreat starts native mining and releases camp");
 
     server.getPlayerManager().remove(owner);
     server.shutdown();

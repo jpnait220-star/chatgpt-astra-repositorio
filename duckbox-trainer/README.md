@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.19-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.20-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.19 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.20 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.19, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.20, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.19 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.20 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.19 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.20 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.19 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.20 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.19 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.20 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.19 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.20 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -385,3 +385,74 @@ Jogadores sem permissao nao ganham acesso aos comandos pelo chat: o command
 block autorizado pode abrir o menu para eles. Alteracoes que exigem treino
 parado continuam exigindo isso. Na build personalizada, use `box usar` e os
 comandos; nao use `box criar` para vincular suas placas e botoes.
+
+Confirmacoes de giro ON/OFF, habilidades, cosmeticos, CPS, dificuldade, modo,
+regras e nivel do giro aparecem na actionbar, com cores. Durante o treino,
+o status normal aguarda2 segundos para nao apagar a confirmacao. Ajuda,
+erros, salvamento de kit e avisos importantes continuam no chat/saida do
+command block.
+
+
+## Quatro perfis de kit e cofres
+
+Cada mundo salva ate quatro perfis, com inventario/equipamento independente.
+Cada perfil mantem seu kit de Spam e Insta Kill separado. O kit antigo e
+migrado para o perfil1; editar um perfil nao altera os outros. Os dois
+participantes recebem copias do kit do perfil selecionado ao iniciar.
+
+- `/box chest profile 1`: entrega um bau editor do perfil1 (aceita1..4).
+  Coloque-o no mapa e abra para editar; os itens sao salvos ao fechar.
+  Esse bau edita sempre seu proprio perfil, sem mudar o perfil selecionado.
+- `/box profile 1`: seleciona o kit para o proximo treino. Em command block
+  use `box profile 1`, sem barra. Aceita somente1,2,3 ou4.
+- `/box configurar`: o botao Perfil do kit alterna entre os quatro.
+- `/box chest stock` (ou `/box chest cofre`): entrega o cofre de suprimentos.
+  Coloque no mapa; como operador, agache e abra para editar seus27 modelos.
+  Abra sem agachar para pegar copias: clique esquerdo copia a pilha,
+  direito copia um item, Shift+clique manda para o inventario. O modelo
+  permanece no bau e pode ser retirado novamente. Slots vazios nao fornecem
+  nada. As duas funcoes de bau sobrevivem ao salvamento do mundo.
+
+Os comandos tambem funcionam em command blocks com o mesmo alvo dos demais.
+O cofre usa o PNG roxo original; os baus de perfil usam o PNG azul original.
+Coloque-os separados, com um bloco de distancia entre baus, para manter o
+formato simples e a textura correta. Os perfis nao dependem da posicao fisica
+do bau: pode mover/colocar novos exemplares pelo comando.
+
+## Nomes com cores e gradientes
+
+Segure um item e use:
+
+```
+/box rename &e&lEspada do Pato
+/box rename &#FFAA00Pato
+/box rename <gradient:#FFFF00:#FF8800>Espada Duck</gradient>
+/box rename <rainbow>Kit colorido</rainbow>
+/box rename profile 2 <gradient:#00FFFF:#9900FF>Treino</gradient>
+```
+
+Aceita codigos legacy `&`/`§`, hex `&#RRGGBB` e `&x&R&R&G&G&B&B`,
+gradientes estaticos com duas ou mais cores e tags comuns de negrito,
+italico, sublinhado e cores. Pode colar esses formatos gerados no Birdflop;
+nao e um interpretador completo de plugins MiniMessage nem animacao de nome.
+O limite e256 caracteres visiveis e4096 caracteres de codigo. Nomes dos kits
+sao salvos junto dos perfis. Renomear nao altera atributos nem encantamentos.
+
+
+## Nao correr no retotem e Teia no pe
+
+As duas tecnicas sao opcionais e independentes (inicialmente desligadas),
+com botoes em `/box configurar` e comandos em chat/command block:
+
+- `/box habilidade nao_correr_retotem`: segura o combate, pulando, atacando e
+  fazendo retotem/refill normalmente. Nao foge para comer enquanto o jogador
+  continua atacando; so permite recuperar quando o jogador se afasta mais de
+  tres blocos e esta comendo. Nao altera alcance ou velocidade dos golpes.
+- `/box habilidade teia_pe`: permite plantar uma teia nos proprios pes no
+  chao quando o jogador esta no chao, se afasta ou o bot perde vida relativa.
+  Tambem adota essa tecnica quando o jogador teia seus pes. Nessa postura
+  mira/ataca sem giro/foguete e tenta teiar os pes do adversario ao alcance,
+  com intervalo. Se o jogador se afasta mais de cinco blocos ou voa para cima,
+  minera a propria teia com a quebra normal e volta a perseguir; pode repetir
+  depois. Depende de Teia estar ligada e de ter teias no inventario para por
+  novas. Nao duplica itens nem quebra blocos fora de la/teia.
