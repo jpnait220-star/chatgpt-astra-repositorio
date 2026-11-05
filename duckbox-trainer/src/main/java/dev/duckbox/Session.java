@@ -36,6 +36,7 @@ public final class Session {
       refillAt = -1,
       gapWait,
       heldUntil;
+  private int retotemRetryAt;
   private int side = 1, damageCount, gapsLeft, healingStartedAt, appleCountBefore, escapeUntil;
   private float lastHealth, fullHealth;
   private boolean healing, escaping, airGap, strafeActive;
@@ -499,6 +500,19 @@ public final class Session {
     if (swapAt >= 0) {
       phase = "Trocando offhand";
       if (t < swapAt) return true;
+      ItemStack replacement = bot.getInventory().getStack(pendingSlot);
+      boolean missed =
+          replacement.isOf(Items.TOTEM_OF_UNDYING)
+              && o.difficulty == Options.Difficulty.MEDIUM
+              && random.nextDouble() < 0.20;
+      if (replacement.isEmpty() || missed) {
+        swapAt = -1;
+        pendingSlot = -1;
+        selectSword();
+        retotemRetryAt = t + (missed ? o.difficulty.reaction : 1);
+        if (missed) phase = "Retotem falhou / corrigindo";
+        return true;
+      }
       ItemStack off = bot.getOffHandStack();
       bot.getInventory().setStack(40, bot.getInventory().getStack(pendingSlot));
       bot.getInventory().setStack(pendingSlot, off);
@@ -508,6 +522,7 @@ public final class Session {
       bot.getInventory().markDirty();
       return true;
     }
+    if (t < retotemRetryAt) return false;
     boolean protector = bot.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING);
     boolean low = bot.getHealth() < Math.max(12, fullHealth * 0.45);
     boolean recovered = bot.getHealth() >= bot.getMaxHealth() * 0.82;

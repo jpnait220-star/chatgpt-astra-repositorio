@@ -782,6 +782,48 @@ public final class CombatServerTest {
     System.out.println(
         "PASS NATIVE PLAYER COOLDOWN: sword1.6, elytra256.6, removal1.6, empty hand4, saved-kit"
             + " repair idempotent");
+    var doRetotem = Session.class.getDeclaredMethod("retotem", int.class);
+    doRetotem.setAccessible(true);
+    var rngField = Session.class.getDeclaredField("random");
+    rngField.setAccessible(true);
+    long failSeed = 0;
+    while (new java.util.Random(failSeed).nextDouble() >= 0.20) failSeed++;
+    options.difficulty = Options.Difficulty.MEDIUM;
+    Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+    bot.setHealth(1);
+    var mediumSwap = new Session(owner, bot, options);
+    ((java.util.Random) rngField.get(mediumSwap)).setSeed(failSeed);
+    doRetotem.invoke(mediumSwap, 0);
+    doRetotem.invoke(mediumSwap, options.difficulty.swapDelay);
+    if (!Kits.isCharm(bot.getOffHandStack()) || mediumSwap.countTotems() != 12)
+      throw new AssertionError("Medium failed roll must preserve items and miss transfer");
+    int retryAt = options.difficulty.swapDelay + options.difficulty.reaction;
+    if ((boolean) doRetotem.invoke(mediumSwap, retryAt - 1))
+      throw new AssertionError("Medium failure needs retry delay");
+    ((java.util.Random) rngField.get(mediumSwap)).setSeed(0);
+    doRetotem.invoke(mediumSwap, retryAt);
+    doRetotem.invoke(mediumSwap, retryAt + options.difficulty.swapDelay);
+    if (!bot.getOffHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)
+        || mediumSwap.countTotems() != 12)
+      throw new AssertionError("Medium must recover with successful next roll and no duplicates");
+    for (var level : List.of(Options.Difficulty.HIGH, Options.Difficulty.EXPERT)) {
+      options.difficulty = level;
+      Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+      bot.setHealth(1);
+      var reliableSwap = new Session(owner, bot, options);
+      ((java.util.Random) rngField.get(reliableSwap)).setSeed(failSeed);
+      doRetotem.invoke(reliableSwap, 0);
+      doRetotem.invoke(reliableSwap, level.swapDelay);
+      if (!bot.getOffHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)
+          || reliableSwap.countTotems() != 12)
+        throw new AssertionError("High/Expert cannot randomly miss retotem");
+      reliableSwap.closed = true;
+    }
+    mediumSwap.closed = true;
+    options.difficulty = Options.Difficulty.HIGH;
+    System.out.println(
+        "PASS RETOTEM DIFFICULTY: seeded Medium20percent failure preserves stock, retries"
+            + " successfully; High/Expert do not randomly miss");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);
