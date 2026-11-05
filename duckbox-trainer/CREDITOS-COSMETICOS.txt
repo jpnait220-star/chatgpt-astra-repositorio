@@ -31,3 +31,5 @@ Perfil amarelo/vermelho: Mega Box, NovaSkin https://minecraft.novaskin.me/skin/4
 Paineis atualizados: BoxPvP_Texturas_Kits_CORRIGIDOS(1).zip enviado pelo usuario, incluindo5novos icones.
 
 Rostos Geometry Dash solicitados: Easy/Hard/Harder, originais do Geometry Dash Wiki (static.wikia.nocookie.net/geometry-dash, format=original); Insane featured: github.com/yoann256/GDBrowser-Maintained/assets/difficulties/insane-featured.png. Arte do jogo Geometry Dash, RobTop. Fundo branco desenhado pelo mod sem alterar os PNGs.
+
+Cofre Pokemon: pokemon chest, NovaSkin https://minecraft.novaskin.me/skin/5155513994051584 (PNG original, modelo UV legado). Perfil voltou ao cofre roxo de4850063036.

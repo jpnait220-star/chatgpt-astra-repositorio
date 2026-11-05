@@ -35,7 +35,7 @@ public abstract class TrainerChestRenderMixin {
     if (duckbox$stock == null)
       duckbox$stock =
           new ChestBlockModel(ChestBlockModel.getSingleTexturedModelData().createModel());
-    var model = role == 0 ? duckbox$stock : duckbox$legacy;
+    var model = role == 0 ? duckbox$legacy : duckbox$stock;
     float opening = chest.getAnimationProgress(delta);
     opening = 1 - (1 - opening) * (1 - opening) * (1 - opening);
     model.setLockAndLidPitch(opening);

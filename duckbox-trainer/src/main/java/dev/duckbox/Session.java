@@ -74,7 +74,7 @@ public final class Session {
   private int footRetryAt, footAttackWebAt;
 
   /** In this aggressive mode recovery is allowed only when the opponent retreats to eat. */
-  private int recoveryEpisodeAt, attackCommitUntil;
+  private int recoveryEpisodeAt, attackCommitUntil, gapResponseAt;
 
   private int recoveryChoiceAt;
 
@@ -365,6 +365,9 @@ public final class Session {
     boolean otherEating =
         owner.isUsingItem()
             && owner.getActiveItem().contains(net.minecraft.component.DataComponentTypes.FOOD);
+    boolean respondingToGap = otherEating && dist > 9 && t >= gapResponseAt
+        && (owner.getActiveItem().isOf(Items.GOLDEN_APPLE)
+            || owner.getActiveItem().isOf(Items.ENCHANTED_GOLDEN_APPLE));
     boolean tankGroundDue = o.tank && t >= tankGroundAt;
     if (!healing
         && !escaping
@@ -372,12 +375,12 @@ public final class Session {
         && gapsLeft == 0
         && o.gap
         && mayRecover(otherEating, dist)
-        && t > gapWait
-        && t >= attackCommitUntil
+        && (respondingToGap || t > gapWait && t >= attackCommitUntil)
         && (health < bot.getMaxHealth() - 4 || tankGroundDue)
         && (behind || otherEating || o.tank || health < bot.getMaxHealth() * 0.55)
         && apples() > 0) {
       recoveryEpisodeAt = t;
+      if (respondingToGap) gapResponseAt = t + 20;
       groundRecovery = o.tank && (tankGroundDue || random.nextDouble() < 0.40);
       gapsLeft = groundRecovery ? 1 : health < bot.getMaxHealth() * 0.65 ? 2 : 1;
       damageCount = 0;
@@ -429,7 +432,8 @@ public final class Session {
       recoveryLastPos = null;
       recoveryStuckTicks = 0;
     }
-    if (escaping && (bot.getY() > o.y + 2.8 || t >= escapeUntil)) {
+    if (escaping && ((sustainedAirGap() ? bot.isGliding() : bot.getY() > o.y + 2.8)
+        || t >= escapeUntil)) {
       escaping = false;
       startApple(t);
     }

@@ -15,7 +15,7 @@ public abstract class TrainerChestItemMixin {
   private void duckbox$oldUV(
       LoadedEntityModels models, CallbackInfoReturnable<SpecialModelRenderer<?>> cir) {
     var self = (ChestModelRenderer.Unbaked) (Object) this;
-    if (self.texture().equals(Identifier.of("duckbox", "profile")))
+    if (self.texture().equals(Identifier.of("duckbox", "stock")))
       cir.setReturnValue(
           new ChestModelRenderer(
               LegacyChestModel.create(),

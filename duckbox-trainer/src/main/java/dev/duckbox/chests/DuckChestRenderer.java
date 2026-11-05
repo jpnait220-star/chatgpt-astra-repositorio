@@ -12,8 +12,9 @@ import net.minecraft.util.math.RotationAxis;
 
 public final class DuckChestRenderer implements BlockEntityRenderer<DuckChestEntity> {
   private final ChestBlockModel stock =
+      LegacyChestModel.create();
+  private final ChestBlockModel profile =
       new ChestBlockModel(ChestBlockModel.getSingleTexturedModelData().createModel());
-  private final ChestBlockModel profile = LegacyChestModel.create();
   private static final Identifier
       STOCK = Identifier.of("duckbox", "textures/entity/chest/stock.png"),
       PROFILE = Identifier.of("duckbox", "textures/entity/chest/profile.png");

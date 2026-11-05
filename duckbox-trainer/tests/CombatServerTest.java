@@ -2062,6 +2062,30 @@ public final class CombatServerTest {
     System.out.println(
         "PASS COMBAT STALL REGRESSIONS: bounded gap episode, guaranteed combat period, reserve"
             + " sword recovery and full refill with displaced weapons preserved");
+    // Opponent retreating to gap opens a recovery opportunity despite prior combat cooldown.
+    tacticBot.session = null;
+    Kits.give(tacticBot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+    ticks.setInt(server, server.getTicks() + 1); tacticBot.tick();
+    tacticBot.teleport(world, .5, 64, .5, Set.of(), 0, 0, false);
+    tacticBot.onTeleportationDone(); tacticBot.stopUsingItem(); tacticBot.stopGliding();
+    tacticBot.setOnGround(true); tacticBot.setHealth(35); tacticBot.setAbsorptionAmount(0);
+    owner.teleport(world, 6.5, 64, 6.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone(); owner.stopUsingItem();
+    owner.getInventory().setStack(2, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE, 4));
+    owner.getInventory().selectedSlot = 2;
+    owner.getMainHandStack().use(world, owner, net.minecraft.util.Hand.MAIN_HAND);
+    var answerOptions = new Options();
+    answerOptions.x = 0; answerOptions.y = 63; answerOptions.z = 0;
+    answerOptions.giro = false; answerOptions.retotem = false; answerOptions.teia = false;
+    var gapAnswer = new Session(owner, tacticBot, answerOptions);
+    var oldGapWait = Session.class.getDeclaredField("gapWait"); oldGapWait.setAccessible(true);
+    oldGapWait.setInt(gapAnswer, 10000); commitUntil.setInt(gapAnswer, 10000);
+    gapAnswer.control();
+    if (!tacticBot.isUsingItem() || !tacticBot.getActiveItem().isOf(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE))
+      throw new AssertionError("Opponent distant gap must allow immediate recovery through old cooldown");
+    gapAnswer.closed = true; owner.stopUsingItem(); tacticBot.stopUsingItem();
+    System.out.println("PASS GAP RESPONSE: distant opponent eating a real gap overrides prior combat wait immediately");
+
     // Start actual recovery from the floor, controlling only the random draw.
     var randomField = Session.class.getDeclaredField("random");
     randomField.setAccessible(true);

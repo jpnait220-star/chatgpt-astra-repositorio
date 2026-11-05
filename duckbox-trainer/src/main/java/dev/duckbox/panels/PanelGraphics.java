@@ -39,10 +39,23 @@ public final class PanelGraphics {
         right = north ? 0 : 1,
         top = .5f + height / 2,
         bottom = .5f - height / 2;
-    vertex(vertices, entry, left, top, z, 0, 0, light, overlay, north);
-    vertex(vertices, entry, left, bottom, z, 0, 1, light, overlay, north);
-    vertex(vertices, entry, right, bottom, z, 1, 1, light, overlay, north);
-    vertex(vertices, entry, right, top, z, 1, 0, light, overlay, north);
+    boolean sheet = texture.getPath().equals("textures/map_panels/start_sheet.png");
+    boolean tile = !sheet && texture.getPath().startsWith("textures/map_panels/start_");
+    int columns = sheet ? 3 : 1, rows = sheet ? 2 : 1;
+    float insetU = sheet ? 2.5f / 1536 : tile ? 2.5f / 512 : 0;
+    float insetV = sheet ? 2.5f / 1024 : tile ? 2.5f / 512 : 0;
+    for (int row = 0; row < rows; row++) for (int col = 0; col < columns; col++) {
+      float x0 = left + (right - left) * col / columns;
+      float x1 = left + (right - left) * (col + 1) / columns;
+      float y0 = top + (bottom - top) * row / rows;
+      float y1 = top + (bottom - top) * (row + 1) / rows;
+      float u0 = (float) col / columns + insetU, u1 = (float) (col + 1) / columns - insetU;
+      float v0 = (float) row / rows + insetV, v1 = (float) (row + 1) / rows - insetV;
+      vertex(vertices, entry, x0, y0, z, u0, v0, light, overlay, north);
+      vertex(vertices, entry, x0, y1, z, u0, v1, light, overlay, north);
+      vertex(vertices, entry, x1, y1, z, u1, v1, light, overlay, north);
+      vertex(vertices, entry, x1, y0, z, u1, v0, light, overlay, north);
+    }
   }
 
   private static void vertex(

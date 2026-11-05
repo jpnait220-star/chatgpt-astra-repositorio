@@ -8,6 +8,7 @@ import net.minecraft.client.util.math.MatrixStack;
 public final class CosmeticMeshTest {
   static class Recorder implements VertexConsumer {
     int vertices;
+    java.util.List<float[]> uv = new java.util.ArrayList<>();
     java.util.List<String> tuples = new java.util.ArrayList<>();
     float vx, vy, vz, tu, tv;
     float minY = Float.POSITIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY;
@@ -38,6 +39,7 @@ public final class CosmeticMeshTest {
       finite(v);
       tu = u;
       tv = v;
+      uv.add(new float[] {u, v});
       return this;
     }
 
@@ -119,8 +121,14 @@ public final class CosmeticMeshTest {
           false);
       float expectedHeight = name.equals("start_sheet") ? 2f / 3 : 1;
       if (picture.vertices != (dev.duckbox.panels.PanelGraphics.whiteBackground(
-              net.minecraft.util.Identifier.of("duckbox", "textures/map_panels/" + name + ".png")) ? 8 : 4) || Math.abs(picture.maxY - picture.minY - expectedHeight) > .001)
+              net.minecraft.util.Identifier.of("duckbox", "textures/map_panels/" + name + ".png")) ? 8 : name.equals("start_sheet") ? 24 : 4) || Math.abs(picture.maxY - picture.minY - expectedHeight) > .001)
         throw new AssertionError("Native panel item codec/quad geometry/aspect failed: " + name);
+      if (name.startsWith("start_")) for (var coords : picture.uv) {
+        float px = coords[0] * (name.equals("start_sheet") ? 1536 : 512) % 512;
+        float py = coords[1] * (name.equals("start_sheet") ? 1024 : 512) % 512;
+        if (px < 2.4f || px > 509.6f || py < 2.4f || py > 509.6f)
+          throw new AssertionError("START UV must omit the printed guide lines: " + name);
+      }
     }
     System.out.println(
         "PASS PANEL ITEM MODELS:28 real native special-model JSON codecs, raw-texture quads, finite"

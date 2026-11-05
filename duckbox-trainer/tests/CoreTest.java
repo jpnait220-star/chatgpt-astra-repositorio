@@ -246,9 +246,11 @@ public class CoreTest {
     check(CosmeticPayload.CODEC.decode(meshBuffer).equals(cosmeticPacket));
     meshBuffer.release();
     dev.duckbox.cosmetic.CosmeticState.set(cosmeticPacket);
-    check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(), 1));
+    check(!dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(), 1));
     check(dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.bot(), 8));
     check(!dev.duckbox.cosmetic.CosmeticState.enabled(java.util.UUID.randomUUID(), 1));
+    dev.duckbox.cosmetic.CosmeticState.set(new CosmeticPayload(cosmeticPacket.owner(), new java.util.UUID(0, 0), 15));
+    check(!dev.duckbox.cosmetic.CosmeticState.enabled(new java.util.UUID(0, 0), 1));
     dev.duckbox.cosmetic.CosmeticState.clear();
     check(!dev.duckbox.cosmetic.CosmeticState.enabled(cosmeticPacket.owner(), 1));
 
