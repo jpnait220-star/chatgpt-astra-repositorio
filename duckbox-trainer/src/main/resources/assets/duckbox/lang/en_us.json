@@ -19,5 +19,10 @@
   "block.duckbox.painel_start_6_bottom_right": "Painel: start 6 bottom right",
   "block.duckbox.painel_start_sheet": "Painel: start sheet",
   "block.duckbox.cofre": "Cofre de suprimentos",
-  "block.duckbox.bau_profile": "Bau de perfil"
+  "block.duckbox.bau_profile": "Bau de perfil",
+  "block.duckbox.painel_strafe": "Painel: strafe",
+  "block.duckbox.painel_tamanho_da_box": "Painel: tamanho da box",
+  "block.duckbox.painel_teia": "Painel: teia",
+  "block.duckbox.painel_teia_no_pe": "Painel: teia no pe",
+  "block.duckbox.painel_w_tap": "Painel: w tap"
 }

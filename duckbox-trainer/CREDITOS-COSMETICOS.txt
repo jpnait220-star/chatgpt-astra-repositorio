@@ -26,3 +26,6 @@ Azul, бравл старс ящик, NovaSkin https://minecraft.novaskin.me/ski
 Roxo, cofre pequeño, NovaSkin https://minecraft.novaskin.me/skin/4850063036
 
 Paineis do mapa: imagens originais fornecidas pelo usuario nos arquivos Kits_BoxPvP_1_a_4(1).zip e BoxPvP_Texturas(1).zip. Arquivos PNG preservados sem edicao.
+
+Perfil amarelo/vermelho: Mega Box, NovaSkin https://minecraft.novaskin.me/skin/4929283243 (PNG original, UV legado no modelo).
+Paineis atualizados: BoxPvP_Texturas_Kits_CORRIGIDOS(1).zip enviado pelo usuario, incluindo5novos icones.

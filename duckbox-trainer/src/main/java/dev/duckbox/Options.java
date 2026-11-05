@@ -74,6 +74,7 @@ public final class Options {
       tank = false;
   public boolean noRetreatRetotem = false, footWeb = false;
   public boolean arenaOnly = true, resistance2 = true;
+  public boolean fastTotemPop = false;
   public int revision = 2, size = 13, webCooldown = 200;
   public int cps = 15;
   public int profile = 1;
@@ -113,6 +114,7 @@ public final class Options {
       case "nao_correr_retotem" -> noRetreatRetotem = !noRetreatRetotem;
       case "teia_pe" -> footWeb = !footWeb;
       case "resistencia2" -> resistance2 = !resistance2;
+      case "totem_pop_rapido" -> fastTotemPop = !fastTotemPop;
       case "giro" -> giro = !giro;
       case "gap" -> gap = !gap;
       case "retotem" -> retotem = !retotem;

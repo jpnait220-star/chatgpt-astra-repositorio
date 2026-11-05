@@ -214,8 +214,8 @@ public final class CombatServerTest {
     active.startingBuffs();
     if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
             != 0
-        || owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).isInfinite())
-      throw new AssertionError("Semi Insta starts with finite gap resistanceI");
+        || !owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).isInfinite())
+      throw new AssertionError("Semi Insta maintains infinite resistanceI by default");
     owner
         .getInventory()
         .setStack(40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
@@ -224,9 +224,23 @@ public final class CombatServerTest {
     if (!owner.damage(world, world.getDamageSources().generic(), 100000))
       throw new AssertionError("Finite resistance totem fixture");
     active.maintainRules();
+    if (!owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE)
+        || owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier() != 0)
+      throw new AssertionError("Normal Semi must restore resistanceI after vanilla pop");
+    options.fastTotemPop = true;
+    active.maintainRules();
+    owner.getInventory().setStack(40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    owner.setHealth(1);
+    owner.timeUntilRegen = 0;
+    active.startingBuffs();
+    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).isInfinite())
+      throw new AssertionError("Fast pop must leave initial gap resistance finite");
+    if (!owner.damage(world, world.getDamageSources().generic(), 100000))
+      throw new AssertionError("Fast pop real vanilla totem fixture");
+    active.maintainRules();
     if (owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE))
-      throw new AssertionError(
-          "Totem must clear resistance normally when ResistanceII is not forced");
+      throw new AssertionError("Fast pop must not reapply resistance after real totem");
+    options.fastTotemPop = false;
     options.rules = Options.Rules.NORMAL_SPAM;
     active.maintainRules();
     bot.getInventory()
@@ -1663,6 +1677,7 @@ public final class CombatServerTest {
     if ((boolean) footFight.invoke(tactics, 151, 64.0) || planted.get(tactics) != null)
       throw new AssertionError("Removed foot web must release bot back to normal combat");
     tacticOptions.resistance2 = false;
+    tacticOptions.fastTotemPop = true;
     tactics.maintainRules();
     for (var actor : List.of(owner, tacticBot)) {
       var resistance = actor.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE);
@@ -1680,6 +1695,7 @@ public final class CombatServerTest {
     if (owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE))
       throw new AssertionError("Disabled ResistanceII must not reapply effect removed by totem");
     tacticOptions.resistance2 = true;
+    tacticOptions.fastTotemPop = false;
     tactics.maintainRules();
     if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
         != 1) throw new AssertionError("ResistanceII toggle did not apply to both sides");
@@ -1833,7 +1849,19 @@ public final class CombatServerTest {
     if (savedHolo.getCompound("transformation").getList("scale", 5).getFloat(0) != .5f)
       throw new AssertionError(
           "Fixed holo must preserve configured scale in native transformation codec");
-    var holoId = attached.getUuid();
+    if (boxDispatcher.execute("box holotamanho 1.75", owner.getCommandSource().withLevel(2)) != 1)
+      throw new AssertionError("Hologram size command failed");
+    FixedHolograms.click(owner, firstFace);
+    var resized = attached.writeNbt(new net.minecraft.nbt.NbtCompound());
+    if (resized.getCompound("transformation").getList("scale", 5).getFloat(0) != 1.75f
+        || !resized.getString("text").equals(savedHolo.getString("text")))
+      throw new AssertionError("Holo resize must preserve text and apply native scale");
+    FixedHolograms.command(owner, "<gradient:#00ffff:#ff00ff>Treino</gradient>");
+    FixedHolograms.click(owner, firstFace);
+    if (attached.writeNbt(new net.minecraft.nbt.NbtCompound()).getCompound("transformation")
+        .getList("scale", 5).getFloat(0) != 1.75f)
+      throw new AssertionError("Editing existing text must preserve custom size");
+        var holoId = attached.getUuid();
     FixedHolograms.moveCommand(owner);
     FixedHolograms.click(owner, firstFace);
     FixedHolograms.click(owner, secondFace);
@@ -1845,6 +1873,14 @@ public final class CombatServerTest {
         .getString("text")
         .equals(savedHolo.getString("text")))
       throw new AssertionError("Moveholo must preserve rich text");
+    if (attached.writeNbt(new net.minecraft.nbt.NbtCompound()).getCompound("transformation")
+        .getList("scale", 5).getFloat(0) != 1.75f)
+      throw new AssertionError("Moving holo must preserve custom size");
+    var reloadedHolo = net.minecraft.entity.EntityType.TEXT_DISPLAY.create(world, net.minecraft.entity.SpawnReason.COMMAND);
+    reloadedHolo.readNbt(attached.writeNbt(new net.minecraft.nbt.NbtCompound()));
+    if (reloadedHolo.writeNbt(new net.minecraft.nbt.NbtCompound()).getCompound("transformation")
+        .getList("scale", 5).getFloat(0) != 1.75f)
+      throw new AssertionError("Holo size must survive native world NBT roundtrip");
     FixedHolograms.removeAt(world, holoTarget);
     if (!attached.isRemoved())
       throw new AssertionError("Broken support block must remove attached text");
@@ -1855,7 +1891,7 @@ public final class CombatServerTest {
       throw new AssertionError("Catalog templates must be locked");
     owner.closeHandledScreen();
     System.out.println(
-        "PASS MAP PANELS/HOLOGRAMS:19 native registered blocks, block entity world NBT, right-click"
+        "PASS MAP PANELS/HOLOGRAMS:24 native registered blocks, block entity world NBT, right-click"
             + " fixed text, two-click move preserves UUID/text, support removal and locked"
             + " catalog");
     BlockPos oldChestPos = new BlockPos(4, 64, 1);

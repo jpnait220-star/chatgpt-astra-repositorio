@@ -8,6 +8,6 @@ with ZipFile(out/'test-named.jar','w') as z:
  for p in out.glob('*.class'):z.write(p,p.name)
 (out/'test-runtime.jar').unlink(missing_ok=True)
 subprocess.run(['java','-jar',str(T/'remapper.jar'),str(out/'test-named.jar'),str(out/'test-runtime.jar'),str(T/'yarn.tiny'),'named','intermediary',str(T/'minecraft-named.jar'),str(B/'build/named.jar')],check=True)
-runtime=os.pathsep.join(map(str,[B/'dist/MouseTweaks-BETA17-sem-nohitdelay-mundo.jar',out/'test-runtime.jar',B/'dist/DuckBoxTrainer-1.21.4-0.3.23-alpha.jar',T/'minecraft-intermediary.jar',T/'fabric-loader.jar',*T.glob('fabric-*.jar'),*T.glob('libraries/**/*.jar'),T/'mixin.jar']))
+runtime=os.pathsep.join(map(str,[B/'dist/MouseTweaks-BETA17-sem-nohitdelay-mundo.jar',out/'test-runtime.jar',B/'dist/DuckBoxTrainer-1.21.4-0.3.24-alpha.jar',T/'minecraft-intermediary.jar',T/'fabric-loader.jar',*T.glob('fabric-*.jar'),*T.glob('libraries/**/*.jar'),T/'mixin.jar']))
 subprocess.run(['java','-Xverify:all','-cp',runtime,'CoreTest',str(B/'dist/DuckBoxTreino/level.dat')],cwd=B,check=True)
 subprocess.run(['java','-Xverify:all','-cp',runtime,'CosmeticMeshTest'],cwd=B,check=True)

@@ -36,7 +36,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     "profile",
     "nao_correr_retotem",
     "teia_pe",
-    "resistencia2"
+    "resistencia2",
+    "totem_pop_rapido"
   };
   private static final Item[] ICONS = {
     Items.LIME_DYE,
@@ -62,7 +63,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     Items.WRITABLE_BOOK,
     Items.TOTEM_OF_UNDYING,
     Items.COBWEB,
-    Items.IRON_CHESTPLATE
+    Items.IRON_CHESTPLATE,
+    Items.TOTEM_OF_UNDYING
   };
   private static final String[] LABELS = {
     "Iniciar treino",
@@ -88,7 +90,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
     "Perfil do kit",
     "Nao correr no retotem",
     "Teia no pe",
-    "Resistencia II (Spam)"
+    "Resistencia II (Spam)",
+    "Totem pop rapido"
   };
   private final ServerPlayerEntity owner;
   private final SimpleInventory contents;
@@ -155,7 +158,8 @@ public final class ConfigMenu extends GenericContainerScreenHandler {
       Integer.toString(o.profile),
       on(o.noRetreatRetotem),
       on(o.footWeb),
-      on(o.resistance2)
+      on(o.resistance2),
+      on(o.fastTotemPop)
     };
     for (int i = 0; i < 27; i++) {
       var stack = new ItemStack(i < KEYS.length ? ICONS[i] : Items.GRAY_STAINED_GLASS_PANE);

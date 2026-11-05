@@ -29,7 +29,12 @@ public final class MapPanels {
           "start_4_bottom_left",
           "start_5_bottom_center",
           "start_6_bottom_right",
-          "start_sheet");
+          "start_sheet",
+          "strafe",
+          "tamanho_da_box",
+          "teia",
+          "teia_no_pe",
+          "w_tap");
   public static final Map<String, MapPanelBlock> BLOCKS = new LinkedHashMap<>();
   public static BlockEntityType<MapPanelEntity> TYPE;
 

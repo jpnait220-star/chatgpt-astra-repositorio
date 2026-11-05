@@ -345,7 +345,7 @@ public class CoreTest {
     LobbyBotPayload.CODEC.encode(lobbyBuffer, lobbyPacket);
     check(LobbyBotPayload.CODEC.decode(lobbyBuffer).equals(lobbyPacket));
     lobbyBuffer.release();
-    check(dev.duckbox.panels.MapPanels.BLOCKS.size() == 19);
+    check(dev.duckbox.panels.MapPanels.BLOCKS.size() == 24);
     for (var panelName : dev.duckbox.panels.MapPanels.NAMES) {
       var registered = dev.duckbox.panels.MapPanels.BLOCKS.get(panelName);
       check(

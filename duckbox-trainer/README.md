@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.23-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.24-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.23 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.24 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   as configuracoes e os baus continuam salvos; use /box configurar para os controles.
@@ -68,12 +68,12 @@ ao lado: use um local sem construcoes suas nesse volume.
 
 | Regras | Vida maxima com o set/offhand | Atributo da espada | Resistencia mantida |
 | --- | --- | --- | --- |
-| NORMAL_SPAM | 135 | +20 | II |
-| INSTA_KILL | 135 | +26, set anterior | I |
+| Spam | 135 | +25 / Afiacao58 | II, ou I com opcao II desligada |
+| Semi Insta | 135 | +25 / Afiacao58 | I |
 
-Afiacao54 permanece no preset. Os valores de dano sao modificadores: ataque
+Afiacao58 permanece no preset. Os valores de dano sao modificadores: ataque
 base, encantamento, armadura e efeitos continuam calculados pelo Minecraft.
-Os dois modos usam a cadencia selecionada (10,13 ou15 CPS) a20TPS; o padrao e15. No Normal Spam,
+Os dois modos usam a cadencia selecionada (10,13,15 ou20 CPS) a20TPS; o padrao e15. No Normal Spam,
 a tentativa so vira ataque se a recarga nativa estiver completa. O atributo
 +255 attack_speed da elytra e mantido e determina essa recarga com os demais
 atributos do kit. No Insta Kill permanece o sistema de spam anterior. Dano,
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.23, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.24, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.23 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.24 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.23 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.24 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.23 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.24 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.23 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.24 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.23 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.24 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -460,7 +460,7 @@ com botoes em `/box configurar` e comandos em chat/command block:
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
 
 
-## Alteracoes0.3.23
+## Alteracoes0.3.24
 
 - `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
   mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
@@ -528,7 +528,7 @@ no JSON como copia de seguranca. A partir dai, edicoes sao compartilhadas
 pelos dois modos e cada perfil continua independente dos demais.
 
 
-## Atualizacao0.3.23
+## Atualizacao0.3.24
 
 - `/spawn` retorna ao ponto salvo por `/box setspawn` (fallback **-146 65 93**).
   Ao terminar ou sair do x1, o inventario original e restaurado e o jogador
@@ -584,14 +584,14 @@ clientes e servidor: foram adicionados payloads de baus e do NPC de lobby.
 
 ## Blocos com as texturas enviadas
 
-`/box blocos` abre um catalogo com19 blocos de painel. Clique para receber o
+`/box blocos` abre um catalogo com24 blocos de painel. Clique para receber o
 bloco. `/box bloco kit_1` entrega diretamente um modelo; o comando sugere
 os nomes disponiveis. Tambem pode usar `/give @s duckbox:painel_kit_1`.
 Os quatro kits sao paineis visuais; seu inventario continua configurado nos
 baus de perfil. Os demais paineis sao decorativos para sua build/command blocks.
 
-Os PNGs originais dos dois ZIPs foram incluidos sem editar pixels:512x512,
-1254x1254 e o painel completo1536x1024. Sao exibidos por renderizacao propria,
+Os24 PNGs do ZIP corrigido foram incluidos sem editar pixels:512x512
+e o painel completo1536x1024. Sao exibidos por renderizacao propria,
 sem colocar essas imagens grandes no atlas dos blocos do Minecraft. O painel
 completo preserva proporcao3:2 dentro de um bloco; para ficar grande e legivel,
 monte3blocos por2blocos com as seis partes start_1...start_6. Nao precisa de
@@ -620,14 +620,15 @@ anexado. Comandos de edicao aguardam clique por60segundos. Criar outro texto
 na mesma face atualiza o anterior em vez de acumular entidades.
 
 
-### Regra final da resistencia
+### Resistencia e Totem pop rapido
 
-Somente ResistenciaII ativada no Spam e infinita e reaplicada apos o totem.
-Com ela desligada, ou no Semi Insta, o inicio recebe ResistenciaI por6000ticks
-como a gap encantada, sem manutencao infinita. O totem pode limpar os efeitos
-normalmente e o mod nao os restaura. Comer outra gap pode dar os efeitos
-novamente pelas regras normais do Minecraft. Desligar ResistenciaII durante
-um treino remove a resistencia infinita que a regra mantinha.
+A regra normal voltou a manter resistencia infinita:II no Spam com a opcao
+ResistenciaII ligada; I no Spam sem essa opcao e no Semi Insta. Reaplica apos
+um totem. `/box habilidade totem_pop_rapido` alterna o novo modo (tambem no
+menu `/box configurar`): ligado, remove somente a manutencao da resistencia.
+Nao altera CPS, dano, armadura, vida ou outras habilidades. A gap inicial ainda
+da resistenciaI finita e o totem pode limpar os efeitos normalmente. Comer
+outra gap concede os efeitos normais. A escolha e salva por mundo.
 
 ### Torre e blocos do kit
 
@@ -638,3 +639,14 @@ pretas; inventarios personalizados existentes sao preservados. Coloque la
 (de qualquer cor) no bau do perfil se o seu kit antigo nao tiver blocos.
 O bot prioriza la, inclusive na reserva, e nao usa os baus/painéis do mapa
 como material de construcao. Continua quebrando apenas la e teia.
+
+### Novidades desta versao
+
+- `/box holotamanho 1.5`: depois clique no bloco do holograma. Valores de0.1 a10;
+  o tamanho inicial e0.5, portanto1.0 duplica o texto inicial. O ajuste e individual,
+  salvo no mundo, e preservado ao mover ou reescrever o texto na mesma face.
+- `/box blocos` agora inclui Strafe, tamanho da box, teia, teia no pe e W-tap.
+  Kits e demais imagens atualizados a partir do ZIP corrigido, sem mudar IDs
+  dos blocos que ja estao no mapa. Nao precisa recriar o mundo.
+- Bau de perfil amarelo/vermelho Mega Box, com o mesmo modelo de UV legado
+  no item e no bloco colocado; perfis e inventarios existentes preservados.

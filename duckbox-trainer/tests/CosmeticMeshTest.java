@@ -122,7 +122,7 @@ public final class CosmeticMeshTest {
         throw new AssertionError("Native panel item codec/quad geometry/aspect failed: " + name);
     }
     System.out.println(
-        "PASS PANEL ITEM MODELS:19 real native special-model JSON codecs, raw-texture quads, finite"
+        "PASS PANEL ITEM MODELS:24 real native special-model JSON codecs, raw-texture quads, finite"
             + " UVs and preserved3to2 sheet aspect without GPU");
     var legacyChest = LegacyChestModel.create();
     var chestVertices = new Recorder();

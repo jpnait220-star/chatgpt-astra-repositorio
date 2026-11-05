@@ -195,6 +195,14 @@ public final class DuckBox implements ModInitializer {
         literal("box")
             .requires(x -> x.hasPermissionLevel(2))
             .then(
+                literal("holotamanho")
+                    .then(argument("escala", FloatArgumentType.floatArg(.1f, 10f))
+                        .executes(c -> run(c.getSource(), p -> FixedHolograms.sizeCommand(
+                            p, FloatArgumentType.getFloat(c, "escala")))))));
+    dispatcher.register(
+        literal("box")
+            .requires(x -> x.hasPermissionLevel(2))
+            .then(
                 literal("moveholo")
                     .executes(c -> run(c.getSource(), FixedHolograms::moveCommand))));
     dispatcher.register(
@@ -499,7 +507,8 @@ public final class DuckBox implements ModInitializer {
                                             "foguete_teia",
                                             "nao_correr_retotem",
                                             "teia_pe",
-                                            "resistencia2"),
+                                            "resistencia2",
+                                            "totem_pop_rapido"),
                                         b))
                             .executes(
                                 c ->
@@ -677,6 +686,7 @@ public final class DuckBox implements ModInitializer {
           case "nao_correr_retotem" -> "Nao correr no retotem";
           case "teia_pe" -> "Teia no pe";
           case "resistencia2" -> "Resistencia II (Spam)";
+          case "totem_pop_rapido" -> "Totem pop rapido";
           case "teia" -> "Teia";
           case "wtap" -> "W-tap";
           case "strafe" -> "Strafe";

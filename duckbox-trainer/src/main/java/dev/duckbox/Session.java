@@ -194,17 +194,18 @@ public final class Session {
   }
 
   public void maintainRules() {
-    boolean forceSecond = o.rules == Options.Rules.NORMAL_SPAM && o.resistance2;
+    int amplifier = o.rules == Options.Rules.NORMAL_SPAM && o.resistance2 ? 1 : 0;
     for (var p : List.of(owner, bot)) {
       var effect = p.getStatusEffect(StatusEffects.RESISTANCE);
-      if (!forceSecond) {
+      if (o.fastTotemPop) {
+        // Keep finite gap buffs, but stop maintaining our infinite resistance.
         if (effect != null && effect.isInfinite()) p.removeStatusEffect(StatusEffects.RESISTANCE);
         continue;
       }
-      if (effect == null || effect.getAmplifier() != 1 || !effect.isInfinite()) {
+      if (effect == null || effect.getAmplifier() != amplifier || !effect.isInfinite()) {
         p.removeStatusEffect(StatusEffects.RESISTANCE);
         p.addStatusEffect(
-            new StatusEffectInstance(StatusEffects.RESISTANCE, -1, 1, false, false, true));
+            new StatusEffectInstance(StatusEffects.RESISTANCE, -1, amplifier, false, false, true));
       }
     }
   }
@@ -212,7 +213,7 @@ public final class Session {
   public void startingBuffs() {
     maintainRules();
     for (var p : List.of(owner, bot)) {
-      if (!(o.rules == Options.Rules.NORMAL_SPAM && o.resistance2))
+      if (o.fastTotemPop)
         p.addStatusEffect(
             new StatusEffectInstance(StatusEffects.RESISTANCE, 6000, 0, false, false, true));
       p.addStatusEffect(

@@ -33,6 +33,7 @@ public final class FixedHolograms {
       if (display == null) throw new IllegalStateException("Text display indisponivel.");
     }
     var data = display.writeNbt(new NbtCompound());
+    float oldScale = existed ? data.getCompound("transformation").getList("scale", 5).getFloat(0) : .5f;
     data.putString(
         "text",
         Text.Serialization.toJsonString(
@@ -48,7 +49,7 @@ public final class FixedHolograms {
     data.putFloat("view_range", 2);
     var transform = new NbtCompound();
     var scale = new NbtList();
-    for (int i = 0; i < 3; i++) scale.add(NbtFloat.of(.5f));
+    for (int i = 0; i < 3; i++) scale.add(NbtFloat.of(oldScale));
     transform.put("scale", scale);
     var translation = new NbtList();
     for (int i = 0; i < 3; i++) translation.add(NbtFloat.of(0));
@@ -72,7 +73,7 @@ public final class FixedHolograms {
   }
 
   private record Edit(
-      String text, java.util.UUID source, boolean moving, boolean deleting, int until) {}
+      String text, java.util.UUID source, boolean moving, boolean deleting, Float scale, int until) {}
 
   private static final java.util.Map<java.util.UUID, Edit> pending = new java.util.HashMap<>();
 
@@ -91,17 +92,24 @@ public final class FixedHolograms {
 
   public static void command(ServerPlayerEntity p, String raw) {
     RichNames.parse(raw.replace("\\n", "\n"));
-    pending.put(p.getUuid(), new Edit(raw, null, false, false, p.getServer().getTicks() + 1200));
+    pending.put(p.getUuid(), new Edit(raw, null, false, false, null, p.getServer().getTicks() + 1200));
     DuckBox.setting(p, "Clique com botao direito no bloco para fixar o texto.");
   }
 
+  public static void sizeCommand(ServerPlayerEntity p, float scale) {
+    if (!Float.isFinite(scale) || scale < .1f || scale > 10f)
+      throw new IllegalArgumentException("Use um tamanho entre 0.1 e 10.");
+    pending.put(p.getUuid(), new Edit(null, null, false, false, scale, p.getServer().getTicks() + 1200));
+    DuckBox.setting(p, "Clique no bloco do holograma para aplicar tamanho " + scale + ".");
+  }
+
   public static void moveCommand(ServerPlayerEntity p) {
-    pending.put(p.getUuid(), new Edit(null, null, true, false, p.getServer().getTicks() + 1200));
+    pending.put(p.getUuid(), new Edit(null, null, true, false, null, p.getServer().getTicks() + 1200));
     DuckBox.setting(p, "Clique no bloco do holograma; depois no bloco de destino.");
   }
 
   public static void remove(ServerPlayerEntity p) {
-    pending.put(p.getUuid(), new Edit(null, null, false, true, p.getServer().getTicks() + 1200));
+    pending.put(p.getUuid(), new Edit(null, null, false, true, null, p.getServer().getTicks() + 1200));
     DuckBox.setting(p, "Clique no bloco do holograma para remover.");
   }
 
@@ -131,6 +139,24 @@ public final class FixedHolograms {
     var pos = hit.getBlockPos();
     var face = hit.getSide();
     var facing = face.getAxis().isHorizontal() ? face : p.getHorizontalFacing().getOpposite();
+    if (edit.scale() != null) {
+      var display = find(world, pos, face);
+      if (display == null) {
+        DuckBox.setting(p, "Nenhum holograma nesse bloco. Clique no bloco correto.");
+        return true;
+      }
+      var data = display.writeNbt(new NbtCompound());
+      var transform = data.getCompound("transformation");
+      var scale = new NbtList();
+      for (int i = 0; i < 3; i++) scale.add(NbtFloat.of(edit.scale()));
+      transform.put("scale", scale);
+      data.put("transformation", transform);
+      display.readNbt(data);
+      display.resetLerp();
+      pending.remove(p.getUuid());
+      DuckBox.setting(p, "Tamanho do holograma: " + edit.scale());
+      return true;
+    }
     if (edit.deleting()) {
       var old = find(world, pos, face);
       if (old != null) old.discard();
@@ -145,7 +171,7 @@ public final class FixedHolograms {
           DuckBox.setting(p, "Esse bloco nao tem holograma. Clique no bloco correto.");
           return true;
         }
-        pending.put(p.getUuid(), new Edit(null, old.getUuid(), true, false, edit.until()));
+        pending.put(p.getUuid(), new Edit(null, old.getUuid(), true, false, null, edit.until()));
         DuckBox.setting(p, "Agora clique no bloco de destino.");
         return true;
       }
