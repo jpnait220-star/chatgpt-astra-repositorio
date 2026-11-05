@@ -303,6 +303,16 @@ public final class CombatServerTest {
     bot.setOnGround(true);
     var placeWeb = Session.class.getDeclaredMethod("placeWeb", BlockPos.class, int.class);
     placeWeb.setAccessible(true);
+    if ((boolean) placeWeb.invoke(DuckBox.session, owner.getBlockPos(), 1990))
+      throw new AssertionError("No web at feet/floor");
+    owner.startGliding();
+    owner.setPose(net.minecraft.entity.EntityPose.GLIDING);
+    options.tank = true;
+    if ((boolean) placeWeb.invoke(DuckBox.session, BlockPos.ofFloored(owner.getEyePos()), 1991))
+      throw new AssertionError("No floor web when head shares feet block, including Tank");
+    owner.stopGliding();
+    owner.setPose(net.minecraft.entity.EntityPose.STANDING);
+    options.tank = false;
     if (!(boolean) placeWeb.invoke(DuckBox.session, BlockPos.ofFloored(owner.getEyePos()), 2000)
         || !world.getBlockState(BlockPos.ofFloored(owner.getEyePos())).isOf(Blocks.COBWEB))
       throw new AssertionError("Head web placement");

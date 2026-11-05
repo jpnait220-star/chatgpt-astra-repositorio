@@ -404,8 +404,7 @@ public final class Session {
         && t >= webAt
         && !healing
         && !escaping
-        && placeWeb(o.tank ? bot.getBlockPos().down() : BlockPos.ofFloored(owner.getEyePos()), t))
-      return;
+        && placeWeb(BlockPos.ofFloored(owner.getEyePos()), t)) return;
     if (!o.tank && !healing && !escaping && heldUntil <= t) {
       int sword = selectSword();
       if (sword >= 0 && dist < CombatPlan.meleeIntentRange(attackReach()) && clicks.next()) {
@@ -849,7 +848,9 @@ public final class Session {
 
   private boolean placeWeb(BlockPos pos, int t) {
     if (!bot.isOnGround()
-        || pos.getY() < o.y + 1
+        || !pos.equals(BlockPos.ofFloored(owner.getEyePos()))
+        || pos.getY() <= owner.getBlockPos().getY()
+        || pos.getY() < o.y + 2
         || pos.getY() > o.y + 3
         || !bot.getServerWorld().getBlockState(pos).isAir()
         || bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(pos)) > 9) return false;

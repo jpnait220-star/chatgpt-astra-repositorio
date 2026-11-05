@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.7-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.8-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.7 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.8 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -77,7 +77,7 @@ A cadencia do Normal Spam e8 CPS; Insta Kill usa15 CPS (a20TPS), em todas
 as dificuldades. O set mantem a velocidade de ataque alta para spam sem
 precisar carregar o golpe, como no combate1.8. Nao ignora invulnerabilidade entre danos nem alcance.
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.7, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.8, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -143,8 +143,10 @@ para adicionar/editar nosso modificador daquele slot. `attack_damage` e dano;
 - O nivel de giro e independente da mira: BAIXO, MEDIO, ALTO, EXTREMO.
   EXTREMO permite usar foguetes/reposicionar com mais frequencia; consome o
   estoque real. A mira continua limitada pela dificuldade, sem hits automaticos.
-- O bot so coloca teia estando no chao, do piso ate3 blocos de altura, com
-  suporte, alcance/visibilidade e intervalo padrao10s. A mira usa a cabeca real.
+- O bot so coloca teia estando no chao, na altura da cabeca acima do bloco dos
+  pes e ate3 blocos acima do piso. Nunca coloca no piso, inclusive em Tank.
+  Se a cabeca estiver no mesmo bloco dos pes (planando/rastejando baixo), espera
+  outra oportunidade. Exige suporte, alcance/visibilidade e intervalo padrao10s.
 - A extensao foguete-na-teia e sincronizada apenas para os participantes durante
   um impulso real. Usa multiplicadores0,45 horizontal e0,35 vertical, em vez de
   ignorar totalmente a teia; sem impulso, a teia segue vanilla. Nao altera
