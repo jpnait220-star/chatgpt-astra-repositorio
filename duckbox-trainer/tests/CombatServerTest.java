@@ -381,28 +381,45 @@ public final class CombatServerTest {
     var routeUntilField = Session.class.getDeclaredField("routeUntil");
     routeUntilField.setAccessible(true);
     routeUntilField.setInt(DuckBox.session, 10000);
-    boolean climbed = false;
-    for (int n = 0; n < 240; n++) {
+    boolean climbed = false, brokeAfterTower = false;
+    for (int n = 0; n < 300; n++) {
       ticks.setInt(server, 3000 + n);
       bot.tick();
-      if (bot.getY() >= 67.4 && bot.getInventory().getStack(5).getCount() < 32) {
-        climbed = true;
+      if (bot.getY() >= 67.4 && bot.getInventory().getStack(5).getCount() < 32) climbed = true;
+      if (world.getBlockState(new BlockPos(0, 69, 0)).isAir()) {
+        if (!climbed || bot.getY() < 67.4)
+          throw new AssertionError("Web broken before completing tower");
+        brokeAfterTower = true;
         break;
       }
     }
-    if (!climbed)
+    if (!climbed || !brokeAfterTower)
       throw new AssertionError(
-          "Full AI black-wool tower failed: bot="
+          "Full tower must finish and mine target web: bot="
               + bot.getPos()
               + " stock="
               + bot.getInventory().getStack(5));
+    owner.timeUntilRegen = 0;
+    float towerTargetBefore = owner.getHealth() + owner.getAbsorptionAmount();
+    boolean hitAfterTower = false;
+    int afterTowerTick = server.getTicks();
+    for (int n = 0; n < 30; n++) {
+      ticks.setInt(server, afterTowerTick + 1 + n);
+      bot.tick();
+      if (owner.getHealth() + owner.getAbsorptionAmount() < towerTargetBefore) {
+        hitAfterTower = true;
+        break;
+      }
+    }
+    if (!hitAfterTower)
+      throw new AssertionError("Bot must attack after finishing tower and breaking web");
     DuckBox.session.cleanupBuilding();
     world.setBlockState(new BlockPos(0, 69, 0), Blocks.AIR.getDefaultState(), 3);
     DuckBox.session.closed = true;
     DuckBox.session = new Session(owner, bot, options);
     System.out.println(
-        "PASS FULL NATIVE NAVIGATION: AI climbed with black wool using real ticks/physics and"
-            + " consumed stock");
+        "PASS FULL NATIVE NAVIGATION: AI completed black-wool tower, mined web after landing and"
+            + " attacked target with real ticks/physics");
     owner.getInventory().selectedSlot = 2;
     owner
         .getInventory()
@@ -588,6 +605,16 @@ public final class CombatServerTest {
       woolBreak.invoke(DuckBox.session);
     }
     if (!world.getBlockState(woolPos).isAir()) throw new AssertionError("Native wool break failed");
+    int woolFinishedAt = server.getTicks();
+    world.setBlockState(woolPos, Blocks.RED_WOOL.getDefaultState(), 3);
+    for (int n = 0; n < 5; n++) {
+      ticks.setInt(server, woolFinishedAt + n);
+      if ((boolean) woolBreak.invoke(DuckBox.session))
+        throw new AssertionError("Missing five-tick break pause");
+    }
+    ticks.setInt(server, woolFinishedAt + 5);
+    if (!(boolean) woolBreak.invoke(DuckBox.session) || world.getBlockState(woolPos).isAir())
+      throw new AssertionError("New wool mining must begin progressively, not instant");
     world.setBlockState(woolPos, Blocks.STONE.getDefaultState(), 3);
     if ((boolean) woolBreak.invoke(DuckBox.session)
         || !world.getBlockState(woolPos).isOf(Blocks.STONE))
@@ -636,7 +663,7 @@ public final class CombatServerTest {
       if ((boolean) ready.invoke(cooldownSession))
         throw new AssertionError(
             "Normal must respect uncharged vanilla attack on every scheduled attempt");
-    for (int n = 0; n < 10; n++) {
+    for (int n = 0; n < 13; n++) {
       ticks.setInt(server, 10001 + n);
       bot.tick();
     }
@@ -703,6 +730,58 @@ public final class CombatServerTest {
     System.out.println(
         "PASS CLICK RANGE: both modes15 native swings at6blocks, no remote damage, no clicks"
             + " beyond6blocks");
+    bot.session = null;
+    var correctedKit = Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM);
+    var savedNormalChest = correctedKit.get(38).copy();
+    correctedKit.set(38, net.minecraft.item.ItemStack.EMPTY);
+    Kits.give(bot, correctedKit);
+    ticks.setInt(server, 11000);
+    bot.tick();
+    double normalSpeed =
+        bot.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_SPEED);
+    if (Math.abs(normalSpeed - 1.6) > 0.001)
+      throw new AssertionError(
+          "Normal gold sword must have native1.6 attack speed without elytra: " + normalSpeed);
+    bot.resetLastAttackedTicks();
+    if (bot.getAttackCooldownProgress(0.5f) >= 0.3)
+      throw new AssertionError("Normal sword cooldown must recover gradually");
+    for (int n = 0; n < 13; n++) {
+      ticks.setInt(server, 11001 + n);
+      bot.tick();
+    }
+    if (bot.getAttackCooldownProgress(0.5f) < 1)
+      throw new AssertionError("Native sword recovery failed");
+    bot.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, savedNormalChest);
+    ticks.setInt(server, 11020);
+    bot.tick();
+    if (Math.abs(
+            bot.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_SPEED)
+                - 256.6)
+        > 0.001) throw new AssertionError("Elytra must add255 only while equipped");
+    bot.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
+    ticks.setInt(server, 11021);
+    bot.tick();
+    if (Math.abs(
+            bot.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_SPEED)
+                - 1.6)
+        > 0.001) throw new AssertionError("Elytra speed leaked after removal");
+    bot.getInventory().selectedSlot = 4;
+    bot.getInventory().setStack(4, net.minecraft.item.ItemStack.EMPTY);
+    ticks.setInt(server, 11022);
+    bot.tick();
+    if (Math.abs(
+            bot.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_SPEED) - 4)
+        > 0.001) throw new AssertionError("Empty hand must keep vanilla4 attack speed");
+    var legacyNormal = Kits.defaults(world.getRegistryManager(), Options.Rules.INSTA_KILL);
+    var legacyHead = legacyNormal.get(39).copy();
+    if (!Kits.repairNormalKit(legacyNormal)
+        || Kits.repairNormalKit(legacyNormal)
+        || !net.minecraft.item.ItemStack.areEqual(legacyHead, legacyNormal.get(39)))
+      throw new AssertionError(
+          "Normal kit migration must be idempotent and preserve other kit items");
+    System.out.println(
+        "PASS NATIVE PLAYER COOLDOWN: sword1.6, elytra256.6, removal1.6, empty hand4, saved-kit"
+            + " repair idempotent");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);

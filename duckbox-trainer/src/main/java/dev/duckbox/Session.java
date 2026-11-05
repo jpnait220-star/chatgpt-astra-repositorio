@@ -23,6 +23,8 @@ public final class Session {
   private int buildAt;
   private BlockPos breakingWeb;
   private float webBreakProgress;
+  private int breakStartedAt, mineReadyAt;
+  private boolean mineStopSent;
   private final Map<BlockPos, net.minecraft.block.BlockState> builtBlocks = new HashMap<>();
   private int rocketAt,
       webAt,
@@ -356,7 +358,7 @@ public final class Session {
       webRoute = buildingSlot() < 0 || random.nextBoolean() ? WebRoute.AIR : WebRoute.TOWER;
     }
     if (!healing && !escaping && !o.tank) {
-      if (cageHead(t)) return;
+      if (!elevatedWeb && cageHead(t)) return;
       if (elevatedWeb) {
         if (webRoute == WebRoute.TOWER && !onTowerAtTarget()) {
           if (scaffold(t)) return;
@@ -696,15 +698,23 @@ public final class Session {
     return breakTrainingBlock(target, "Quebrando la no caminho");
   }
 
+  private void finishMining(int now) {
+    breakingWeb = null;
+    webBreakProgress = 0;
+    mineStopSent = false;
+    mineReadyAt = now + 5;
+  }
+
   private boolean breakTrainingBlock(BlockPos target, String label) {
     var world = bot.getServerWorld();
+    int now = bot.getServer().getTicks();
+    if (breakingWeb != null && world.getBlockState(breakingWeb).isAir()) finishMining(now);
+    if (now < mineReadyAt) return false;
     boolean reachable =
         target != null
             && insideArena(target)
-            && (bot.getServerWorld().getBlockState(target).isOf(net.minecraft.block.Blocks.COBWEB)
-                || bot.getServerWorld()
-                    .getBlockState(target)
-                    .isIn(net.minecraft.registry.tag.BlockTags.WOOL))
+            && (world.getBlockState(target).isOf(net.minecraft.block.Blocks.COBWEB)
+                || world.getBlockState(target).isIn(net.minecraft.registry.tag.BlockTags.WOOL))
             && bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(target)) < 20;
     if (reachable) {
       var ray =
@@ -717,8 +727,6 @@ public final class Session {
                   bot));
       reachable = ray.getType() == HitResult.Type.BLOCK && ray.getBlockPos().equals(target);
     }
-    var action =
-        net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.START_DESTROY_BLOCK;
     if (breakingWeb != null && (!reachable || !breakingWeb.equals(target))) {
       bot.interactionManager.processBlockBreakingAction(
           breakingWeb,
@@ -728,30 +736,45 @@ public final class Session {
           0);
       breakingWeb = null;
       webBreakProgress = 0;
+      mineStopSent = false;
     }
     if (!reachable) return false;
     selectSword();
+    bot.forwardSpeed = 0;
+    bot.sidewaysSpeed = 0;
     look(Vec3d.ofCenter(target), o.difficulty.aimSpeed);
+    phase = label;
+    Vec3d direction = Vec3d.ofCenter(target).subtract(bot.getEyePos()).normalize();
+    if (bot.getRotationVec(1).dotProduct(direction) < 0.98) return true;
     if (breakingWeb == null) {
       breakingWeb = target;
-      webBreakProgress = 0;
+      breakStartedAt = now;
+      mineStopSent = false;
       bot.interactionManager.processBlockBreakingAction(
-          target, action, Direction.UP, world.getTopYInclusive(), 0);
+          target,
+          net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.START_DESTROY_BLOCK,
+          Direction.UP,
+          world.getTopYInclusive(),
+          0);
     }
-    bot.forwardSpeed = 0;
     bot.swingHand(Hand.MAIN_HAND);
-    webBreakProgress += world.getBlockState(target).calcBlockBreakingDelta(bot, world, target);
-    if (webBreakProgress >= 1) {
+    if (world.getBlockState(target).isAir()) {
+      finishMining(now);
+      return true;
+    }
+    webBreakProgress =
+        world.getBlockState(target).calcBlockBreakingDelta(bot, world, target)
+            * (now - breakStartedAt + 1);
+    if (!mineStopSent && webBreakProgress >= 1) {
       bot.interactionManager.processBlockBreakingAction(
           target,
           net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK,
           Direction.UP,
           world.getTopYInclusive(),
           0);
-      breakingWeb = null;
-      webBreakProgress = 0;
+      mineStopSent = true;
+      if (world.getBlockState(target).isAir()) finishMining(now);
     }
-    phase = label;
     return true;
   }
 
@@ -865,7 +888,8 @@ public final class Session {
 
   private boolean scaffold(int t) {
     double dx = owner.getX() - bot.getX(), dz = owner.getZ() - bot.getZ();
-    if (dx * dx + dz * dz > 2.0 || owner.getY() <= bot.getY() + 0.5) return false;
+    if (dx * dx + dz * dz > 2.0 || (bot.isOnGround() && bot.getY() >= owner.getY() - 0.6))
+      return false;
     BlockPos place = bot.getBlockPos().down();
     if (place.getY() < o.y || place.getY() >= o.y + Arena.HEIGHT - 1) return false;
     int slot = buildingSlot();

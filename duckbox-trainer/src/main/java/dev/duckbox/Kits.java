@@ -69,6 +69,39 @@ public final class Kits {
     p.getInventory().markDirty();
   }
 
+  public static boolean repairNormalKit(List<ItemStack> kit) {
+    boolean changed = false;
+    for (ItemStack stack : kit) {
+      if (!stack.isOf(Items.GOLDEN_SWORD)) continue;
+      var mods =
+          stack.getOrDefault(
+              DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT);
+      boolean duckSword =
+          mods.modifiers().stream()
+              .anyMatch(
+                  e ->
+                      e.attribute().equals(EntityAttributes.ATTACK_DAMAGE)
+                          && e.modifier()
+                              .id()
+                              .equals(Identifier.of("duckbox", "mainhand/attack_damage")));
+      boolean speedConfigured =
+          mods.modifiers().stream()
+              .anyMatch(e -> e.attribute().equals(EntityAttributes.ATTACK_SPEED));
+      if (!duckSword || speedConfigured) continue;
+      stack.set(
+          DataComponentTypes.ATTRIBUTE_MODIFIERS,
+          mods.with(
+              EntityAttributes.ATTACK_SPEED,
+              new EntityAttributeModifier(
+                  Item.BASE_ATTACK_SPEED_MODIFIER_ID,
+                  -2.4,
+                  EntityAttributeModifier.Operation.ADD_VALUE),
+              AttributeModifierSlot.MAINHAND));
+      changed = true;
+    }
+    return changed;
+  }
+
   public static boolean isTotem(ItemStack stack) {
     return !stack.isEmpty() && stack.contains(DataComponentTypes.DEATH_PROTECTION);
   }
@@ -201,6 +234,7 @@ public final class Kits {
         60);
     kit.set(39, head);
     kit.set(40, duckCharm());
+    if (rules == Options.Rules.NORMAL_SPAM) repairNormalKit(kit);
     return kit;
   }
 }

@@ -467,9 +467,12 @@ public final class DuckBox implements ModInitializer {
       save();
     }
     var kits = disk.getAsJsonObject("kits");
-    return kits.has(options.rules.name())
-        ? Kits.decode(p, kits.getAsJsonArray(options.rules.name()))
-        : Kits.defaults(p.getRegistryManager(), options.rules);
+    var kit =
+        kits.has(options.rules.name())
+            ? Kits.decode(p, kits.getAsJsonArray(options.rules.name()))
+            : Kits.defaults(p.getRegistryManager(), options.rules);
+    if (options.rules == Options.Rules.NORMAL_SPAM && Kits.repairNormalKit(kit)) storeKit(p, kit);
+    return kit;
   }
 
   public static void storeKit(ServerPlayerEntity p, List<ItemStack> kit) {

@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.13-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.14-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.13 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.14 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os15 cliques e balanca a mao sem exigir
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.13, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.14, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,7 +268,23 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.13 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.14 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
+
+Na0.3.14 o preset Normal e kits Normal salvos reconhecidos recuperam o
+modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
+componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
+elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
+O icone pronto vanilla exige mirar num alvo vivo, indicador de ataque na mira
+e recarga maior que5 ticks; por isso nao aparece pronto com a mao vazia ou
+com +255 de velocidade. A barra durante a recarga tambem depende da opcao
+Indicador de Ataque do Minecraft e de outros mods que alterem o HUD.
+
+A torre agora completa o ultimo degrau antes de mudar para a quebra da teia.
+Armadilhas de cabeca nao interrompem essa subida. A mineracao espera alinhar
+a cabeca com o bloco, usa dureza/progresso por tick real e aguarda5 ticks entre
+blocos, como a pausa do cliente vanilla. O teste de torre aguarda ate a teia
+ser efetivamente quebrada e o bot voltar a acertar o alvo, em vez de terminar
+no primeiro salto alto.
