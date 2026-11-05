@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.21-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.22-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.21 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.22 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   as configuracoes e os baus continuam salvos; use /box configurar para os controles.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.21, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.22, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.21 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.22 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.21 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.22 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.21 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.22 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.21 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.22 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.21 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.22 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -396,7 +396,7 @@ command block.
 ## Quatro perfis de kit e cofres
 
 Cada mundo salva ate quatro perfis, com inventario/equipamento independente.
-Cada perfil mantem seu kit de Spam e Insta Kill separado. O kit antigo e
+Cada perfil possui um unico inventario compartilhado entre Spam e Semi Insta. O kit antigo e
 migrado para o perfil1; editar um perfil nao altera os outros. Os dois
 participantes recebem copias do kit do perfil selecionado ao iniciar.
 
@@ -460,7 +460,7 @@ com botoes em `/box configurar` e comandos em chat/command block:
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
 
 
-## Alteracoes0.3.21
+## Alteracoes0.3.22
 
 - `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
   mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
@@ -486,3 +486,43 @@ com botoes em `/box configurar` e comandos em chat/command block:
 
 A validacao inclui testes nativos de servidor/Mixin e malhas sem GPU. Ainda
 precisa conferir as texturas e o combate dentro do cliente grafico.
+
+
+## Alternar Duel/Tank com o mesmo comando
+
+`/box modo` alterna entre Duel e Tank. Repita o mesmo comando para voltar.
+Em command block use `box modo`, sem barra, ligado a um botao de impulso.
+A confirmacao aparece na actionbar e a escolha fica salva. Encerre o treino
+antes de alternar. Os formatos antigos `box modo DUEL` e `box modo TANK`
+continuam aceitos para preservar mapas com command blocks existentes.
+
+
+## Outros comandos de um so botao
+
+- `box regras`: Spam / Semi Insta.
+- `box dificuldade LOW`, `MEDIUM`, `HIGH` ou `EXPERT`: comandos separados por nivel.
+- `box giro`: Baixo / Medio / Alto / Extremo (intensidade).
+- `box profile`: perfis1 /2 /3 /4.
+- `box tamanho`:9 /13 /17. Em mapa personalizado apenas muda os limites;
+  no mapa gerado reconstrui o volume da caixa, como o controle de tamanho.
+- `box cps`:10 /13 /15.
+- `box habilidade nome`: liga/desliga a tecnica indicada.
+
+Use sem barra nos command blocks, com um botao de impulso. No chat coloque
+`/` antes de `box`. Cada execucao avanca uma opcao e mostra o valor na
+ actionbar. Os comandos com valor explicito continuam aceitos para mapas antigos.
+
+
+Calca, botas e elytra dos kits padrao recebem Protecao60 nos dois modos.
+Ao carregar os perfis existentes, os equipamentos nesses slots sao atualizados
+para no minimo Protecao60, sem retirar outros encantamentos, nomes, atributos
+ou Inquebravel. Slots vazios permanecem vazios e itens fora de seus slots de
+equipamento nao sao alterados. O mesmo kit atualizado e copiado para os dois.
+
+
+Os perfis agora alteram somente inventario/equipamento. Trocar Spam/Semi Insta
+nao muda itens, atributos ou o perfil selecionado. Na migracao, cada perfil
+preserva seu kit salvo do modo atualmente selecionado; na ausencia dele, usa
+o kit Spam antigo ou o Semi Insta antigo. As entradas antigas por modo ficam
+no JSON como copia de seguranca. A partir dai, edicoes sao compartilhadas
+pelos dois modos e cada perfil continua independente dos demais.

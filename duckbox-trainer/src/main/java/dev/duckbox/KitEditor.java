@@ -116,9 +116,7 @@ public final class KitEditor extends GenericContainerScreenHandler {
               active = new KitEditor(id, inventory, p, contents, profile);
               return active;
             },
-            Text.literal("Kit: ")
-                .append(DuckBox.profileName(profile))
-                .append(" • " + DuckBox.options.rules)));
+            Text.literal("Kit: ").append(DuckBox.profileName(profile))));
   }
 
   @Override

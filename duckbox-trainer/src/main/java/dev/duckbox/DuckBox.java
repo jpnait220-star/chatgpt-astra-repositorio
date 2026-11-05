@@ -168,6 +168,7 @@ public final class DuckBox implements ModInitializer {
             .then(literal("configurar").executes(c -> run(c.getSource(), ConfigMenu::open)))
             .then(
                 literal("profile")
+                    .executes(c -> run(c.getSource(), p -> control(p, "profile")))
                     .then(
                         argument("numero", IntegerArgumentType.integer(1, 4))
                             .executes(
@@ -240,6 +241,7 @@ public final class DuckBox implements ModInitializer {
                                 })))
             .then(
                 literal("regras")
+                    .executes(c -> run(c.getSource(), p -> control(p, "regras")))
                     .then(
                         argument("tipo", StringArgumentType.word())
                             .suggests(
@@ -278,6 +280,7 @@ public final class DuckBox implements ModInitializer {
                                                 p, IntegerArgumentType.getInteger(c, "valor"))))))
             .then(
                 literal("giro")
+                    .executes(c -> run(c.getSource(), p -> control(p, "giro_nivel")))
                     .then(
                         argument("nivel", StringArgumentType.word())
                             .suggests(
@@ -371,6 +374,7 @@ public final class DuckBox implements ModInitializer {
                                           options.size = size;
                                           Arena.create(p, options);
                                         }))))
+            .then(literal("tamanho").executes(c -> run(c.getSource(), p -> control(p, "tamanho"))))
             .then(literal("iniciar").executes(c -> run(c.getSource(), DuckBox::start)))
             .then(
                 literal("parar").executes(c -> run(c.getSource(), p -> stop("Treino encerrado."))))
@@ -424,6 +428,7 @@ public final class DuckBox implements ModInitializer {
                                         }))))
             .then(
                 literal("modo")
+                    .executes(c -> run(c.getSource(), p -> control(p, "modo")))
                     .then(
                         argument("tipo", StringArgumentType.word())
                             .suggests(
@@ -433,6 +438,7 @@ public final class DuckBox implements ModInitializer {
                                     run(
                                         c.getSource(),
                                         p -> {
+                                          requireStopped();
                                           String mode = StringArgumentType.getString(c, "tipo");
                                           if (!mode.equalsIgnoreCase("TANK")
                                               && !mode.equalsIgnoreCase("DUEL"))
@@ -641,12 +647,25 @@ public final class DuckBox implements ModInitializer {
 
   public static List<ItemStack> currentKit(ServerPlayerEntity p, int profile) {
     var kits = profileKits(p, profile);
+    boolean migrated = !kits.has("inventory");
+    var data = kits.getAsJsonArray("inventory");
+    if (data == null) {
+      String previousMode =
+          kits.has(options.rules.name())
+              ? options.rules.name()
+              : kits.has(Options.Rules.NORMAL_SPAM.name())
+                  ? Options.Rules.NORMAL_SPAM.name()
+                  : Options.Rules.INSTA_KILL.name();
+      if (kits.has(previousMode)) data = kits.getAsJsonArray(previousMode);
+    }
     var kit =
-        kits.has(options.rules.name())
-            ? Kits.decode(p, kits.getAsJsonArray(options.rules.name()))
-            : Kits.defaults(p.getRegistryManager(), options.rules);
-    if (options.rules == Options.Rules.NORMAL_SPAM && Kits.repairNormalKit(kit))
-      storeKit(p, kit, profile, options.rules);
+        data != null
+            ? Kits.decode(p, data)
+            : Kits.defaults(p.getRegistryManager(), Options.Rules.NORMAL_SPAM);
+    boolean repaired =
+        migrated && options.rules == Options.Rules.NORMAL_SPAM && Kits.repairNormalKit(kit);
+    repaired |= Kits.protectEquipment(p.getRegistryManager(), kit);
+    if (migrated || repaired) storeKit(p, kit, profile, options.rules);
     return kit;
   }
 
@@ -656,13 +675,14 @@ public final class DuckBox implements ModInitializer {
 
   public static void storeKit(
       ServerPlayerEntity p, List<ItemStack> kit, int profile, Options.Rules rules) {
-    profileKits(p, profile).add(rules.name(), Kits.encode(p, kit));
+    // Rules are combat behavior; the profile owns one inventory for both modes.
+    // Legacy mode-specific keys are retained as a backup, but no longer selected.
+    profileKits(p, profile).add("inventory", Kits.encode(p, kit));
     save();
   }
 
   public static void resetKit(ServerPlayerEntity p) {
-    profileKits(p, options.profile).remove(options.rules.name());
-    save();
+    storeKit(p, Kits.defaults(p.getRegistryManager(), Options.Rules.NORMAL_SPAM));
   }
 
   public static Text profileName(int profile) {

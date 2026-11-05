@@ -282,6 +282,34 @@ public class CoreTest {
       check(chestPng.getWidth() == 64 && chestPng.getHeight() == 64);
       check(CoreTest.class.getResource("/assets/duckbox/items/" + name + "_chest.json") != null);
     }
+    var armorRegistries = net.minecraft.registry.BuiltinRegistries.createWrapperLookup();
+    var protection60 =
+        armorRegistries
+            .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+            .getOrThrow(net.minecraft.enchantment.Enchantments.PROTECTION);
+    for (var combatRule : Options.Rules.values()) {
+      var protectedSet = Kits.defaults(armorRegistries, combatRule);
+      for (int equipmentSlot : new int[] {36, 37, 38}) {
+        check(
+            net.minecraft.enchantment.EnchantmentHelper.getLevel(
+                    protection60, protectedSet.get(equipmentSlot))
+                == 60);
+        check(protectedSet.get(equipmentSlot).contains(DataComponentTypes.UNBREAKABLE));
+      }
+      check(!Kits.protectEquipment(armorRegistries, protectedSet));
+      protectedSet.get(38).remove(DataComponentTypes.ENCHANTMENTS);
+      var beforeUpgradeAttributes =
+          protectedSet.get(38).get(DataComponentTypes.ATTRIBUTE_MODIFIERS);
+      check(Kits.protectEquipment(armorRegistries, protectedSet));
+      check(
+          net.minecraft.enchantment.EnchantmentHelper.getLevel(protection60, protectedSet.get(38))
+              == 60);
+      check(
+          protectedSet
+              .get(38)
+              .get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+              .equals(beforeUpgradeAttributes));
+    }
     NbtCompound root =
         NbtIo.readCompressed(new FileInputStream(args[0]), NbtSizeTracker.ofUnlimitedBytes());
     NbtCompound data = root.getCompound("Data");

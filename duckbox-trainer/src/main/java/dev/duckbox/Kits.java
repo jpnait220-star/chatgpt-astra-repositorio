@@ -164,6 +164,34 @@ public final class Kits {
     }
   }
 
+  public static boolean protectEquipment(
+      net.minecraft.registry.RegistryWrapper.WrapperLookup registries, List<ItemStack> kit) {
+    var protection =
+        registries
+            .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+            .getOrThrow(net.minecraft.enchantment.Enchantments.PROTECTION);
+    boolean changed = false;
+    for (int slot : new int[] {36, 37, 38}) {
+      var stack = kit.get(slot);
+      var gear = stack.get(DataComponentTypes.EQUIPPABLE);
+      var expected =
+          slot == 36
+              ? net.minecraft.entity.EquipmentSlot.FEET
+              : slot == 37
+                  ? net.minecraft.entity.EquipmentSlot.LEGS
+                  : net.minecraft.entity.EquipmentSlot.CHEST;
+      if (gear != null
+          && gear.slot() == expected
+          && net.minecraft.enchantment.EnchantmentHelper.getLevel(protection, stack) < 60) {
+        if (!stack.contains(DataComponentTypes.ENCHANTMENTS))
+          stack.set(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
+        stack.addEnchantment(protection, 60);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
   public static List<ItemStack> defaults() {
     return defaults(net.minecraft.registry.BuiltinRegistries.createWrapperLookup());
   }
@@ -234,6 +262,7 @@ public final class Kits {
         60);
     kit.set(39, head);
     kit.set(40, duckCharm());
+    protectEquipment(registries, kit);
     if (rules == Options.Rules.NORMAL_SPAM) repairNormalKit(kit);
     return kit;
   }

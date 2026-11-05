@@ -1180,8 +1180,8 @@ public final class CombatServerTest {
             + " hotbar/storage/offhand mapping saved to JSON and decoded with world registry");
     options.rules = Options.Rules.INSTA_KILL;
     var insta = DuckBox.currentKit(owner);
-    if (!insta.get(0).isOf(net.minecraft.item.Items.GOLDEN_SWORD))
-      throw new AssertionError("Rules kits leaked into each other");
+    if (!insta.get(0).isOf(net.minecraft.item.Items.DIAMOND_SWORD))
+      throw new AssertionError("Changing combat mode must keep the profile inventory");
     options.rules = Options.Rules.NORMAL_SPAM;
     if (!DuckBox.currentKit(owner).get(0).isOf(net.minecraft.item.Items.DIAMOND_SWORD))
       throw new AssertionError("Normal custom kit lost");
@@ -1291,6 +1291,56 @@ public final class CombatServerTest {
     if (DuckBox.options.cps != 13
         || DuckBox.options.difficulty != Options.Difficulty.MEDIUM
         || !DuckBox.options.tank) throw new AssertionError("Command block settings not applied");
+    feedbackConnection.messages.clear();
+    if (boxDispatcher.execute("box modo", blockSource) != 1
+        || DuckBox.options.tank
+        || feedbackConnection.chat()
+        || !feedbackConnection.overlay("Modo: Duel"))
+      throw new AssertionError(
+          "Bare mode command must toggle Tank to Duel via command block/actionbar");
+    feedbackConnection.messages.clear();
+    if (boxDispatcher.execute("box modo", blockSource) != 1
+        || !DuckBox.options.tank
+        || feedbackConnection.chat()
+        || !feedbackConnection.overlay("Modo: Tank"))
+      throw new AssertionError("Repeated bare mode command must toggle Duel back to Tank");
+    System.out.println(
+        "PASS MODE TOGGLE: same command block command alternates Duel/Tank with actionbar"
+            + " confirmations");
+    for (String command : new String[] {"regras", "giro", "profile", "tamanho"}) {
+      int steps =
+          switch (command) {
+            case "regras" -> 2;
+            case "tamanho" -> 3;
+            default -> 4;
+          };
+      var startRules = DuckBox.options.rules;
+      var startDifficulty = DuckBox.options.difficulty;
+      var startSpin = DuckBox.options.spin;
+      int startProfile = DuckBox.options.profile, startSize = DuckBox.options.size;
+      for (int step = 0; step < steps; step++) {
+        feedbackConnection.messages.clear();
+        if (boxDispatcher.execute("box " + command, blockSource) != 1 || feedbackConnection.chat())
+          throw new AssertionError("Bare configuration cycle failed or used chat: " + command);
+        if (step == 0
+            && switch (command) {
+              case "regras" -> DuckBox.options.rules == startRules;
+              case "dificuldade" -> DuckBox.options.difficulty == startDifficulty;
+              case "giro" -> DuckBox.options.spin == startSpin;
+              case "profile" -> DuckBox.options.profile == startProfile;
+              default -> DuckBox.options.size == startSize;
+            }) throw new AssertionError("Bare cycle did not advance: " + command);
+      }
+      if (DuckBox.options.rules != startRules
+          || DuckBox.options.difficulty != startDifficulty
+          || DuckBox.options.spin != startSpin
+          || DuckBox.options.profile != startProfile
+          || DuckBox.options.size != startSize)
+        throw new AssertionError("Bare cycle did not wrap to original value: " + command);
+    }
+    System.out.println(
+        "PASS BARE CONFIG CYCLES: real command blocks cycle rules2, spin4, profile4"
+            + " and size3 with actionbar confirmations");
     if (boxDispatcher.execute("box cps 11", blockSource) != 0 || DuckBox.options.cps != 13)
       throw new AssertionError("Invalid CB option must fail without changing setting");
     if (boxDispatcher.execute("box kit abrir", blockSource) != 1
@@ -1387,6 +1437,22 @@ public final class CombatServerTest {
     for (int id = 1; id <= 4; id++)
       if (DuckBox.currentKit(owner, id).get(0).getCount() != id)
         throw new AssertionError("Profile inventory leaked: " + id);
+    var snapshotRules = DuckBox.options.rules;
+    for (int profileId = 1; profileId <= 4; profileId++) {
+      DuckBox.options.rules = Options.Rules.NORMAL_SPAM;
+      var spamProfile = DuckBox.currentKit(owner, profileId);
+      DuckBox.options.rules = Options.Rules.INSTA_KILL;
+      var semiProfile = DuckBox.currentKit(owner, profileId);
+      for (int itemSlot = 0; itemSlot < 41; itemSlot++)
+        if (!net.minecraft.item.ItemStack.areEqual(
+            spamProfile.get(itemSlot), semiProfile.get(itemSlot)))
+          throw new AssertionError(
+              "Profile inventory changed with mode: " + profileId + " slot " + itemSlot);
+    }
+    DuckBox.options.rules = snapshotRules;
+    System.out.println(
+        "PASS SHARED PROFILE INVENTORIES: four kits retain every item and component when switching"
+            + " Spam/SemiInsta");
     if (boxDispatcher.execute(
                 "box rename profile 2 <gradient:#ff0000:#0000ff>Treino</gradient>", blockSource)
             != 1
