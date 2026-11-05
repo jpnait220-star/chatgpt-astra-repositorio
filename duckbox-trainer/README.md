@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.16-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.17-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.16 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.17 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -59,9 +59,9 @@ Sem W-tap o bot usa alcance maximo2,4; com W-tap, no maximo3 blocos da camera
 ate a hitbox, sempre exigindo mira e caminho livre.
 `/box parar` encerra e restaura o inventario anterior.
 
-Arena padrao13x13, altura interna7. Tamanhos externos impares de9 a41 por
+Arena padrao13x13, altura interna7. Tamanhos externos de9,13 ou17 por
 comando. O lobby inclui piso, iluminacao, estatua de pato e painel. A montagem
-ocorre em lotes. `/box criar` em outro mundo edita um volume41x41x11 e o lobby
+ocorre em lotes. `/box criar` em outro mundo edita um volume17x17x11 e o lobby
 ao lado: use um local sem construcoes suas nesse volume.
 
 ## Regras: mesmo HP, dano/resistencia diferentes
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os15 cliques e balanca a mao sem exigir
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.16, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.17, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -206,7 +206,7 @@ Nao ha site, telemetria, chat global, banco online nem auto-update neste mod.
 /box parar
 /box dificuldade LOW|MEDIUM|HIGH|EXPERT
 /box modo DUEL|TANK
-/box regras NORMAL_SPAM|INSTA_KILL
+/box regras SPAM|INSTA_KILL
 /box giro BAIXO|MEDIO|ALTO|EXTREMO
 /box habilidade giro|gap|retotem|teia|wtap|strafe|foguete_teia
 /box kit salvar
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.16 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.17 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.16 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.17 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,10 +295,52 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.16 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.17 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
 mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
+
+Na0.3.17 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
+cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
+nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
+anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
+travamento agora considera deslocamento horizontal, nao os pulos.
+
+Na0.3.17 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+**9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
+blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
+
+Para preservar sua construcao, termine o piso/arena e use `/box usar` para
+vincular esses limites sem reconstruir; `/box kit abrir` abre o editor sem
+precisar mover um bau. Nesse modo os controles ficam por comandos ate o ZIP
+com as suas placas/botoes ser integrado. `/box criar` gera a arena e o lobby
+do mod e substitui blocos no volume documentado, portanto use-o apenas quando
+quiser gerar a construcao automatica. O template novo do ZIP ja vem configurado
+para gerar sua propria arena, diferente da sua build personalizada.
+
+**MouseTweaks enviado:** o pacote opcional contem uma copia corrigida do JAR,
+com AttackStrengthMixin/DamageWindowMixin e o menu de combate global removidos.
+Os demais recursos e arquivos foram preservados; o relatorio JSON registra
+os hashes e o total de entradas identicas. Substitua o MouseTweaks antigo,
+sem manter duas copias. As licencas originais continuam dentro do JAR.
+
+O Trainer tem No Hit Delay somente de clique local no Insta Kill: limpa o
+contador de erro de clique do MinecraftClient. Nao muda a forca do ataque,
+a imunidade entre danos, o cooldown de PlayerEntity ou atributos do mundo.
+No Spam esse ajuste fica desligado, inclusive na copia corrigida do MouseTweaks
+quando usada junto com o Trainer. Fora do treino o MouseTweaks mantem suas
+configuracoes locais originais. O Trainer nao depende dele para funcionar.
+
+A lentidao parcial de teia durante elytra agora usa a mesma condicao estavel
+no cliente/servidor. O delta enviado no pacote ja foi reduzido pelo cliente;
+o handler evita aplicar esse multiplicador uma segunda vez ao mesmo pacote,
+preservando as colisoes com blocos e a validacao nativa do movimento. O bot
+tenta elytra/foguete na propria teia e, sem saida, minera a teia que o prende.
+Testes incluem combinacao real dos Mixins do Trainer e MouseTweaks, ponte
+de modo Spam/Insta e movimento nativo sem dupla lentidao. A sensacao de rede
+e o HUD ainda precisam de teste com cliente grafico. Atualize cliente e
+servidor privado juntos: o payload do treino ganhou o estado Insta Kill.

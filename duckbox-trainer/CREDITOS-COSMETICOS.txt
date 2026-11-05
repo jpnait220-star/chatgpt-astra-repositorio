@@ -16,3 +16,7 @@ Capa/elytra amarela e verde: textura Vanilla Cape original de Mojang, sem altera
 Fonte: https://minecraft.wiki/w/Vanilla_Cape
 Textura: https://textures.minecraft.net/texture/f9a76537647989f9a0b6d001e320dac591c359e9e61a31f4ce11c88f207f0ad4
 Aplicacao local apenas ao NPC, sem alterar direitos de capas na conta do jogador.
+
+MouseTweaks Unified BETA17: JAR fornecido pelo usuario; licencas originais mantidas.
+Patch remove apenas camada global de cooldown/dano e limita os callbacks locais
+ao Insta Kill durante DuckBox. Fontes do patch em patch_mouse.py/tests.

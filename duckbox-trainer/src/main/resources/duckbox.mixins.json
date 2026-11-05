@@ -5,7 +5,9 @@
   "mixins": [
     "WebMovementMixin",
     "RocketBoostMixin",
-    "TrainingPvpMixin"
+    "TrainingPvpMixin",
+    "WebMovementAccess",
+    "WebPacketMovementMixin"
   ],
   "injectors": {
     "defaultRequire": 1
@@ -13,6 +15,7 @@
   "client": [
     "CosmeticArmMixin",
     "BotSkinEntryMixin",
-    "BotSkinStateMixin"
+    "BotSkinStateMixin",
+    "LocalInstaHitDelayMixin"
   ]
 }

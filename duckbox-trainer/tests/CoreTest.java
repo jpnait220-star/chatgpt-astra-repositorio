@@ -37,6 +37,23 @@ public class CoreTest {
     var robotId = java.util.UUID.randomUUID();
     var humanId = java.util.UUID.randomUUID();
     dev.duckbox.cosmetic.CosmeticState.set(new CosmeticPayload(humanId, robotId, 0));
+    var scope = Class.forName("com.duckunified.duckbox.HitDelayScope").getMethod("allow");
+    Class.forName(
+            "com.duckunified.mixin.LocalAttackDelayMixin", false, CoreTest.class.getClassLoader())
+        .getDeclaredMethods();
+    ClientTrainingState.clear();
+    check((boolean) scope.invoke(null));
+    ClientTrainingState.set(new TrainingPayload(humanId, robotId, true, false));
+    check(!ClientTrainingState.localNoHitDelay(humanId));
+    check(!(boolean) scope.invoke(null));
+    ClientTrainingState.set(new TrainingPayload(humanId, robotId, true, true));
+    check(ClientTrainingState.localNoHitDelay(humanId));
+    check(!ClientTrainingState.localNoHitDelay(robotId));
+    check((boolean) scope.invoke(null));
+    ClientTrainingState.set(new TrainingPayload(humanId, new UUID(0, 0), false, false));
+    check(!ClientTrainingState.localNoHitDelay(humanId));
+    check((boolean) scope.invoke(null));
+    ClientTrainingState.clear();
     var original =
         new net.minecraft.client.util.SkinTextures(
             net.minecraft.util.Identifier.of("minecraft", "original.png"),
@@ -164,6 +181,10 @@ public class CoreTest {
     check(logical.size() == 41);
     for (int i = 0; i < 41; i++) check(logical.contains(i));
     check(new Options().size == 13);
+    check(new Options().x == -5 && new Options().y == 78 && new Options().z == 111);
+    check(!new Options().autoBuildOnJoin);
+    check(Options.nextSize(9) == 13 && Options.nextSize(13) == 17 && Options.nextSize(17) == 9);
+    check(Options.allowedSize(41) == 17 && Options.allowedSize(11) == 13);
     check(CombatPlan.mayReposition(true, true, false, false, 80, 60, 9, 1));
     check(!CombatPlan.mayReposition(true, true, false, false, 80, 60, 100, 1));
     check(!CombatPlan.mayReposition(true, true, false, false, 80, 90, 9, 1));

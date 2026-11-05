@@ -60,6 +60,7 @@ public final class Session {
   private int routeUntil, headWebSince, cageIndex, cageAt;
   private Vec3d recoveryLastPos;
   private int recoveryStuckTicks;
+  private int webEscapeSince = -1;
 
   private String phase = "Preparando";
   private Vec3d recoveryPoint;
@@ -228,6 +229,7 @@ public final class Session {
       finish = "Voce saiu da arena.";
       return;
     }
+    if (!healing && !escaping && !landingForGap && escapeOwnWeb(t)) return;
     // A consumed apple decreases the real inventory count; interruption does not.
     if (healing && !bot.isUsingItem()) {
       if (apples() < appleCountBefore) gapsLeft--;
@@ -276,7 +278,8 @@ public final class Session {
       } else if (t >= landingUntil) endRecovery(t, 40);
     }
     if ((healing || escaping || landingForGap) && recoveryPoint != null) {
-      if (recoveryLastPos != null && bot.getPos().squaredDistanceTo(recoveryLastPos) < 0.012)
+      if (recoveryLastPos != null
+          && bot.getPos().subtract(recoveryLastPos).horizontalLengthSquared() < 0.0001)
         recoveryStuckTicks++;
       else recoveryStuckTicks = 0;
       recoveryLastPos = bot.getPos();
@@ -304,6 +307,7 @@ public final class Session {
       escaping = false;
       startApple(t);
     }
+    settleGroundGap();
     if (t % d.reaction == 0) {
       Vec3d point =
           owner
@@ -387,7 +391,10 @@ public final class Session {
     bot.setHeadYaw(bot.getYaw());
     bot.setBodyYaw(bot.getYaw());
     bot.setSprinting(!healing);
-    bot.forwardSpeed = healing || escaping || o.tank ? 1 : dist > 2.3 ? 1 : 0.15f;
+    bot.forwardSpeed =
+        healing && bot.isOnGround()
+            ? 0.2f
+            : healing || escaping || o.tank ? 1 : dist > 2.3 ? 1 : 0.15f;
     if (o.strafe && !healing && !escaping && !elevatedWeb && strafeActive) bot.sidewaysSpeed = side;
     if (o.wtap && !escaping && owner.getY() > bot.getY() + 1 && dist < 12 && t % 18 < 3)
       bot.forwardSpeed = 0;
@@ -475,6 +482,19 @@ public final class Session {
     return n;
   }
 
+  private void settleGroundGap() {
+    if (!healing || !bot.isOnGround() || groundRecovery) return;
+    groundRecovery = true;
+    airGap = false;
+    escaping = false;
+    double radius = Math.max(1, o.size / 2.0 - 2.0) * 0.7;
+    recoveryPoint =
+        new Vec3d(
+            o.x + (bot.getX() >= o.x ? -radius : radius),
+            o.y + 1.2,
+            o.z + (bot.getZ() >= o.z ? -radius : radius));
+  }
+
   private void startApple(int t) {
     int slot = find(Items.ENCHANTED_GOLDEN_APPLE, true);
     if (slot < 0) slot = find(Items.GOLDEN_APPLE, true);
@@ -487,6 +507,7 @@ public final class Session {
     bot.getMainHandStack().use(bot.getServerWorld(), bot, Hand.MAIN_HAND);
     healing = bot.isUsingItem();
     healingStartedAt = t;
+    settleGroundGap();
     if (!healing) endRecovery(t, 30);
   }
 
@@ -495,7 +516,7 @@ public final class Session {
     healing = false;
     escaping = false;
     landingForGap = false;
-    if (groundRecovery) tankGroundAt = t + 160 + random.nextInt(161);
+    if (groundRecovery && o.tank) tankGroundAt = t + 160 + random.nextInt(161);
     groundRecovery = false;
     gapsLeft = 0;
     gapWait = t + pause;
@@ -579,7 +600,7 @@ public final class Session {
     }
     phase = "Repondo 3 totens";
     bot.setSneaking(true);
-    if (refillAt < 0) refillAt = t + o.difficulty.reaction + 4;
+    if (refillAt < 0) refillAt = t + o.difficulty.refillDelayTicks();
     if (t < refillAt) return true;
     int moved = 0;
     for (int target = 6; target <= 8; target++) {
@@ -680,16 +701,59 @@ public final class Session {
   }
 
   private BlockPos webAtOwner() {
+    return webAt(owner);
+  }
+
+  private boolean escapeOwnWeb(int t) {
+    BlockPos web = webAt(bot);
+    if (web == null) {
+      webEscapeSince = -1;
+      return false;
+    }
+    if (webEscapeSince < 0) webEscapeSince = t;
+    if (!o.webRocket || t - webEscapeSince >= 20 || find(Items.FIREWORK_ROCKET, true) < 0) {
+      var obstacle =
+          bot.getServerWorld()
+              .raycast(
+                  new RaycastContext(
+                      bot.getEyePos(),
+                      Vec3d.ofCenter(web),
+                      RaycastContext.ShapeType.OUTLINE,
+                      RaycastContext.FluidHandling.NONE,
+                      bot));
+      if (obstacle.getType() == HitResult.Type.BLOCK
+          && bot.getServerWorld()
+              .getBlockState(obstacle.getBlockPos())
+              .isOf(net.minecraft.block.Blocks.COBWEB)) web = obstacle.getBlockPos();
+      breakTrainingBlock(web, "Saindo da teia");
+      return true;
+    }
+    Vec3d delta = owner.getPos().subtract(bot.getPos());
+    if (delta.horizontalLengthSquared() < 0.25)
+      delta = new Vec3d(o.x - bot.getX() + 1, 0, o.z - bot.getZ() + 1);
+    Vec3d dir = new Vec3d(delta.x, 0, delta.z).normalize();
+    look(clamp(bot.getPos().add(dir.multiply(3)).add(0, 0.6, 0)), o.difficulty.aimSpeed);
+    bot.forwardSpeed = 1;
+    bot.sidewaysSpeed = 0;
+    if (bot.isOnGround()) bot.jump();
+    else if (!bot.isGliding()) bot.checkGliding();
+    bot.setSneaking(bot.isGliding());
+    if (bot.isGliding()) useRocket(t);
+    phase = "Tentando sair da teia";
+    return true;
+  }
+
+  private BlockPos webAt(net.minecraft.entity.LivingEntity entity) {
     for (BlockPos p :
         BlockPos.iterate(
             BlockPos.ofFloored(
-                owner.getBoundingBox().minX,
-                owner.getBoundingBox().minY,
-                owner.getBoundingBox().minZ),
+                entity.getBoundingBox().minX,
+                entity.getBoundingBox().minY,
+                entity.getBoundingBox().minZ),
             BlockPos.ofFloored(
-                owner.getBoundingBox().maxX,
-                owner.getBoundingBox().maxY,
-                owner.getBoundingBox().maxZ)))
+                entity.getBoundingBox().maxX,
+                entity.getBoundingBox().maxY,
+                entity.getBoundingBox().maxZ)))
       if (bot.getServerWorld().getBlockState(p).isOf(net.minecraft.block.Blocks.COBWEB))
         return p.toImmutable();
     return null;
@@ -999,25 +1063,26 @@ public final class Session {
     return false;
   }
 
+  public Text statusText() {
+    var text =
+        Text.empty()
+            .append(Text.literal("◆ DuckBox").formatted(Formatting.GOLD, Formatting.BOLD))
+            .append(Text.literal("  » ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal(o.difficulty.toString()).formatted(Formatting.AQUA))
+            .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal(o.rules.toString()).formatted(Formatting.YELLOW))
+            .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal("◇ Totens " + countTotems()).formatted(Formatting.GREEN))
+            .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal("↻ Refill " + refillCount).formatted(Formatting.LIGHT_PURPLE));
+    if (!phase.equals("Combate") && !phase.isBlank())
+      text.append(Text.literal("  • " + phase).formatted(Formatting.GRAY));
+    return text;
+  }
+
   public void status() {
-    if (clock % 10 != 0) return;
-    owner.sendMessage(
-        Text.literal(
-            "DuckBox | "
-                + o.difficulty
-                + " | "
-                + o.rules
-                + " | "
-                + phase
-                + " | Bot "
-                + Math.round(bot.getHealth())
-                + "/"
-                + Math.round(bot.getMaxHealth())
-                + " | Totems "
-                + countTotems()
-                + " | Refill "
-                + refillCount),
-        true);
+    if (countingDown() ? countdownTicks % 10 != 0 : clock % 10 != 0) return;
+    owner.sendMessage(statusText(), true);
   }
 
   public int countTotems() {

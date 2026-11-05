@@ -91,12 +91,11 @@ public final class DuckBox implements ModInitializer {
           if (handler.player instanceof TrainingBot) return;
           restore(handler.player);
           syncCosmetics();
-          if (s.getSaveProperties().getLevelName().equals("DuckBoxTreino")
-              && !options.built
-              && !Arena.building()) {
-            options.x = 0;
-            options.y = 64;
-            options.z = 0;
+          Arena.updateRulesLabel(handler.player.getServerWorld(), options);
+          if (options.autoBuildOnJoin && !options.built && !Arena.building()) {
+            options.x = Options.ARENA_X;
+            options.y = Options.ARENA_Y;
+            options.z = Options.ARENA_Z;
             options.dimension = "minecraft:overworld";
             options.initialized = true;
             Arena.create(handler.player, options);
@@ -178,7 +177,7 @@ public final class DuckBox implements ModInitializer {
                                     .suggests(
                                         (c, b) ->
                                             CommandSource.suggestMatching(
-                                                List.of("NORMAL_SPAM", "INSTA_KILL"), b))
+                                                List.of("SPAM", "INSTA_KILL"), b))
                                     .executes(
                                         c ->
                                             run(
@@ -186,7 +185,7 @@ public final class DuckBox implements ModInitializer {
                                                 p -> {
                                                   requireStopped();
                                                   options.rules =
-                                                      Options.Rules.valueOf(
+                                                      Options.Rules.parse(
                                                           StringArgumentType.getString(c, "tipo")
                                                               .toUpperCase(Locale.ROOT));
                                                   Arena.updateRulesLabel(
@@ -259,20 +258,24 @@ public final class DuckBox implements ModInitializer {
                                           + " DUEL/TANK | kit salvar/padrao | atributo"
                                           + " minecraft:max_health 100 HEAD");
                                 }))
+                    .then(literal("usar").executes(c -> run(c.getSource(), DuckBox::useCustomMap)))
                     .then(
                         literal("criar")
                             .executes(c -> run(c.getSource(), p -> Arena.create(p, options)))
                             .then(
-                                argument("tamanho", IntegerArgumentType.integer(9, 41))
+                                argument("tamanho", IntegerArgumentType.integer(9, 17))
                                     .executes(
                                         c ->
                                             run(
                                                 c.getSource(),
                                                 p -> {
                                                   requireStopped();
-                                                  options.size =
-                                                      IntegerArgumentType.getInteger(c, "tamanho")
-                                                          | 1;
+                                                  int size =
+                                                      IntegerArgumentType.getInteger(c, "tamanho");
+                                                  if (size != 9 && size != 13 && size != 17)
+                                                    throw new IllegalArgumentException(
+                                                        "Tamanhos: 9, 13 ou 17.");
+                                                  options.size = size;
                                                   Arena.create(p, options);
                                                 }))))
                     .then(literal("iniciar").executes(c -> run(c.getSource(), DuckBox::start)))
@@ -350,6 +353,8 @@ public final class DuckBox implements ModInitializer {
                                                 }))))
                     .then(
                         literal("kit")
+                            .then(
+                                literal("abrir").executes(c -> run(c.getSource(), KitEditor::open)))
                             .then(
                                 literal("salvar")
                                     .executes(
@@ -553,16 +558,12 @@ public final class DuckBox implements ModInitializer {
       }
       case "tamanho" -> {
         requireStopped();
-        options.size =
-            options.size < 13
-                ? 13
-                : options.size < 17
-                    ? 17
-                    : options.size < 21
-                        ? 21
-                        : options.size < 25
-                            ? 25
-                            : options.size < 33 ? 33 : options.size < 41 ? 41 : 9;
+        options.size = Options.nextSize(options.size);
+        if (options.customMap) {
+          save();
+          say(p, "Limites da arena: " + options.size + "x" + options.size);
+          break;
+        }
         Arena.create(p, options);
       }
       default -> {
@@ -585,10 +586,31 @@ public final class DuckBox implements ModInitializer {
     return server.getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(options.dimension)));
   }
 
+  public static void useCustomMap(ServerPlayerEntity p) {
+    requireStopped();
+    options.x = Options.ARENA_X;
+    options.y = Options.ARENA_Y;
+    options.z = Options.ARENA_Z;
+    options.dimension = p.getServerWorld().getRegistryKey().getValue().toString();
+    options.initialized = true;
+    options.built = true;
+    options.customMap = true;
+    options.autoBuildOnJoin = false;
+    Arena.controls.clear();
+    disk.addProperty("arenaPositionRevision", 1);
+    save();
+    say(
+        p,
+        "Mapa vinculado: centro do piso -5 78 111. Construcoes preservadas; use comandos ate"
+            + " vincular seus botoes.");
+  }
+
   public static void start(ServerPlayerEntity p) {
     KitEditor.closeFor(p);
     requireStopped();
-    if (!options.built) throw new IllegalArgumentException("Use /box criar primeiro.");
+    if (!options.built)
+      throw new IllegalArgumentException(
+          "Use /box criar para gerar ou /box usar para vincular seu mapa.");
     if (p.getServerWorld() != world())
       throw new IllegalArgumentException("Entre na dimensao da arena.");
     if (p.isSpectator()) throw new IllegalArgumentException("Saia do modo espectador.");
@@ -678,7 +700,16 @@ public final class DuckBox implements ModInitializer {
       }
       if (options.rules == null) options.rules = Options.Rules.NORMAL_SPAM;
       if (options.spin == null) options.spin = Options.SpinLevel.MEDIO;
-      options.size = MathHelper.clamp(options.size, 9, 41) | 1;
+      options.size = Options.allowedSize(options.size);
+      if (!disk.has("arenaPositionRevision")) {
+        if (options.x != Options.ARENA_X
+            || options.y != Options.ARENA_Y
+            || options.z != Options.ARENA_Z) options.built = false;
+        options.x = Options.ARENA_X;
+        options.y = Options.ARENA_Y;
+        options.z = Options.ARENA_Z;
+        disk.addProperty("arenaPositionRevision", 1);
+      }
     } catch (Exception e) {
       throw new IllegalStateException(
           "Nao foi possivel ler duckbox-training.json; arquivo preservado.", e);
@@ -708,7 +739,11 @@ public final class DuckBox implements ModInitializer {
         && ServerPlayNetworking.canSend(session.owner, TrainingPayload.ID))
       ServerPlayNetworking.send(
           session.owner,
-          new TrainingPayload(session.owner.getUuid(), session.bot.getUuid(), options.webRocket));
+          new TrainingPayload(
+              session.owner.getUuid(),
+              session.bot.getUuid(),
+              options.webRocket,
+              options.rules == Options.Rules.INSTA_KILL));
   }
 
   public static void save() {
@@ -815,13 +850,15 @@ public final class DuckBox implements ModInitializer {
       rockets.put(entity.getUuid(), entity.getWorld().getTime() + 3);
   }
 
+  public static final net.minecraft.util.math.Vec3d WEB_SLOWDOWN =
+      new net.minecraft.util.math.Vec3d(0.45, 0.35, 0.45);
+
   public static boolean ignoreWeb(Entity entity) {
     if (entity.getWorld().isClient()) return ClientTrainingState.ignore(entity);
     return session != null
         && options.webRocket
         && (entity == session.bot || entity == session.owner)
         && entity instanceof LivingEntity living
-        && living.isGliding()
-        && rockets.getOrDefault(entity.getUuid(), -1L) >= entity.getWorld().getTime();
+        && living.isGliding();
   }
 }

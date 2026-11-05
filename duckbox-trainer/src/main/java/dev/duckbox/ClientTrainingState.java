@@ -26,15 +26,25 @@ public final class ClientTrainingState {
         && (p.owner().equals(e.getUuid()) || p.bot().equals(e.getUuid()));
   }
 
+  public static boolean localNoHitDelay(UUID player) {
+    TrainingPayload p = state;
+    return p != null
+        && !p.bot().equals(new UUID(0, 0))
+        && p.owner().equals(player)
+        && p.instaKill();
+  }
+
+  // Optional MouseTweaks bridge: preserve its client settings outside this trainer.
+  public static boolean allowExternalMouseHitDelay() {
+    TrainingPayload p = state;
+    return p == null || p.bot().equals(new UUID(0, 0)) || p.instaKill();
+  }
+
   public static void boost(LivingEntity e) {
     if (participant(e)) rockets.put(e.getUuid(), e.getWorld().getTime() + 3);
   }
 
   public static boolean ignore(Entity e) {
-    return participant(e)
-        && state.enabled()
-        && e instanceof LivingEntity l
-        && l.isGliding()
-        && rockets.getOrDefault(e.getUuid(), -1L) >= e.getWorld().getTime();
+    return participant(e) && state.enabled() && e instanceof LivingEntity l && l.isGliding();
   }
 }

@@ -892,6 +892,155 @@ public final class CombatServerTest {
     System.out.println(
         "PASS FULL RETOTEM/REFILL:12 real vanilla pops, proactive3-totem refill while protected,"
             + " three refills, stock exhausted without duplication");
+    var phaseField = Session.class.getDeclaredField("phase");
+    phaseField.setAccessible(true);
+    options.rules = Options.Rules.NORMAL_SPAM;
+    var hudSession = new Session(owner, bot, options);
+    phaseField.set(hudSession, "Combate");
+    String actionBar = hudSession.statusText().getString();
+    if (!actionBar.contains("Spam")
+        || !actionBar.contains("◆")
+        || !actionBar.contains("↻")
+        || actionBar.contains("NORMAL_SPAM")
+        || actionBar.contains("Combate")
+        || actionBar.contains(" | Bot "))
+      throw new AssertionError("Actionbar labels/icons/remove combat and HP: " + actionBar);
+    if (Options.Rules.parse("SPAM") != Options.Rules.NORMAL_SPAM
+        || Options.Rules.parse("NORMAL_SPAM") != Options.Rules.NORMAL_SPAM)
+      throw new AssertionError("Spam alias and old profiles must remain compatible");
+    for (var level : Options.Difficulty.values()) {
+      options.difficulty = level;
+      Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+      for (int i = 6; i <= 8; i++)
+        bot.getInventory().setStack(i, net.minecraft.item.ItemStack.EMPTY);
+      bot.getInventory()
+          .setStack(
+              40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+      bot.setHealth(1);
+      var timedRefill = new Session(owner, bot, options);
+      int before = timedRefill.countTotems();
+      doRetotem.invoke(timedRefill, 0);
+      if (timedRefill.refillCount() != 0)
+        throw new AssertionError("Refill cannot complete instantly");
+      doRetotem.invoke(timedRefill, level.refillDelayTicks() - 1);
+      if (timedRefill.refillCount() != 0)
+        throw new AssertionError("Refill completed before difficulty delay");
+      doRetotem.invoke(timedRefill, level.refillDelayTicks());
+      if (timedRefill.refillCount() != 1 || timedRefill.countTotems() != before)
+        throw new AssertionError("Timed refill failed for " + level);
+      timedRefill.closed = true;
+    }
+    options.difficulty = Options.Difficulty.HIGH;
+    options.tank = false;
+    options.retotem = false;
+    options.gap = true;
+    options.giro = true;
+    Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+    owner.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, 4.9, 64, 4.9, Set.of(), 0, -85, false);
+    bot.onTeleportationDone();
+    bot.setOnGround(true);
+    bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    bot.stopGliding();
+    bot.setHealth(30);
+    bot.clearStatusEffects();
+    var cornerGap = new Session(owner, bot, options);
+    DuckBox.session = cornerGap;
+    var escapingField = Session.class.getDeclaredField("escaping");
+    escapingField.setAccessible(true);
+    escapingField.setBoolean(cornerGap, true);
+    var escapeEndField = Session.class.getDeclaredField("escapeUntil");
+    escapeEndField.setAccessible(true);
+    escapeEndField.setInt(cornerGap, 0);
+    var gapsField = Session.class.getDeclaredField("gapsLeft");
+    gapsField.setAccessible(true);
+    gapsField.setInt(cornerGap, 1);
+    var pointField = Session.class.getDeclaredField("recoveryPoint");
+    pointField.setAccessible(true);
+    pointField.set(cornerGap, new net.minecraft.util.math.Vec3d(4.9, 69.4, 4.9));
+    boolean ateInCorner = false;
+    for (int n = 0; n < 60; n++) {
+      ticks.setInt(server, 14000 + n);
+      bot.tick();
+      if (bot.getY() > 64.12)
+        throw new AssertionError("Ground gap must not loop jumps in corner: " + bot.getPos());
+      if (n > 6 && bot.isUsingItem() && bot.getPitch() < -20)
+        throw new AssertionError("Ground gap must stop staring at ceiling");
+      if (bot.getInventory().getStack(2).getCount() == 31) {
+        ateInCorner = true;
+        break;
+      }
+    }
+    if (!ateInCorner || bot.getX() >= 4.9 || bot.getZ() >= 4.9)
+      throw new AssertionError("Corner recovery must eat and walk inward: " + bot.getPos());
+    cornerGap.closed = true;
+    DuckBox.session = null;
+    options.gap = false;
+    System.out.println(
+        "PASS UI/REFILL/CORNER: Spam alias, colored icon actionbar without life/combat,"
+            + " delays8/5/3/2 ticks, grounded corner apple without repeated jumping/ceiling stare");
+    Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+    bot.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
+    bot.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    bot.setOnGround(true);
+    owner.teleport(world, 4.5, 64, 4.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    world.setBlockState(new BlockPos(0, 64, 0), Blocks.COBWEB.getDefaultState(), 3);
+    world.setBlockState(new BlockPos(0, 65, 0), Blocks.COBWEB.getDefaultState(), 3);
+    options.gap = false;
+    options.retotem = false;
+    options.giro = false;
+    options.webRocket = true;
+    DuckBox.session = new Session(owner, bot, options);
+    for (int n = 0;
+        n < 220
+            && (world.getBlockState(new BlockPos(0, 64, 0)).isOf(Blocks.COBWEB)
+                || world.getBlockState(new BlockPos(0, 65, 0)).isOf(Blocks.COBWEB));
+        n++) {
+      ticks.setInt(server, 15000 + n);
+      bot.tick();
+    }
+    if (world.getBlockState(new BlockPos(0, 64, 0)).isOf(Blocks.COBWEB)
+        || world.getBlockState(new BlockPos(0, 65, 0)).isOf(Blocks.COBWEB))
+      throw new AssertionError(
+          "Bot must actively escape/mine its own web without usable elytra: "
+              + bot.getPos()
+              + " feet="
+              + world.getBlockState(new BlockPos(0, 64, 0))
+              + " head="
+              + world.getBlockState(new BlockPos(0, 65, 0)));
+    DuckBox.session.closed = true;
+    // Native move demonstration: packet deltas have already been slowed client-side.
+    var slowField = net.minecraft.entity.Entity.class.getDeclaredField("field_17046");
+    slowField.setAccessible(true);
+    owner.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    slowField.set(owner, DuckBox.WEB_SLOWDOWN);
+    owner.move(
+        net.minecraft.entity.MovementType.PLAYER, new net.minecraft.util.math.Vec3d(0.2, 0, 0));
+    double duplicated = owner.getX() - 0.5;
+    owner.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    slowField.set(owner, net.minecraft.util.math.Vec3d.ZERO);
+    owner.move(
+        net.minecraft.entity.MovementType.PLAYER, new net.minecraft.util.math.Vec3d(0.2, 0, 0));
+    if (Math.abs(duplicated - 0.09) > 0.001 || Math.abs(owner.getX() - 0.7) > 0.001)
+      throw new AssertionError(
+          "Packet web slowdown must be consumed once: " + duplicated + "/" + owner.getPos());
+    world.setBlockState(new BlockPos(1, 64, 0), Blocks.STONE.getDefaultState(), 3);
+    world.setBlockState(new BlockPos(1, 65, 0), Blocks.STONE.getDefaultState(), 3);
+    owner.move(
+        net.minecraft.entity.MovementType.PLAYER, new net.minecraft.util.math.Vec3d(1, 0, 0));
+    if (owner.getX() > 0.701)
+      throw new AssertionError("Normal wall collision must remain enforced");
+    world.setBlockState(new BlockPos(1, 64, 0), Blocks.AIR.getDefaultState(), 3);
+    world.setBlockState(new BlockPos(1, 65, 0), Blocks.AIR.getDefaultState(), 3);
+    DuckBox.session = null;
+    System.out.println(
+        "PASS WEB RECOVERY/PACKET PHYSICS: bot mines its own webs; native packet0.2 moves0.09 when"
+            + " doubled vs0.2 once; walls still collide");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);
@@ -966,6 +1115,32 @@ public final class CombatServerTest {
             + " restored controls; "
             + batches
             + " bounded batches");
+    DuckBox.options = new Options();
+    BlockPos customFloor = new BlockPos(-5, 78, 111), customSign = new BlockPos(-32, 79, 120);
+    world.setBlockState(customFloor, Blocks.DIAMOND_BLOCK.getDefaultState(), 3);
+    world.setBlockState(customSign, Blocks.GOLD_BLOCK.getDefaultState(), 3);
+    var beforeBinding = Kits.capture(owner);
+    DuckBox.useCustomMap(owner);
+    for (int size : new int[] {17, 9, 13}) {
+      DuckBox.control(owner, "tamanho");
+      if (DuckBox.options.size != size || Arena.building())
+        throw new AssertionError("Custom map size must change bounds without building");
+    }
+    Arena.updateRulesLabel(world, DuckBox.options);
+    if (!world.getBlockState(customFloor).isOf(Blocks.DIAMOND_BLOCK)
+        || !world.getBlockState(customSign).isOf(Blocks.GOLD_BLOCK)
+        || DuckBox.options.x != -5
+        || DuckBox.options.y != 78
+        || DuckBox.options.z != 111
+        || !DuckBox.options.customMap)
+      throw new AssertionError("Custom binding must preserve build and fixed floor coordinates");
+    for (int i = 0; i < 41; i++)
+      if (!net.minecraft.item.ItemStack.areEqual(
+          beforeBinding.get(i), owner.getInventory().getStack(i)))
+        throw new AssertionError("Custom map binding changed inventory");
+    System.out.println(
+        "PASS CUSTOM MAP: floor -5/78/111, only9/13/17 bounds, no regeneration, custom"
+            + " blocks/sign/inventory preserved");
     server.getPlayerManager().remove(bot);
     server.getPlayerManager().remove(owner);
     server.shutdown();

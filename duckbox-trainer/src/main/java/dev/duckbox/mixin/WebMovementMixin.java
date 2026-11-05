@@ -12,7 +12,7 @@ public abstract class WebMovementMixin {
   @ModifyVariable(method = "method_5844", at = @At("HEAD"), argsOnly = true, remap = false)
   private Vec3d duckbox$web(Vec3d multiplier, BlockState state, Vec3d original) {
     return state.isOf(Blocks.COBWEB) && DuckBox.ignoreWeb((Entity) (Object) this)
-        ? new Vec3d(0.45, 0.35, 0.45)
+        ? DuckBox.WEB_SLOWDOWN
         : multiplier;
   }
 }

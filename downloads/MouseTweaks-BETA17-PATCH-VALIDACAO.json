@@ -1,0 +1,21 @@
+{
+  "input_sha256": "e2934e7fbfc41e6561d2ffc6346ab8e0381957d4fec7613ad6e441e04645117c",
+  "output_sha256": "fc9eda03b89e69ca292496b9d3044722f9f30f959edd7708b8b9e8b5b849cd84",
+  "removed": [
+    "internal/duckunified-combat.mixins.json",
+    "com/duckunified/combat/CombatRules.class",
+    "com/duckunified/combat/CombatScreen.class",
+    "com/duckunified/combat/CombatClient.class",
+    "com/duckunified/combat/mixin/AttackStrengthMixin.class",
+    "com/duckunified/combat/mixin/DamageWindowMixin.class"
+  ],
+  "changed": [
+    "fabric.mod.json",
+    "com/duckunified/mixin/LocalAttackDelayMixin.class"
+  ],
+  "added": [
+    "com/duckunified/duckbox/HitDelayScope.class",
+    "DUCKBOX-PATCH-LEIA-ME.txt"
+  ],
+  "preserved_identical": 113
+}

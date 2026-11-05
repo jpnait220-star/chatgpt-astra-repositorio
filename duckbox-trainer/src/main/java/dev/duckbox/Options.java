@@ -9,6 +9,15 @@ public final class Options {
     public final int reaction, aimSpeed, cps, swapDelay;
     public final double rockets, strafe;
 
+    public int refillDelayTicks() {
+      return switch (this) {
+        case LOW -> 8;
+        case MEDIUM -> 5;
+        case HIGH -> 3;
+        case EXPERT -> 2;
+      };
+    }
+
     Difficulty(int r, int a, int c, int s, double k, double st) {
       reaction = r;
       aimSpeed = a;
@@ -21,7 +30,18 @@ public final class Options {
 
   public enum Rules {
     NORMAL_SPAM,
-    INSTA_KILL
+    INSTA_KILL;
+
+    @Override
+    public String toString() {
+      return this == NORMAL_SPAM ? "Spam" : "Insta Kill";
+    }
+
+    public static Rules parse(String name) {
+      return name.equalsIgnoreCase("SPAM")
+          ? NORMAL_SPAM
+          : valueOf(name.toUpperCase(java.util.Locale.ROOT));
+    }
   }
 
   public enum SpinLevel {
@@ -53,7 +73,18 @@ public final class Options {
       tank = false;
   public int revision = 2, size = 13, webCooldown = 200;
   public boolean initialized = false, built = false;
-  public int x, y, z;
+  public static final int ARENA_X = -5, ARENA_Y = 78, ARENA_Z = 111;
+  public int x = ARENA_X, y = ARENA_Y, z = ARENA_Z;
+  public boolean autoBuildOnJoin = false, customMap = false;
+
+  public static int allowedSize(int value) {
+    return value <= 9 ? 9 : value <= 13 ? 13 : 17;
+  }
+
+  public static int nextSize(int value) {
+    return value < 13 ? 13 : value < 17 ? 17 : 9;
+  }
+
   public String dimension = "minecraft:overworld";
 
   public boolean toggle(String key) {

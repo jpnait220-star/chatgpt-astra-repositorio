@@ -53,11 +53,13 @@ public final class Arena {
       throw new IllegalArgumentException("Volte para a dimensao da arena.");
     if (!o.initialized) {
       o.initialized = true;
-      o.x = player.getBlockX();
-      o.y = MathHelper.clamp(player.getBlockY() - 1, 10, 240);
-      o.z = player.getBlockZ() + 32;
+      o.x = Options.ARENA_X;
+      o.y = Options.ARENA_Y;
+      o.z = Options.ARENA_Z;
       o.dimension = player.getServerWorld().getRegistryKey().getValue().toString();
     }
+    o.customMap = false;
+    o.size = Options.allowedSize(o.size);
     buildingWorld = player.getServerWorld();
     options = o;
     o.built = false;
@@ -65,8 +67,8 @@ public final class Arena {
     controls.clear();
     int h = o.size / 2;
     // Only the dedicated arena volume is edited. The lobby stays outside the largest box.
-    for (int x = -20; x <= 20; x++)
-      for (int z = -20; z <= 20; z++)
+    for (int x = -8; x <= 8; x++)
+      for (int z = -8; z <= 8; z++)
         for (int y = 0; y <= 10; y++) {
           boolean inside = Math.abs(x) <= h && Math.abs(z) <= h;
           BlockState block = Blocks.AIR.getDefaultState();
@@ -236,7 +238,7 @@ public final class Arena {
         w,
         new BlockPos(o.x - 27, o.y + 1, o.z + 9),
         "REGRAS",
-        o.rules.name(),
+        o.rules.toString(),
         "Clique no botao",
         "Kit por modo");
   }
@@ -252,6 +254,7 @@ public final class Arena {
   }
 
   private static void sign(ServerWorld w, BlockPos pos, String... lines) {
+    if (DuckBox.options != null && DuckBox.options.customMap) return;
     w.setBlockState(pos, Blocks.OAK_SIGN.getDefaultState(), 3);
     if (w.getBlockEntity(pos) instanceof SignBlockEntity sign) {
       var text = sign.getFrontText();
@@ -268,6 +271,7 @@ public final class Arena {
 
   public static boolean isKitChest(BlockPos pos, ServerWorld w, Options o) {
     return o.built
+        && !o.customMap
         && w.getRegistryKey().getValue().toString().equals(o.dimension)
         && pos.equals(kitChest(o));
   }
@@ -287,7 +291,8 @@ public final class Arena {
   }
 
   public static String control(BlockPos p, ServerWorld w, Options o) {
-    if (!o.built || !w.getRegistryKey().getValue().toString().equals(o.dimension)) return null;
+    if (o.customMap || !o.built || !w.getRegistryKey().getValue().toString().equals(o.dimension))
+      return null;
     for (int i = 0; i < KEYS.length; i++)
       if (p.equals(new BlockPos(o.x - 31 + i % 3 * 4, o.y + 1, o.z - 8 + i / 3 * 4))) {
         controls.put(p, KEYS[i]);
