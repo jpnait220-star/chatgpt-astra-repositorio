@@ -571,6 +571,56 @@ public final class CombatServerTest {
     System.out.println(
         "PASS REAL COUNTDOWN/REACH:100ticks, opposite corners, hold/protection/buffs, short reach"
             + " without Wtap and3block cap with Wtap");
+    DuckBox.session = new Session(owner, bot, options);
+    owner.teleport(world, 0.5, 64, 3.5, Set.of(), 180, 0, false);
+    owner.onTeleportationDone();
+    bot.teleport(world, 0.5, 64, 0.5, Set.of(), 0, 0, false);
+    bot.onTeleportationDone();
+    bot.setPose(net.minecraft.entity.EntityPose.STANDING);
+    bot.setOnGround(true);
+    var woolBreak = Session.class.getDeclaredMethod("breakBlockingWool");
+    woolBreak.setAccessible(true);
+    BlockPos woolPos = new BlockPos(0, 65, 2);
+    world.setBlockState(woolPos, Blocks.BLACK_WOOL.getDefaultState(), 3);
+    for (int n = 0; n < 200 && !world.getBlockState(woolPos).isAir(); n++) {
+      ticks.setInt(server, 8000 + n);
+      bot.interactionManager.update();
+      woolBreak.invoke(DuckBox.session);
+    }
+    if (!world.getBlockState(woolPos).isAir()) throw new AssertionError("Native wool break failed");
+    world.setBlockState(woolPos, Blocks.STONE.getDefaultState(), 3);
+    if ((boolean) woolBreak.invoke(DuckBox.session)
+        || !world.getBlockState(woolPos).isOf(Blocks.STONE))
+      throw new AssertionError("Bot must not break other materials");
+    world.setBlockState(woolPos, Blocks.AIR.getDefaultState(), 3);
+    int placedColors = 0;
+    for (var block : net.minecraft.registry.Registries.BLOCK) {
+      if (block.getDefaultState().isIn(net.minecraft.registry.tag.BlockTags.WOOL)) {
+        world.setBlockState(
+            new BlockPos(-3 + placedColors % 4, 64, -3 + placedColors / 4),
+            block.getDefaultState(),
+            3);
+        placedColors++;
+      }
+    }
+    if (placedColors != 16) throw new AssertionError("Expected all16 wool colors");
+    world.setBlockState(new BlockPos(2, 64, 2), Blocks.COBWEB.getDefaultState(), 3);
+    BlockPos preserved = new BlockPos(3, 64, 3);
+    world.setBlockState(preserved, Blocks.STONE.getDefaultState(), 3);
+    Arena.clearWebs(world, options);
+    for (int n = 0; n < 16; n++)
+      if (!world.getBlockState(new BlockPos(-3 + n % 4, 64, -3 + n / 4)).isAir())
+        throw new AssertionError("Wool cleanup color" + n);
+    if (!world.getBlockState(new BlockPos(2, 64, 2)).isAir()
+        || !world.getBlockState(preserved).isOf(Blocks.STONE)
+        || !world.getBlockState(new BlockPos(0, 63, 0)).isOf(Blocks.STONE))
+      throw new AssertionError(
+          "Cleanup must remove only wool/web and preserve other materials/floor");
+    DuckBox.session.closed = true;
+    DuckBox.session = null;
+    System.out.println(
+        "PASS WOOL: native black wool destruction, other blocks rejected, all16 colors/web cleaned"
+            + " with floor/stone preserved");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);

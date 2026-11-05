@@ -369,10 +369,11 @@ public final class Session {
                 : owner.getEyePos();
         phase = webRoute == WebRoute.TOWER ? "Aproximando para torre" : "Voando ate o alvo na teia";
       }
-      if (breakTargetWeb()) return;
+      if (breakTargetWeb() || breakBlockingWool()) return;
       if (headWeb() != null)
         aim = owner.getPos().add(0, Math.min(0.18, owner.getHeight() * 0.35), 0);
     }
+    if (o.tank && !healing && !escaping && !landingForGap && breakBlockingWool()) return;
     look(aim, d.aimSpeed);
     bot.setHeadYaw(bot.getYaw());
     bot.setBodyYaw(bot.getYaw());
@@ -665,9 +666,41 @@ public final class Session {
 
   private boolean breakTargetWeb() {
     BlockPos target = onTowerAtTarget() ? webAtOwner() : null;
+    if (target == null
+        && breakingWeb != null
+        && bot.getServerWorld()
+            .getBlockState(breakingWeb)
+            .isIn(net.minecraft.registry.tag.BlockTags.WOOL)) return false;
+    return breakTrainingBlock(target, "Quebrando teia do alvo");
+  }
+
+  private boolean breakBlockingWool() {
+    var world = bot.getServerWorld();
+    var ray =
+        world.raycast(
+            new RaycastContext(
+                bot.getEyePos(),
+                owner.getEyePos(),
+                RaycastContext.ShapeType.OUTLINE,
+                RaycastContext.FluidHandling.NONE,
+                bot));
+    BlockPos target = ray.getType() == HitResult.Type.BLOCK ? ray.getBlockPos() : null;
+    if (target == null
+        || !world.getBlockState(target).isIn(net.minecraft.registry.tag.BlockTags.WOOL))
+      target = null;
+    return breakTrainingBlock(target, "Quebrando la no caminho");
+  }
+
+  private boolean breakTrainingBlock(BlockPos target, String label) {
     var world = bot.getServerWorld();
     boolean reachable =
-        target != null && bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(target)) < 20;
+        target != null
+            && insideArena(target)
+            && (bot.getServerWorld().getBlockState(target).isOf(net.minecraft.block.Blocks.COBWEB)
+                || bot.getServerWorld()
+                    .getBlockState(target)
+                    .isIn(net.minecraft.registry.tag.BlockTags.WOOL))
+            && bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(target)) < 20;
     if (reachable) {
       var ray =
           world.raycast(
@@ -713,7 +746,7 @@ public final class Session {
       breakingWeb = null;
       webBreakProgress = 0;
     }
-    phase = "Quebrando teia do alvo";
+    phase = label;
     return true;
   }
 

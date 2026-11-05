@@ -302,7 +302,8 @@ public final class Arena {
       for (int z = -h + 1; z < h; z++)
         for (int y = 1; y < HEIGHT; y++) {
           BlockPos p = new BlockPos(o.x + x, o.y + y, o.z + z);
-          if (w.getBlockState(p).isOf(Blocks.COBWEB))
+          if (w.getBlockState(p).isOf(Blocks.COBWEB)
+              || w.getBlockState(p).isIn(net.minecraft.registry.tag.BlockTags.WOOL))
             w.setBlockState(p, Blocks.AIR.getDefaultState(), 3);
         }
   }
