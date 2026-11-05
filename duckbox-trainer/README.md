@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.12-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.13-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.12 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.13 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   o mod reconstrui o painel para incluir os controles novos e mover o bau.
@@ -78,8 +78,11 @@ a tentativa so vira ataque se a recarga nativa estiver completa. O atributo
 +255 attack_speed da elytra e mantido e determina essa recarga com os demais
 atributos do kit. No Insta Kill permanece o sistema de spam anterior. Dano,
 invulnerabilidade entre golpes, alcance e mira continuam com as regras existentes.
+Ate6 blocos do alvo, o bot ja tenta os15 cliques e balanca a mao sem exigir
+mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
+mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.12, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.13, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -265,7 +268,7 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.12 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.13 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.

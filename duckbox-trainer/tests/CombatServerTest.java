@@ -665,6 +665,44 @@ public final class CombatServerTest {
     System.out.println(
         "PASS COMBAT RULES: both modes15/20 attempts; Normal also respects native cooldown and"
             + " elytra attack speed; Insta Kill unchanged");
+    options.tank = false;
+    options.gap = false;
+    options.giro = false;
+    options.teia = false;
+    options.retotem = false;
+    options.strafe = false;
+    bot.teleport(world, 0.5, 64, 0.5, Set.of(), 180, 0, false);
+    bot.onTeleportationDone();
+    owner.teleport(world, 0.5, 64, 6.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    float clickTargetHealth = owner.getHealth();
+    for (var mode : Options.Rules.values()) {
+      options.rules = mode;
+      var swingSession = new Session(owner, bot, options);
+      DuckBox.session = swingSession;
+      int swings = 0;
+      for (int n = 0; n < 20; n++) {
+        bot.handSwinging = false;
+        swingSession.control();
+        if (bot.handSwinging) swings++;
+      }
+      if (swings != 15 || owner.getHealth() != clickTargetHealth)
+        throw new AssertionError(
+            "At6blocks must swing15 times without remote damage: " + mode + " swings=" + swings);
+      owner.setPosition(0.5, 64, 6.6);
+      for (int n = 0; n < 20; n++) {
+        bot.handSwinging = false;
+        swingSession.control();
+        if (bot.handSwinging) throw new AssertionError("No clicks beyond6blocks");
+      }
+      swingSession.closed = true;
+      owner.setPosition(0.5, 64, 6.5);
+    }
+    DuckBox.session = null;
+    options.rules = Options.Rules.NORMAL_SPAM;
+    System.out.println(
+        "PASS CLICK RANGE: both modes15 native swings at6blocks, no remote damage, no clicks"
+            + " beyond6blocks");
     var chest = Arena.kitChest(options);
     owner.teleport(
         world, chest.getX() + 0.5, chest.getY(), chest.getZ() + 0.5, Set.of(), 0, 0, false);

@@ -429,7 +429,7 @@ public final class Session {
         && placeWeb(BlockPos.ofFloored(owner.getEyePos()), t)) return;
     if (!o.tank && !healing && !escaping && heldUntil <= t) {
       int sword = selectSword();
-      if (sword >= 0 && dist < CombatPlan.meleeIntentRange(attackReach()) && readyToAttack()) {
+      if (sword >= 0 && dist <= 36.0 && readyToAttack()) {
         bot.swingHand(Hand.MAIN_HAND);
         if (canHit()) bot.attack(owner);
       }
