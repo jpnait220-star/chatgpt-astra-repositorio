@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.22-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.23-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.22 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.23 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   as configuracoes e os baus continuam salvos; use /box configurar para os controles.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.22, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.23, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.22 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.23 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.22 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.23 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.22 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.23 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.22 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.23 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.22 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.23 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -460,7 +460,7 @@ com botoes em `/box configurar` e comandos em chat/command block:
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
 
 
-## Alteracoes0.3.22
+## Alteracoes0.3.23
 
 - `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
   mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
@@ -526,3 +526,115 @@ preserva seu kit salvo do modo atualmente selecionado; na ausencia dele, usa
 o kit Spam antigo ou o Semi Insta antigo. As entradas antigas por modo ficam
 no JSON como copia de seguranca. A partir dai, edicoes sao compartilhadas
 pelos dois modos e cada perfil continua independente dos demais.
+
+
+## Atualizacao0.3.23
+
+- `/spawn` retorna ao ponto salvo por `/box setspawn` (fallback **-146 65 93**).
+  Ao terminar ou sair do x1, o inventario original e restaurado e o jogador
+  volta ao ponto salvo, inclusive sua dimensao e direcao.
+  Ao redimensionar/gerar e ser levado ao teto, retorna apos60ticks (3segundos
+  a20TPS). A tarefa e cancelada se entrar em um treino nesse intervalo.
+- Espada de ouro Duck:25 de attack damage, Sharpness58. Os perfis existentes
+  com espada identificada do Trainer sao atualizados sem alterar outros itens.
+- Semi Insta: a janela de protecao inicial entre danos passa de10 para5ticks
+  para os dois participantes. CPS permanece selecionavel e Spam mantem o
+  intervalo vanilla. So afeta dano de um participante contra o outro no treino.
+- Quando o alvo teia os pes, o bot prioriza aproximar e atacar, suspendendo o
+  giro orbital. A tecnica de teiar os proprios pes exige alcance de ataque.
+- Teia nos pes nao interrompe ataques para minerar. O bot so minera sua propria
+  teia se ela estiver na cabeca, com ele em pe, no chao e sem elytra ativada.
+  Voando, tenta foguete/movimento para sair. Preserva a mineracao necessaria
+  de teia no alto ao usar torre para alcancar o alvo.
+- Falas de fim de luta usam `DuckBot »`; o resultado do treino e texto de sistema.
+- Baus possuem sincronizacao dedicada de funcao por dimensao/posicao. A
+  textura e reenviada ao entrar e apos colocar/mudar um bau, sem copiar seu
+  estoque nem gerar/carregar chunks adicionais. Requer atualizar o mod no
+  cliente e no servidor privado, quando houver.
+
+Testes de servidor/codec/Mixin sem janela; renderizacao final precisa ser
+conferida no jogo.
+
+
+## Spawn configuravel, NPC e cabecas
+
+- `/box setspawn`: salva sua posicao, dimensao e direcao como spawn do treino.
+  Vitoria, derrota, `/spawn` e retorno de tamanho apos3segundos usam esse ponto.
+  Antes de configurar, o destino anterior -146/65/93 continua como fallback.
+- `/box spawnbot`: coloca ou reposiciona um unico DuckBot de lobby aqui. Ele
+  fica parado, sem itens, com skin/capa e cosmeticos atuais, olhando para o
+  jogador real mais proximo ate16blocos. Persiste a posicao entre sessoes.
+  E separado do bot de combate e permanece depois da luta.
+- `/box skull <nick>`: consulta o perfil original na Mojang e entrega a cabeca
+  com skin, Vida+60 ao equipar e Protecao60. Consulta assincrona com timeout;
+  depende de conexao com a Mojang e nao inventa UUID de conta original.
+- `/box cps` agora alterna10/13/15/20; `/box cps 20` seleciona diretamente.
+  O limite e20 tentativas por segundo a20TPS, sem alterar o intervalo de dano.
+- Recuperacao de vida tem duracao maxima por tentativa e periodo de combate
+  antes de repetir: evita o ciclo infinito de planar/comer sem voltar a bater.
+  Retotem continua permitido durante esse periodo e Tank continua sendo treino
+  de evasao. O bot tambem recupera a espada se ela acabar fora da hotbar.
+- Ao tomar teia no rosto, cancela comer para reagir. Teia no pe so prende a
+  decisao da IA se o bloco correto existe e realmente intersecta o bot.
+- Mais mensagens de fim de luta; o prefixo DuckBot voltou junto do NPC de lobby.
+
+Reinicie o Minecraft para substituir o JAR. Em servidor privado, atualize os
+clientes e servidor: foram adicionados payloads de baus e do NPC de lobby.
+
+
+## Blocos com as texturas enviadas
+
+`/box blocos` abre um catalogo com19 blocos de painel. Clique para receber o
+bloco. `/box bloco kit_1` entrega diretamente um modelo; o comando sugere
+os nomes disponiveis. Tambem pode usar `/give @s duckbox:painel_kit_1`.
+Os quatro kits sao paineis visuais; seu inventario continua configurado nos
+baus de perfil. Os demais paineis sao decorativos para sua build/command blocks.
+
+Os PNGs originais dos dois ZIPs foram incluidos sem editar pixels:512x512,
+1254x1254 e o painel completo1536x1024. Sao exibidos por renderizacao propria,
+sem colocar essas imagens grandes no atlas dos blocos do Minecraft. O painel
+completo preserva proporcao3:2 dentro de um bloco; para ficar grande e legivel,
+monte3blocos por2blocos com as seis partes start_1...start_6. Nao precisa de
+resource pack separado. A frente segue a direcao em que o bloco foi colocado.
+
+O cofre e o bau de perfil agora tambem sao blocos registrados do DuckBox, com
+um tipo de block entity e renderizador proprios. Baus especiais antigos em
+chunks carregados sao convertidos mantendo itens, perfil, nome e orientacao;
+nao sao alterados baus vanilla sem a identificacao do Trainer. Novos baus
+nao se juntam em bau duplo. O modelo de textura nao depende mais de conseguir
+substituir o renderizador dos baus vanilla.
+
+## Hologramas fixos no bloco
+
+1. `/box holo &eTexto`: prepara o texto. Clique com botao direito no bloco
+   e face desejados para fixar. Aceita RGB/gradientes e `\n` para nova linha.
+2. `/box moveholo`: clique primeiro no bloco do holograma e depois no bloco
+   de destino. Preserva o mesmo texto/cores e continua fixo na nova face.
+3. `/box holo remover`: prepara a remocao; clique no bloco do texto.
+4. `/box holo cancelar`: cancela a operacao pendente.
+
+O texto usa text_display nativo com billboard FIXED: nao acompanha o olhar,
+nao depende de mirar para aparecer, nao fica na frente da camera e nao anima
+a posicao. E salvo no mundo; quebrar o bloco com a mao/ferramenta remove o texto
+anexado. Comandos de edicao aguardam clique por60segundos. Criar outro texto
+na mesma face atualiza o anterior em vez de acumular entidades.
+
+
+### Regra final da resistencia
+
+Somente ResistenciaII ativada no Spam e infinita e reaplicada apos o totem.
+Com ela desligada, ou no Semi Insta, o inicio recebe ResistenciaI por6000ticks
+como a gap encantada, sem manutencao infinita. O totem pode limpar os efeitos
+normalmente e o mod nao os restaura. Comer outra gap pode dar os efeitos
+novamente pelas regras normais do Minecraft. Desligar ResistenciaII durante
+um treino remove a resistencia infinita que a regra mantinha.
+
+### Torre e blocos do kit
+
+A escolha de rota alterna torre e voo quando ha blocos, em vez de sortear
+voo repetidamente. A torre aceita apoio de vidro e abandona uma tentativa
+sem progresso para tentar alcancar o alvo voando. O kit novo inclui 64 las
+pretas; inventarios personalizados existentes sao preservados. Coloque la
+(de qualquer cor) no bau do perfil se o seu kit antigo nao tiver blocos.
+O bot prioriza la, inclusive na reserva, e nao usa os baus/painéis do mapa
+como material de construcao. Continua quebrando apenas la e teia.

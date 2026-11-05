@@ -73,9 +73,57 @@ public final class CosmeticMeshTest {
     }
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
+    NativeModBootstrap.prepare();
+    net.minecraft.client.render.item.model.special.SpecialModelTypes.bootstrap();
+    var modelTypes =
+        net.minecraft.client.render.item.model.special.SpecialModelTypes.class.getDeclaredField(
+            "field_55453");
+    modelTypes.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    var mapper =
+        (net.minecraft.util.dynamic.Codecs.IdMapper<
+                net.minecraft.util.Identifier,
+                com.mojang.serialization.MapCodec<
+                    ? extends
+                        net.minecraft.client.render.item.model.special.SpecialModelRenderer
+                            .Unbaked>>)
+            modelTypes.get(null);
+    mapper.put(
+        net.minecraft.util.Identifier.of("duckbox", "panel"),
+        dev.duckbox.panels.PanelItemRenderer.Unbaked.CODEC);
+    for (String name : dev.duckbox.panels.MapPanels.NAMES) {
+      var input =
+          CosmeticMeshTest.class.getResourceAsStream(
+              "/assets/duckbox/items/painel_" + name + ".json");
+      var json =
+          com.google.gson.JsonParser.parseReader(
+                  new java.io.InputStreamReader(input, java.nio.charset.StandardCharsets.UTF_8))
+              .getAsJsonObject();
+      var unbaked =
+          net.minecraft.client.render.item.model.special.SpecialModelTypes.CODEC
+              .parse(
+                  com.mojang.serialization.JsonOps.INSTANCE,
+                  json.getAsJsonObject("model").getAsJsonObject("model"))
+              .getOrThrow();
+      var renderer = (dev.duckbox.panels.PanelItemRenderer) unbaked.bake(null);
+      var picture = new Recorder();
+      renderer.render(
+          net.minecraft.item.ModelTransformationMode.GUI,
+          new MatrixStack(),
+          layer -> picture,
+          15728880,
+          0,
+          false);
+      float expectedHeight = name.equals("start_sheet") ? 2f / 3 : 1;
+      if (picture.vertices != 4 || Math.abs(picture.maxY - picture.minY - expectedHeight) > .001)
+        throw new AssertionError("Native panel item codec/quad geometry/aspect failed: " + name);
+    }
+    System.out.println(
+        "PASS PANEL ITEM MODELS:19 real native special-model JSON codecs, raw-texture quads, finite"
+            + " UVs and preserved3to2 sheet aspect without GPU");
     var legacyChest = LegacyChestModel.create();
     var chestVertices = new Recorder();
     legacyChest.setLockAndLidPitch(0);

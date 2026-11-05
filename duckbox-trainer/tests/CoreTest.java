@@ -33,6 +33,7 @@ public class CoreTest {
   public static void main(String[] args) throws Exception {
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
+    NativeModBootstrap.prepare();
     for (int i = -1080; i <= 1080; i++) {
       check(Aim.wrap(i) >= -180 && Aim.wrap(i) < 180);
       check(Math.abs(Aim.wrap(Aim.approach(i, 137, 17) - i)) <= 17.001);
@@ -149,7 +150,7 @@ public class CoreTest {
             if (a == EntityAttributes.ATTACK_SPEED) totals[2] += m.value();
           });
     }
-    check(totals[0] == 115 && totals[1] == 27.5 && totals[2] == 255);
+    check(totals[0] == 115 && totals[1] == 26.5 && totals[2] == 255);
     check(kit.get(0).isOf(Items.GOLDEN_SWORD));
     check(
         kit.get(0).contains(DataComponentTypes.UNBREAKABLE)
@@ -167,14 +168,14 @@ public class CoreTest {
             (a, m) -> {
               if (a == EntityAttributes.ATTACK_DAMAGE) normalDamage[0] += m.value();
             });
-    check(normalDamage[0] == 20);
+    check(normalDamage[0] == 25);
     check(Options.SpinLevel.EXTREMO.interval < Options.SpinLevel.MEDIO.interval);
     var ench = registries.getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
     check(
         kit.get(0)
                 .getEnchantments()
                 .getLevel(ench.getOrThrow(net.minecraft.enchantment.Enchantments.SHARPNESS))
-            == 54);
+            == 58);
     check(
         kit.get(39)
                 .getEnchantments()
@@ -199,7 +200,7 @@ public class CoreTest {
             && Options.allowedCps(13)
             && Options.allowedCps(15)
             && !Options.allowedCps(11));
-    check(Options.nextCps(10) == 13 && Options.nextCps(13) == 15 && Options.nextCps(15) == 10);
+    check(Options.nextCps(10) == 13 && Options.nextCps(13) == 15 && Options.nextCps(15) == 20);
     check(new Options().x == -5 && new Options().y == 78 && new Options().z == 111);
     check(!new Options().autoBuildOnJoin);
     check(Options.nextSize(9) == 13 && Options.nextSize(13) == 17 && Options.nextSize(17) == 9);
@@ -269,7 +270,7 @@ public class CoreTest {
     check(rejected);
     for (int profile = 0; profile <= 4; profile++) {
       var chest = TrainerChests.item(profile);
-      check(chest.isOf(Items.CHEST));
+      check(chest.getItem() instanceof net.minecraft.item.BlockItem);
       check(
           chest.get(DataComponentTypes.CUSTOM_DATA).copyNbt().getInt("duckbox_chest_profile")
               == profile);
@@ -309,6 +310,54 @@ public class CoreTest {
               .get(38)
               .get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
               .equals(beforeUpgradeAttributes));
+    }
+    var chestPacket =
+        new ChestRolePayload(
+            net.minecraft.util.Identifier.ofVanilla("overworld"),
+            new net.minecraft.util.math.BlockPos(-146, 65, 93),
+            4);
+    var chestBuffer =
+        new net.minecraft.network.RegistryByteBuf(
+            io.netty.buffer.Unpooled.buffer(), net.minecraft.registry.DynamicRegistryManager.EMPTY);
+    ChestRolePayload.CODEC.encode(chestBuffer, chestPacket);
+    check(ChestRolePayload.CODEC.decode(chestBuffer).equals(chestPacket));
+    chestBuffer.release();
+    var originalHead =
+        SkullCommand.head(registries, kit.get(39).get(DataComponentTypes.PROFILE).gameProfile());
+    check(originalHead.get(DataComponentTypes.PROFILE).gameProfile().getName().equals("RasyMc"));
+    check(
+        originalHead
+                .getEnchantments()
+                .getLevel(ench.getOrThrow(net.minecraft.enchantment.Enchantments.PROTECTION))
+            == 60);
+    final double[] skullLife = {0};
+    originalHead.applyAttributeModifiers(
+        EquipmentSlot.HEAD,
+        (attribute, modifier) -> {
+          if (attribute == EntityAttributes.MAX_HEALTH) skullLife[0] += modifier.value();
+        });
+    check(skullLife[0] == 60);
+    check(Options.allowedCps(20) && Options.nextCps(15) == 20 && Options.nextCps(20) == 10);
+    var lobbyPacket = new LobbyBotPayload(java.util.UUID.randomUUID(), 15);
+    var lobbyBuffer =
+        new net.minecraft.network.RegistryByteBuf(
+            io.netty.buffer.Unpooled.buffer(), net.minecraft.registry.DynamicRegistryManager.EMPTY);
+    LobbyBotPayload.CODEC.encode(lobbyBuffer, lobbyPacket);
+    check(LobbyBotPayload.CODEC.decode(lobbyBuffer).equals(lobbyPacket));
+    lobbyBuffer.release();
+    check(dev.duckbox.panels.MapPanels.BLOCKS.size() == 19);
+    for (var panelName : dev.duckbox.panels.MapPanels.NAMES) {
+      var registered = dev.duckbox.panels.MapPanels.BLOCKS.get(panelName);
+      check(
+          net.minecraft.registry.Registries.BLOCK
+              .getId(registered)
+              .getPath()
+              .equals("painel_" + panelName));
+      var image =
+          javax.imageio.ImageIO.read(
+              CoreTest.class.getResourceAsStream(
+                  "/assets/duckbox/textures/map_panels/" + panelName + ".png"));
+      check(image.getWidth() <= 1536 && image.getHeight() <= 1254);
     }
     NbtCompound root =
         NbtIo.readCompressed(new FileInputStream(args[0]), NbtSizeTracker.ofUnlimitedBytes());

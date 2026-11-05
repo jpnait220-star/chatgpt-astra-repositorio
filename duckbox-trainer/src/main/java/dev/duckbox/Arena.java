@@ -106,6 +106,7 @@ public final class Arena {
           pending.add(new Edit(new BlockPos(o.x + x, o.y + y, o.z + z), block));
         }
     player.teleport(buildingWorld, o.x, o.y + HEIGHT + 1, o.z, Set.of(), 180, 0, false);
+    SpawnControl.later(player);
     DuckBox.say(player, "Montando arena em lotes. Aguarde alguns segundos.");
   }
 
@@ -214,7 +215,7 @@ public final class Arena {
         new BlockPos(o.x - 23, o.y + 1, o.z + 9),
         "CPS DO BOT",
         Integer.toString(o.cps),
-        "10 / 13 / 15",
+        "10/13/15/20",
         "Clique no botao");
   }
 

@@ -46,7 +46,8 @@ public class MixinTest {
               "net/minecraft/class_310",
               "net/minecraft/class_4722",
               "net/minecraft/class_826",
-              "net/minecraft/class_10502$class_10503"
+              "net/minecraft/class_10502$class_10503",
+              "net/minecraft/class_10517"
             }
             : new String[] {
               "net/minecraft/class_1297",

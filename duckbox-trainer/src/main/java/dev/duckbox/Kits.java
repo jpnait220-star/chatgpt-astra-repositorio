@@ -164,6 +164,50 @@ public final class Kits {
     }
   }
 
+  public static boolean upgradeTrainingSword(
+      net.minecraft.registry.RegistryWrapper.WrapperLookup registries, List<ItemStack> kit) {
+    var sharpness =
+        registries
+            .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+            .getOrThrow(net.minecraft.enchantment.Enchantments.SHARPNESS);
+    boolean changed = false;
+    for (var stack : kit) {
+      if (!stack.isOf(Items.GOLDEN_SWORD)) continue;
+      var mods =
+          stack.getOrDefault(
+              DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT);
+      var id = Identifier.of("duckbox", "mainhand/attack_damage");
+      boolean ours =
+          mods.modifiers().stream()
+              .anyMatch(
+                  e ->
+                      e.attribute().equals(EntityAttributes.ATTACK_DAMAGE)
+                          && e.modifier().id().equals(id));
+      if (!ours) continue;
+      if (mods.modifiers().stream()
+          .anyMatch(
+              e ->
+                  e.attribute().equals(EntityAttributes.ATTACK_DAMAGE)
+                      && e.modifier().id().equals(id)
+                      && e.modifier().value() != 25)) {
+        stack.set(
+            DataComponentTypes.ATTRIBUTE_MODIFIERS,
+            mods.with(
+                EntityAttributes.ATTACK_DAMAGE,
+                new EntityAttributeModifier(id, 25, EntityAttributeModifier.Operation.ADD_VALUE),
+                AttributeModifierSlot.MAINHAND));
+        changed = true;
+      }
+      if (net.minecraft.enchantment.EnchantmentHelper.getLevel(sharpness, stack) != 58) {
+        if (!stack.contains(DataComponentTypes.ENCHANTMENTS))
+          stack.set(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
+        stack.addEnchantment(sharpness, 58);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
   public static boolean protectEquipment(
       net.minecraft.registry.RegistryWrapper.WrapperLookup registries, List<ItemStack> kit) {
     var protection =
@@ -211,18 +255,19 @@ public final class Kits {
         AttributeModifiersComponent.builder()
             .add(
                 EntityAttributes.ATTACK_DAMAGE,
-                modifier("mainhand/attack_damage", rules == Options.Rules.NORMAL_SPAM ? 20 : 26),
+                modifier("mainhand/attack_damage", 25),
                 AttributeModifierSlot.MAINHAND)
             .build());
     sword.addEnchantment(
         registries
             .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
             .getOrThrow(net.minecraft.enchantment.Enchantments.SHARPNESS),
-        54);
+        58);
     kit.set(0, sword);
     kit.set(1, new ItemStack(Items.FIREWORK_ROCKET, 64));
     kit.set(2, new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 32));
     kit.set(3, new ItemStack(Items.COBWEB, 32));
+    kit.set(5, new ItemStack(Items.BLACK_WOOL, 64));
     for (int i = 6; i <= 8; i++) kit.set(i, new ItemStack(Items.TOTEM_OF_UNDYING));
     for (int i = 9; i < 18; i++) kit.set(i, new ItemStack(Items.TOTEM_OF_UNDYING));
     kit.set(18, new ItemStack(Items.FIREWORK_ROCKET, 64));

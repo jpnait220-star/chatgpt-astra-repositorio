@@ -44,7 +44,16 @@ public final class DuckBox implements ModInitializer {
 
   @Override
   public void onInitialize() {
+    dev.duckbox.panels.MapPanels.init();
     PayloadTypeRegistry.playS2C().register(TrainingPayload.ID, TrainingPayload.CODEC);
+    PayloadTypeRegistry.playS2C().register(ChestRolePayload.ID, ChestRolePayload.CODEC);
+    PayloadTypeRegistry.playS2C().register(LobbyBotPayload.ID, LobbyBotPayload.CODEC);
+    net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register(
+        (world, chunk) -> {
+          for (var entity : chunk.getBlockEntities().values())
+            if (entity instanceof net.minecraft.block.entity.ChestBlockEntity chest)
+              ChestRoleSync.remember(world, chest);
+        });
     PayloadTypeRegistry.playS2C().register(CosmeticPayload.ID, CosmeticPayload.CODEC);
     ServerLifecycleEvents.SERVER_STARTED.register(
         s -> {
@@ -56,6 +65,7 @@ public final class DuckBox implements ModInitializer {
     ServerLifecycleEvents.SERVER_STOPPING.register(
         s -> {
           KitEditor.flush();
+          LobbyBot.clear(s);
           if (session != null) stop("Servidor encerrado.");
         });
     ServerLifecycleEvents.SERVER_STOPPED.register(
@@ -65,11 +75,17 @@ public final class DuckBox implements ModInitializer {
           rockets.clear();
           clicks.clear();
           Arena.reset();
+          SpawnControl.clear();
+          ChestRoleSync.clear();
           KitEditor.reset();
+          FixedHolograms.clear();
         });
     ServerTickEvents.END_SERVER_TICK.register(
         s -> {
           Arena.tick();
+          LobbyBot.tick(s);
+          SpawnControl.tick(s);
+          ChestRoleSync.tick(s);
           if (session != null) {
             if (session.finish != null) stop(session.finish);
             else if (session.owner.isDisconnected()) stop("Jogador saiu.");
@@ -90,6 +106,7 @@ public final class DuckBox implements ModInitializer {
         (handler, sender, s) -> {
           if (handler.player instanceof TrainingBot) return;
           restore(handler.player);
+          ChestRoleSync.forget(handler.player.getUuid());
           syncCosmetics();
           Arena.updateRulesLabel(handler.player.getServerWorld(), options);
           Arena.ensureCpsControl(handler.player.getServerWorld(), options);
@@ -105,6 +122,7 @@ public final class DuckBox implements ModInitializer {
     ServerPlayConnectionEvents.DISCONNECT.register(
         (handler, s) -> {
           KitEditor.closeFor(handler.player);
+          FixedHolograms.forget(handler.player.getUuid());
           if (session != null && session.owner == handler.player) stop("Jogador saiu.");
         });
     PlayerBlockBreakEvents.BEFORE.register(
@@ -121,9 +139,17 @@ public final class DuckBox implements ModInitializer {
                 || Math.abs(pos.getZ() - options.z) > options.size / 2
                 || pos.getY() < options.y
                 || pos.getY() > options.y + 10);
+    PlayerBlockBreakEvents.AFTER.register(
+        (world, player, pos, state, entity) -> {
+          if (world instanceof ServerWorld serverWorld) FixedHolograms.removeAt(serverWorld, pos);
+        });
     ServerLivingEntityEvents.ALLOW_DAMAGE.register(
         (entity, source, amount) -> allowTrainingDamage(entity, source));
     ServerLivingEntityEvents.ALLOW_DEATH.register(DuckBox::allowTrainingDeath);
+    ServerLivingEntityEvents.AFTER_DAMAGE.register(
+        (entity, source, base, taken, blocked) -> {
+          if (!blocked && taken > 0) shortenTrainingHitWindow(entity, source);
+        });
     UseBlockCallback.EVENT.register(
         (p, w, hand, hit) -> {
           if (session != null && session.countingDown() && (p == session.owner || p == session.bot))
@@ -132,6 +158,8 @@ public final class DuckBox implements ModInitializer {
           if (rocketUse.isAccepted()) return rocketUse;
           if (w.isClient() || hand != Hand.MAIN_HAND || p instanceof TrainingBot)
             return ActionResult.PASS;
+          if (p instanceof ServerPlayerEntity real && FixedHolograms.click(real, hit))
+            return ActionResult.SUCCESS;
           ActionResult trainerChest = TrainerChests.open(p, (ServerWorld) w, hand, hit);
           if (trainerChest.isAccepted()) return trainerChest;
           if (Arena.isKitChest(hit.getBlockPos(), (ServerWorld) w, options)) {
@@ -162,9 +190,64 @@ public final class DuckBox implements ModInitializer {
 
   public static void registerCommands(
       com.mojang.brigadier.CommandDispatcher<ServerCommandSource> dispatcher) {
+    dispatcher.register(literal("spawn").executes(c -> run(c.getSource(), SpawnControl::command)));
     dispatcher.register(
         literal("box")
             .requires(x -> x.hasPermissionLevel(2))
+            .then(
+                literal("moveholo")
+                    .executes(c -> run(c.getSource(), FixedHolograms::moveCommand))));
+    dispatcher.register(
+        literal("box")
+            .requires(x -> x.hasPermissionLevel(2))
+            .then(literal("setspawn").executes(c -> run(c.getSource(), SpawnControl::set)))
+            .then(literal("spawnbot").executes(c -> run(c.getSource(), LobbyBot::place)))
+            .then(
+                literal("skull")
+                    .then(
+                        argument("jogador", StringArgumentType.word())
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p ->
+                                            SkullCommand.give(
+                                                p, StringArgumentType.getString(c, "jogador"))))))
+            .then(
+                literal("blocos")
+                    .executes(c -> run(c.getSource(), dev.duckbox.panels.PanelMenu::open)))
+            .then(
+                literal("bloco")
+                    .then(
+                        argument("nome", StringArgumentType.word())
+                            .suggests(
+                                (c, b) ->
+                                    CommandSource.suggestMatching(
+                                        dev.duckbox.panels.MapPanels.NAMES, b))
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p ->
+                                            dev.duckbox.panels.MapPanels.give(
+                                                p, StringArgumentType.getString(c, "nome"))))))
+            .then(
+                literal("holo")
+                    .then(
+                        literal("cancelar")
+                            .executes(c -> run(c.getSource(), FixedHolograms::cancel)))
+                    .then(
+                        literal("remover")
+                            .executes(c -> run(c.getSource(), FixedHolograms::remove)))
+                    .then(
+                        argument("texto", StringArgumentType.greedyString())
+                            .executes(
+                                c ->
+                                    run(
+                                        c.getSource(),
+                                        p ->
+                                            FixedHolograms.command(
+                                                p, StringArgumentType.getString(c, "texto"))))))
             .then(literal("configurar").executes(c -> run(c.getSource(), ConfigMenu::open)))
             .then(
                 literal("profile")
@@ -267,10 +350,11 @@ public final class DuckBox implements ModInitializer {
                 literal("cps")
                     .executes(c -> run(c.getSource(), p -> control(p, "cps")))
                     .then(
-                        argument("valor", IntegerArgumentType.integer(10, 15))
+                        argument("valor", IntegerArgumentType.integer(10, 20))
                             .suggests(
                                 (c, b) ->
-                                    CommandSource.suggestMatching(List.of("10", "13", "15"), b))
+                                    CommandSource.suggestMatching(
+                                        List.of("10", "13", "15", "20"), b))
                             .executes(
                                 c ->
                                     run(
@@ -338,7 +422,7 @@ public final class DuckBox implements ModInitializer {
                           say(
                               p,
                               "/box configurar | criar [9/13/17] | usar | iniciar | parar | cps"
-                                  + " 10/13/15 | dificuldade LOW/MEDIUM/HIGH/EXPERT | habilidade"
+                                  + " 10/13/15/20 | dificuldade LOW/MEDIUM/HIGH/EXPERT | habilidade"
                                   + " nome | modo DUEL/TANK | kit salvar/padrao | atributo"
                                   + " minecraft:max_health 100 HEAD | profile 1..4 | chest profile"
                                   + " 1..4 | chest stock | rename nome | rename profile numero nome"
@@ -665,6 +749,7 @@ public final class DuckBox implements ModInitializer {
     boolean repaired =
         migrated && options.rules == Options.Rules.NORMAL_SPAM && Kits.repairNormalKit(kit);
     repaired |= Kits.protectEquipment(p.getRegistryManager(), kit);
+    repaired |= Kits.upgradeTrainingSword(p.getRegistryManager(), kit);
     if (migrated || repaired) storeKit(p, kit, profile, options.rules);
     return kit;
   }
@@ -732,16 +817,31 @@ public final class DuckBox implements ModInitializer {
       net.minecraft.entity.damage.DamageSource source,
       float amount) {
     if (session == null || (entity != session.owner && entity != session.bot)) return true;
+    if (session.finish != null) return false;
     // Fabric asks BEFORE vanilla tries death protection, not after the totem.
     if (!source.isIn(net.minecraft.registry.tag.DamageTypeTags.BYPASSES_INVULNERABILITY))
       for (Hand hand : Hand.values())
         if (entity
             .getStackInHand(hand)
             .contains(net.minecraft.component.DataComponentTypes.DEATH_PROTECTION)) return true;
-    say(session.owner, "DuckBot » " + session.roundMessage(entity == session.bot));
+    session.owner.sendMessage(
+        Text.literal("DuckBot » " + session.roundMessage(entity == session.bot))
+            .formatted(Formatting.AQUA),
+        false);
     entity.setHealth(1);
     session.finish = entity == session.bot ? "Voce venceu!" : "O bot venceu. Tente novamente!";
     return false;
+  }
+
+  public static void shortenTrainingHitWindow(
+      net.minecraft.entity.LivingEntity target, net.minecraft.entity.damage.DamageSource source) {
+    if (session == null
+        || session.closed
+        || session.countingDown()
+        || session.o.rules != Options.Rules.INSTA_KILL) return;
+    if ((target == session.owner && source.getAttacker() == session.bot)
+        || (target == session.bot && source.getAttacker() == session.owner))
+      target.timeUntilRegen = Math.min(target.timeUntilRegen, 15);
   }
 
   public static boolean allowTrainingDamage(
@@ -832,7 +932,8 @@ public final class DuckBox implements ModInitializer {
   }
 
   public static void setBotCps(ServerPlayerEntity p, int cps) {
-    if (!Options.allowedCps(cps)) throw new IllegalArgumentException("Escolha 10, 13 ou 15 CPS.");
+    if (!Options.allowedCps(cps))
+      throw new IllegalArgumentException("Escolha 10, 13, 15 ou 20 CPS.");
     options.cps = cps;
     Arena.updateCpsLabel(p.getServerWorld(), options);
     save();
@@ -929,7 +1030,8 @@ public final class DuckBox implements ModInitializer {
     rockets.clear();
     if (!s.owner.isDisconnected()) {
       restore(s.owner);
-      say(s.owner, reason);
+      SpawnControl.move(s.owner, s.bot.getServerWorld());
+      s.owner.sendMessage(Text.literal(reason).formatted(Formatting.GOLD), false);
     }
     Arena.clearWebs(s.bot.getServerWorld(), options);
   }
@@ -981,14 +1083,16 @@ public final class DuckBox implements ModInitializer {
             | (options.glasses ? 4 : 0)
             | (options.frog ? 8 : 0);
     for (var p : server.getPlayerManager().getPlayerList())
-      if (!(p instanceof TrainingBot) && ServerPlayNetworking.canSend(p, CosmeticPayload.ID))
+      if (!(p instanceof TrainingBot) && ServerPlayNetworking.canSend(p, CosmeticPayload.ID)) {
+        LobbyBot.sync(p, mask);
         ServerPlayNetworking.send(
             p,
             new CosmeticPayload(
                 p.getUuid(), session != null ? session.bot.getUuid() : new UUID(0, 0), mask));
+      }
   }
 
-  private static boolean canSendTraining(ServerPlayerEntity player) {
+  public static boolean canSendTraining(ServerPlayerEntity player) {
     return net.fabricmc.loader.api.FabricLoader.getInstance()
             .isModLoaded("fabric-networking-api-v1")
         && ServerPlayNetworking.canSend(player, TrainingPayload.ID);

@@ -1,0 +1,1 @@
+{"model": {"type": "minecraft:special", "base": "minecraft:item/paper", "model": {"type": "duckbox:panel", "texture": "duckbox:textures/map_panels/gap.png"}}}

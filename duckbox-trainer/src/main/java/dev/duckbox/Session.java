@@ -65,6 +65,7 @@ public final class Session {
   private WebRoute webRoute = WebRoute.NONE;
   private BlockPos routeTarget, trappedHead;
   private int routeUntil, headWebSince, cageIndex, cageAt;
+  private int towerProgressAt, webRouteAttempts;
   private Vec3d recoveryLastPos;
   private int recoveryStuckTicks;
   private int webEscapeSince = -1;
@@ -73,6 +74,8 @@ public final class Session {
   private int footRetryAt, footAttackWebAt;
 
   /** In this aggressive mode recovery is allowed only when the opponent retreats to eat. */
+  private int recoveryEpisodeAt, attackCommitUntil;
+
   private int recoveryChoiceAt;
 
   private boolean recoveryChoice;
@@ -191,13 +194,17 @@ public final class Session {
   }
 
   public void maintainRules() {
-    int amplifier = o.rules == Options.Rules.NORMAL_SPAM && o.resistance2 ? 1 : 0;
+    boolean forceSecond = o.rules == Options.Rules.NORMAL_SPAM && o.resistance2;
     for (var p : List.of(owner, bot)) {
       var effect = p.getStatusEffect(StatusEffects.RESISTANCE);
-      if (effect == null || effect.getAmplifier() != amplifier || !effect.isInfinite()) {
+      if (!forceSecond) {
+        if (effect != null && effect.isInfinite()) p.removeStatusEffect(StatusEffects.RESISTANCE);
+        continue;
+      }
+      if (effect == null || effect.getAmplifier() != 1 || !effect.isInfinite()) {
         p.removeStatusEffect(StatusEffects.RESISTANCE);
         p.addStatusEffect(
-            new StatusEffectInstance(StatusEffects.RESISTANCE, -1, amplifier, false, false, true));
+            new StatusEffectInstance(StatusEffects.RESISTANCE, -1, 1, false, false, true));
       }
     }
   }
@@ -205,6 +212,9 @@ public final class Session {
   public void startingBuffs() {
     maintainRules();
     for (var p : List.of(owner, bot)) {
+      if (!(o.rules == Options.Rules.NORMAL_SPAM && o.resistance2))
+        p.addStatusEffect(
+            new StatusEffectInstance(StatusEffects.RESISTANCE, 6000, 0, false, false, true));
       p.addStatusEffect(
           new StatusEffectInstance(StatusEffects.REGENERATION, 400, 1, false, false, true));
       p.addStatusEffect(
@@ -243,6 +253,13 @@ public final class Session {
       if ((healing || escaping) && damageCount >= 2) endRecovery(t, 45);
     } else if (t % 40 == 0) damageCount = 0;
     lastHealth = vitality;
+    if (!o.tank
+        && recoveryEpisodeAt > 0
+        && (healing || escaping || landingForGap)
+        && t - recoveryEpisodeAt >= 100) endRecovery(t, 100);
+
+    if (!healing && !escaping && !landingForGap && pendingSlot < 0 && heldUntil <= t)
+      ensureSwordInHotbar();
     if (o.retotem && retotem(t)) return;
     if (heldUntil > t) {
       phase = "Trocando item";
@@ -271,6 +288,18 @@ public final class Session {
             && apples() > 0
             && o.gap;
     if (retreatForHealth && plantedFootWeb != null) leavingFootWeb = true;
+    boolean ownFaceWeb =
+        bot.getServerWorld()
+            .getBlockState(BlockPos.ofFloored(bot.getEyePos()))
+            .isOf(net.minecraft.block.Blocks.COBWEB);
+    if (ownFaceWeb && (healing || escaping || landingForGap)) endRecovery(t, 100);
+    if (ownFaceWeb && bot.isGliding()) escapeOwnWeb(t);
+    if (ownFaceWeb && bot.isOnGround() && !bot.isGliding()) {
+      plantedFootWeb = null;
+      leavingFootWeb = false;
+      footRetryAt = t + 60;
+      if (escapeOwnWeb(t)) return;
+    }
     if ((!retreatForHealth || plantedFootWeb != null) && footWebFight(t, dist)) return;
     if (!healing && !escaping && !landingForGap && escapeOwnWeb(t)) return;
     // A consumed apple decreases the real inventory count; interruption does not.
@@ -294,9 +323,11 @@ public final class Session {
         && o.gap
         && mayRecover(otherEating, dist)
         && t > gapWait
+        && t >= attackCommitUntil
         && (health < bot.getMaxHealth() - 4 || tankGroundDue)
         && (behind || otherEating || o.tank || health < bot.getMaxHealth() * 0.55)
         && apples() > 0) {
+      recoveryEpisodeAt = t;
       groundRecovery = o.tank && (tankGroundDue || random.nextDouble() < 0.40);
       gapsLeft = groundRecovery ? 1 : health < bot.getMaxHealth() * 0.65 ? 2 : 1;
       damageCount = 0;
@@ -389,7 +420,7 @@ public final class Session {
               o.z + Math.sin(angle) * radius);
     } else {
       phase = "Combate";
-      if (t < maneuverUntil && dist > 9 && dist < 25) {
+      if (webAtOwner() == null && t < maneuverUntil && dist > 9 && dist < 25) {
         Vec3d relative = bot.getPos().subtract(owner.getPos());
         double angle = Math.atan2(relative.z, relative.x) + side * 0.65;
         aim =
@@ -404,13 +435,26 @@ public final class Session {
 
     BlockPos trapped = webAtOwner();
     boolean elevatedWeb = trapped != null && owner.getY() > o.y + 2.5;
+    boolean feetTrappedTarget =
+        trapped != null && !elevatedWeb && trapped.getY() <= owner.getBlockPos().getY();
+    if (feetTrappedTarget && !healing && !escaping && !o.tank) {
+      maneuverUntil = 0;
+      aim = owner.getPos().add(0, owner.getHeight() * .65, 0);
+      if (dist < 12 && bot.isGliding()) {
+        bot.stopGliding();
+        bot.setSneaking(false);
+      }
+    }
+
     if (!elevatedWeb) {
       webRoute = WebRoute.NONE;
       routeTarget = null;
     } else if (webRoute == WebRoute.NONE || !trapped.equals(routeTarget) || t >= routeUntil) {
       routeTarget = trapped;
       routeUntil = t + 140;
-      webRoute = buildingSlot() < 0 || random.nextBoolean() ? WebRoute.AIR : WebRoute.TOWER;
+      webRoute = buildingSlot() < 0 || (webRouteAttempts++ & 1) != 0
+          ? WebRoute.AIR : WebRoute.TOWER;
+      towerProgressAt = t;
     }
     if (!healing && !escaping && !o.tank) {
       if (!elevatedWeb && cageHead(t)) return;
@@ -439,15 +483,17 @@ public final class Session {
         healing && bot.isOnGround()
             ? 0.2f
             : healing || escaping || o.tank ? 1 : dist > 2.3 ? 1 : 0.15f;
-    if (o.strafe && !healing && !escaping && !elevatedWeb && strafeActive) bot.sidewaysSpeed = side;
+    if (o.strafe && !healing && !escaping && !elevatedWeb && !feetTrappedTarget && strafeActive)
+      bot.sidewaysSpeed = side;
     if (o.wtap && !escaping && owner.getY() > bot.getY() + 1 && dist < 12 && t % 18 < 3)
       bot.forwardSpeed = 0;
-    if (!groundRecovery && bot.isOnGround() && t >= jumpAt) {
+    if (!groundRecovery && !(feetTrappedTarget && dist < 12) && bot.isOnGround() && t >= jumpAt) {
       bot.jump();
       jumpAt = t + 8 + random.nextInt(4);
     } else if (!groundRecovery
         && !bot.isOnGround()
         && !bot.isGliding()
+        && !(feetTrappedTarget && dist < 12)
         && !(elevatedWeb && webRoute == WebRoute.TOWER)
         && bot.getVelocity().y > -0.6
         && bot.getVelocity().y < 0.35) bot.checkGliding();
@@ -468,6 +514,7 @@ public final class Session {
             && dist < 324;
     boolean near = dist >= 4 && dist < 30;
     if (o.giro
+        && !feetTrappedTarget
         && bot.isGliding()
         && !healing
         && !escaping
@@ -483,6 +530,8 @@ public final class Session {
       }
     } else if (o.tank && o.giro && !healing && bot.isGliding()) useRocket(t);
     if (o.teia
+        && !feetTrappedTarget
+        && !(dist <= attackReach() * attackReach() && canHit())
         && t >= webAt
         && !healing
         && !escaping
@@ -556,6 +605,11 @@ public final class Session {
   }
 
   private void endRecovery(int t, int pause) {
+    boolean wasRecovery = healing || escaping || landingForGap;
+    if (wasRecovery && !o.tank) {
+      attackCommitUntil = t + 80;
+      pause = Math.max(pause, 100);
+    }
     bot.stopUsingItem();
     healing = false;
     escaping = false;
@@ -563,7 +617,7 @@ public final class Session {
     if (groundRecovery && o.tank) tankGroundAt = t + 160 + random.nextInt(161);
     groundRecovery = false;
     gapsLeft = 0;
-    gapWait = t + pause;
+    gapWait = Math.max(gapWait, t + pause);
     selectSword();
   }
 
@@ -649,8 +703,7 @@ public final class Session {
     int moved = 0;
     for (int target = 6; target <= 8; target++) {
       var displaced = bot.getInventory().getStack(target);
-      if (displaced.isOf(Items.TOTEM_OF_UNDYING)
-          || displaced.isIn(net.minecraft.registry.tag.ItemTags.SWORDS)) continue;
+      if (displaced.isOf(Items.TOTEM_OF_UNDYING)) continue;
       int source = -1;
       for (int i = 9; i < 36; i++)
         if (bot.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
@@ -693,6 +746,18 @@ public final class Session {
         return i;
       }
     return -1;
+  }
+
+  private void ensureSwordInHotbar() {
+    if (selectSword() >= 0) return;
+    for (int slot = 9; slot < 36; slot++)
+      if (bot.getInventory().getStack(slot).isIn(net.minecraft.registry.tag.ItemTags.SWORDS)) {
+        var previous = bot.getInventory().getStack(0);
+        bot.getInventory().setStack(0, bot.getInventory().getStack(slot));
+        bot.getInventory().setStack(slot, previous);
+        bot.getInventory().selectedSlot = 0;
+        return;
+      }
   }
 
   private void look(Vec3d point, float max) {
@@ -759,24 +824,18 @@ public final class Session {
       webEscapeSince = -1;
       return false;
     }
-    if (webEscapeSince < 0) webEscapeSince = t;
-    if (!o.webRocket || t - webEscapeSince >= 20 || find(Items.FIREWORK_ROCKET, true) < 0) {
-      var obstacle =
-          bot.getServerWorld()
-              .raycast(
-                  new RaycastContext(
-                      bot.getEyePos(),
-                      Vec3d.ofCenter(web),
-                      RaycastContext.ShapeType.OUTLINE,
-                      RaycastContext.FluidHandling.NONE,
-                      bot));
-      if (obstacle.getType() == HitResult.Type.BLOCK
-          && bot.getServerWorld()
-              .getBlockState(obstacle.getBlockPos())
-              .isOf(net.minecraft.block.Blocks.COBWEB)) web = obstacle.getBlockPos();
-      breakTrainingBlock(web, "Saindo da teia");
+    BlockPos head = BlockPos.ofFloored(bot.getEyePos());
+    if (bot.isOnGround()
+        && !bot.isGliding()
+        && bot.getPose() == EntityPose.STANDING
+        && bot.getServerWorld().getBlockState(head).isOf(net.minecraft.block.Blocks.COBWEB)) {
+      breakTrainingBlock(head, "Liberando teia do rosto");
       return true;
     }
+    // Feet-only webs and gliding webs never interrupt melee to mine.
+    if (breakingWeb != null
+        && bot.getServerWorld().getBlockState(breakingWeb).isOf(net.minecraft.block.Blocks.COBWEB))
+      breakTrainingBlock(null, "Interrompendo mineracao para sair voando");
     Vec3d delta = owner.getPos().subtract(bot.getPos());
     if (delta.horizontalLengthSquared() < 0.25)
       delta = new Vec3d(o.x - bot.getX() + 1, 0, o.z - bot.getZ() + 1);
@@ -789,7 +848,7 @@ public final class Session {
     bot.setSneaking(bot.isGliding());
     if (bot.isGliding()) useRocket(t);
     phase = "Tentando sair da teia";
-    return true;
+    return false;
   }
 
   private BlockPos webAt(net.minecraft.entity.LivingEntity entity) {
@@ -853,7 +912,14 @@ public final class Session {
             && (world.getBlockState(target).isOf(net.minecraft.block.Blocks.COBWEB)
                 || world.getBlockState(target).isIn(net.minecraft.registry.tag.BlockTags.WOOL))
             && bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(target)) < 20;
-    if (reachable) {
+    boolean insideOwnHead =
+        reachable
+            && world.getBlockState(target).isOf(net.minecraft.block.Blocks.COBWEB)
+            && target.equals(BlockPos.ofFloored(bot.getEyePos()))
+            && bot.isOnGround()
+            && !bot.isGliding()
+            && bot.getPose() == EntityPose.STANDING;
+    if (reachable && !insideOwnHead) {
       var ray =
           world.raycast(
               new RaycastContext(
@@ -923,12 +989,18 @@ public final class Session {
   }
 
   private int buildingSlot() {
-    for (int i = 0; i < 36; i++) {
-      var stack = bot.getInventory().getStack(i);
-      if (stack.getItem() instanceof BlockItem block
-          && block.getBlock().getDefaultState().isFullCube(bot.getServerWorld(), bot.getBlockPos()))
-        return find(stack.getItem(), true);
-    }
+    // Prefer any wool color, including stacks in the reserve inventory. Decorative
+    // map/chest blocks must never be consumed as disposable scaffolding.
+    for (int pass = 0; pass < 2; pass++)
+      for (int i = 0; i < 36; i++) {
+        var stack = bot.getInventory().getStack(i);
+        if (stack.getItem() instanceof BlockItem block
+            && !(block.getBlock() instanceof net.minecraft.block.BlockEntityProvider)
+            && (pass == 0
+                ? block.getBlock().getDefaultState().isIn(net.minecraft.registry.tag.BlockTags.WOOL)
+                : block.getBlock().getDefaultState().isFullCube(bot.getServerWorld(), bot.getBlockPos())))
+          return find(stack.getItem(), true);
+      }
     return -1;
   }
 
@@ -1031,6 +1103,12 @@ public final class Session {
     if (place.getY() < o.y || place.getY() >= o.y + Arena.HEIGHT - 1) return false;
     int slot = buildingSlot();
     if (slot < 0) return false;
+    if (towerProgressAt == 0) towerProgressAt = t;
+    if (t - towerProgressAt > 60) {
+      webRoute = WebRoute.AIR;
+      routeUntil = t + 100;
+      return false;
+    }
     bot.stopGliding();
     bot.setSneaking(false);
     bot.forwardSpeed = 0;
@@ -1039,7 +1117,8 @@ public final class Session {
     if (bot.isOnGround()) bot.jump();
     if (t < buildAt || !bot.getServerWorld().getBlockState(place).isAir()) return true;
     BlockPos support = place.down();
-    if (!bot.getServerWorld().getBlockState(support).isSolidBlock(bot.getServerWorld(), support))
+    if (!bot.getServerWorld().getBlockState(support)
+        .isSideSolidFullSquare(bot.getServerWorld(), support, Direction.UP))
       return true;
     Vec3d face = Vec3d.ofCenter(support).add(0, 0.5, 0);
     look(face, 180);
@@ -1056,6 +1135,8 @@ public final class Session {
     if (result.isAccepted() && !bot.getServerWorld().getBlockState(place).isAir()) {
       builtBlocks.put(place.toImmutable(), bot.getServerWorld().getBlockState(place));
       buildAt = t + 4;
+      towerProgressAt = t;
+      routeUntil = t + 140;
       bot.swingHand(Hand.MAIN_HAND);
     }
     return true;
@@ -1073,22 +1154,32 @@ public final class Session {
   private boolean footWebFight(int t, double distance) {
     var world = bot.getServerWorld();
     if (plantedFootWeb != null
-        && !world.getBlockState(plantedFootWeb).isOf(net.minecraft.block.Blocks.COBWEB)) {
+        && (!world.getBlockState(plantedFootWeb).isOf(net.minecraft.block.Blocks.COBWEB)
+            || !bot.getBoundingBox().intersects(new Box(plantedFootWeb)))) {
       plantedFootWeb = null;
       leavingFootWeb = false;
       footRetryAt = t + 60;
     }
     if (plantedFootWeb != null
-        && (!o.footWeb || !o.teia || distance > 25 || Math.abs(owner.getY() - bot.getY()) > 2.0))
-      leavingFootWeb = true;
+        && (!o.footWeb
+            || !o.teia
+            || !bot.isOnGround()
+            || bot.isGliding()
+            || distance > 25
+            || Math.abs(owner.getY() - bot.getY()) > 2.0)) leavingFootWeb = true;
     if (plantedFootWeb != null && leavingFootWeb) {
-      breakTrainingBlock(plantedFootWeb, "Saindo da teia dos pes / perseguindo");
-      return true;
+      plantedFootWeb = null;
+      leavingFootWeb = false;
+      footRetryAt = t + 60;
+      return false;
     }
     if (plantedFootWeb == null) {
       if (leavingFootWeb) return false;
-      if (!o.footWeb || !o.teia || !bot.isOnGround() || distance > 25 || t < footRetryAt)
-        return false;
+      if (!o.footWeb
+          || !o.teia
+          || !bot.isOnGround()
+          || distance > attackReach() * attackReach()
+          || t < footRetryAt) return false;
       boolean losing =
           Aim.fraction(bot.getHealth(), bot.getMaxHealth())
               < Aim.fraction(owner.getHealth(), owner.getMaxHealth());
@@ -1142,7 +1233,9 @@ public final class Session {
     if (slot < 0) return false;
     for (Direction dir : Direction.values()) {
       BlockPos support = pos.offset(dir);
-      if (bot.getServerWorld().getBlockState(support).isAir()) continue;
+      if (!bot.getServerWorld().getBlockState(support)
+        .isSideSolidFullSquare(bot.getServerWorld(), support, Direction.UP))
+        continue;
       Vec3d face = Vec3d.ofCenter(support).subtract(Vec3d.of(dir.getVector()).multiply(0.499));
       var ray =
           bot.getServerWorld()
@@ -1163,7 +1256,8 @@ public final class Session {
               bot.getMainHandStack(),
               Hand.MAIN_HAND,
               new BlockHitResult(face, dir.getOpposite(), support, false));
-      if (result.isAccepted()) {
+      if (result.isAccepted()
+          && bot.getServerWorld().getBlockState(pos).isOf(net.minecraft.block.Blocks.COBWEB)) {
         if (!feet) webAt = t + o.webCooldown;
         heldUntil = t + 2;
         bot.swingHand(Hand.MAIN_HAND);
@@ -1181,11 +1275,32 @@ public final class Session {
           remaining += owner.getInventory().getStack(i).getCount();
       String[] lines =
           remaining <= 2
-              ? new String[] {"Seloko, jogou muito!", "Quaseee! Mandou bem!", "Foi por pouco! GG!"}
-              : new String[] {"GG! Jogou bem!", "Boa! Bora mais uma?", "Mandou bem nessa!"};
+              ? new String[] {
+                "Seloko, jogou muito!",
+                "Quaseee! Mandou bem!",
+                "Foi por pouco! GG!",
+                "Essa foi no ultimo suspiro!",
+                "Que luta! Mandou demais!",
+                "Acabou no detalhe! GG!"
+              }
+              : new String[] {
+                "GG! Jogou bem!",
+                "Boa! Bora mais uma?",
+                "Mandou bem nessa!",
+                "Voce leu meu jogo!",
+                "Bela mira! GG!",
+                "Boa troca de hits!"
+              };
       return lines[random.nextInt(lines.length)];
     }
-    String[] lines = {"GG, foi bem!", "Boa luta! Bora de novo?", "Quase! Na proxima voce leva!"};
+    String[] lines = {
+      "GG, foi bem!",
+      "Boa luta! Bora de novo?",
+      "Quase! Na proxima voce leva!",
+      "Essa foi disputada!",
+      "GG! Vamos outra?",
+      "Treino bom! Continua assim!"
+    };
     return lines[random.nextInt(lines.length)];
   }
 

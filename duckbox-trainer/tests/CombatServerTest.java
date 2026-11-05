@@ -72,6 +72,7 @@ public final class CombatServerTest {
         });
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
+    NativeModBootstrap.prepare();
     var storage = LevelStorage.create(Path.of(args[0]));
     var save = storage.createSession("combat");
     var packs = VanillaDataPackProvider.createManager(save);
@@ -210,9 +211,22 @@ public final class CombatServerTest {
     if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
         != 1) throw new AssertionError("ResistanceII not restored");
     options.rules = Options.Rules.INSTA_KILL;
-    active.maintainRules();
+    active.startingBuffs();
     if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
-        != 0) throw new AssertionError("Insta Kill resistance must beI");
+            != 0
+        || owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).isInfinite())
+      throw new AssertionError("Semi Insta starts with finite gap resistanceI");
+    owner
+        .getInventory()
+        .setStack(40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    owner.setHealth(1);
+    owner.timeUntilRegen = 0;
+    if (!owner.damage(world, world.getDamageSources().generic(), 100000))
+      throw new AssertionError("Finite resistance totem fixture");
+    active.maintainRules();
+    if (owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE))
+      throw new AssertionError(
+          "Totem must clear resistance normally when ResistanceII is not forced");
     options.rules = Options.Rules.NORMAL_SPAM;
     active.maintainRules();
     bot.getInventory()
@@ -306,6 +320,7 @@ public final class CombatServerTest {
     world.setBlockState(new BlockPos(0, 68, 0), Blocks.COBWEB.getDefaultState(), 3);
     bot.getInventory()
         .setStack(5, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BLACK_WOOL, 8));
+    world.setBlockState(new BlockPos(0, 63, 0), Blocks.GLASS.getDefaultState(), 3);
     var scaffold = Session.class.getDeclaredMethod("scaffold", int.class);
     scaffold.setAccessible(true);
     if (!(boolean) scaffold.invoke(DuckBox.session, 1000))
@@ -317,6 +332,7 @@ public final class CombatServerTest {
         || bot.getInventory().getStack(5).getCount() != 7)
       throw new AssertionError("Native tower stock/placement");
     DuckBox.session.cleanupBuilding();
+    world.setBlockState(new BlockPos(0, 63, 0), Blocks.STONE.getDefaultState(), 3);
     if (!world.getBlockState(new BlockPos(0, 64, 0)).isAir())
       throw new AssertionError("Tower cleanup");
     bot.teleport(world, 1.5, 67, 0.5, Set.of(), 90, 0, false);
@@ -1053,8 +1069,7 @@ public final class CombatServerTest {
       ticks.setInt(server, 15000 + n);
       bot.tick();
     }
-    if (world.getBlockState(new BlockPos(0, 64, 0)).isOf(Blocks.COBWEB)
-        || world.getBlockState(new BlockPos(0, 65, 0)).isOf(Blocks.COBWEB))
+    if (world.getBlockState(new BlockPos(0, 65, 0)).isOf(Blocks.COBWEB))
       throw new AssertionError(
           "Bot must actively escape/mine its own web without usable elytra: "
               + bot.getPos()
@@ -1109,7 +1124,7 @@ public final class CombatServerTest {
     owner.teleport(world, 0.5, 64, 6.5, Set.of(), 0, 0, false);
     owner.onTeleportationDone();
     for (var mode : Options.Rules.values())
-      for (int rate : new int[] {10, 13, 15}) {
+      for (int rate : new int[] {10, 13, 15, 20}) {
         options.rules = mode;
         options.cps = rate;
         var selectedCps = new Session(owner, bot, options);
@@ -1251,7 +1266,7 @@ public final class CombatServerTest {
     if (savedCps != 13
         || new Session(owner, bot, DuckBox.options).statusText().getString().contains("13 CPS"))
       throw new AssertionError("CPS choice must persist and display");
-    for (int expected : new int[] {15, 10, 13}) {
+    for (int expected : new int[] {15, 20, 10, 13}) {
       DuckBox.control(owner, "cps");
       if (DuckBox.options.cps != expected) throw new AssertionError("CPS cycle order");
     }
@@ -1416,6 +1431,10 @@ public final class CombatServerTest {
       throw new AssertionError("Real command block must start nearest player's round");
     if (boxDispatcher.execute("box parar", blockSource) != 1 || DuckBox.session != null)
       throw new AssertionError("Real command block must stop round and restore player");
+    if (owner.getX() != -146 || owner.getY() != 65 || owner.getZ() != 93)
+      throw new AssertionError("Round end must return owner to configured spawn");
+    owner.teleport(world, -97.5, 79, 111.5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
     System.out.println(
         "PASS REAL COMMAND BLOCKS: native source/Brigadier start-stop/settings/GUI, excludes NPC,"
             + " explicit actor, same-world targeting, permissions, kit editor remote anchor and"
@@ -1514,8 +1533,8 @@ public final class CombatServerTest {
           TrainerChests.visualData(
               placedStockChest, world.getRegistryManager(), new net.minecraft.nbt.NbtCompound());
       var visualClientChest =
-          new net.minecraft.block.entity.ChestBlockEntity(
-              base.up(), placedStockChest.getCachedState());
+          (net.minecraft.block.entity.ChestBlockEntity)
+              placedStockChest.getType().instantiate(base.up(), placedStockChest.getCachedState());
       visualClientChest.read(visualOnly, world.getRegistryManager());
       if (TrainerChests.profile(visualClientChest) != id || visualOnly.contains("Items"))
         throw new AssertionError(
@@ -1638,20 +1657,28 @@ public final class CombatServerTest {
           "Leaving foot camp must mine with native progress, never instant delete");
     var leaving = Session.class.getDeclaredField("leavingFootWeb");
     leaving.setAccessible(true);
-    if (!leaving.getBoolean(tactics))
-      throw new AssertionError("Retreating opponent must trigger leaving the web");
+    if (planted.get(tactics) != null)
+      throw new AssertionError("Retreating opponent must release foot camp without mining feet");
     world.setBlockState(ownFeet, Blocks.AIR.getDefaultState(), 3);
     if ((boolean) footFight.invoke(tactics, 151, 64.0) || planted.get(tactics) != null)
       throw new AssertionError("Removed foot web must release bot back to normal combat");
     tacticOptions.resistance2 = false;
     tactics.maintainRules();
-    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
-            != 0
-        || tacticBot
-                .getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE)
-                .getAmplifier()
-            != 0)
-      throw new AssertionError("Disabling ResistanceII must preserve ResistanceI from gap");
+    for (var actor : List.of(owner, tacticBot)) {
+      var resistance = actor.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE);
+      if (resistance != null && resistance.isInfinite())
+        throw new AssertionError("Disabled ResistanceII must not force infinite resistance");
+    }
+    owner.addStatusEffect(
+        new net.minecraft.entity.effect.StatusEffectInstance(
+            net.minecraft.entity.effect.StatusEffects.RESISTANCE, 6000, 0));
+    tactics.maintainRules();
+    if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).isInfinite())
+      throw new AssertionError("Gap resistance must retain finite duration");
+    owner.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE);
+    tactics.maintainRules();
+    if (owner.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE))
+      throw new AssertionError("Disabled ResistanceII must not reapply effect removed by totem");
     tacticOptions.resistance2 = true;
     tactics.maintainRules();
     if (owner.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE).getAmplifier()
@@ -1689,6 +1716,318 @@ public final class CombatServerTest {
     System.out.println(
         "PASS SETTINGS: compact actionbar, SemiInsta alias, ResistanceII optional, stable 50percent"
             + " retreat decisions when losing health and win/loss bot messages");
+    // Faster immunity window belongs only to opponents in Semi Insta.
+    DuckBox.session = tactics;
+    tacticOptions.rules = Options.Rules.INSTA_KILL;
+    tacticBot.timeUntilRegen = 20;
+    DuckBox.shortenTrainingHitWindow(tacticBot, world.getDamageSources().playerAttack(owner));
+    if (tacticBot.timeUntilRegen != 15) throw new AssertionError("Semi Insta bot damage window");
+    owner.timeUntilRegen = 20;
+    DuckBox.shortenTrainingHitWindow(owner, world.getDamageSources().playerAttack(tacticBot));
+    if (owner.timeUntilRegen != 15) throw new AssertionError("Semi Insta player damage window");
+    tacticOptions.rules = Options.Rules.NORMAL_SPAM;
+    owner.timeUntilRegen = 20;
+    DuckBox.shortenTrainingHitWindow(owner, world.getDamageSources().playerAttack(tacticBot));
+    if (owner.timeUntilRegen != 20)
+      throw new AssertionError("Spam damage immunity must stay native");
+    DuckBox.session = null;
+    SpawnControl.later(owner);
+    int dueSpawn = server.getTicks() + 60;
+    ticks.setInt(server, dueSpawn - 1);
+    SpawnControl.tick(server);
+    if (owner.getX() == -146 && owner.getZ() == 93)
+      throw new AssertionError("Delayed spawn returned before3seconds");
+    ticks.setInt(server, dueSpawn);
+    SpawnControl.tick(server);
+    if (owner.getX() != -146 || owner.getY() != 65 || owner.getZ() != 93)
+      throw new AssertionError("Delayed arena return did not use spawn after60ticks");
+    owner.teleport(world, -140, 65, 90, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    if (boxDispatcher.execute("spawn", owner.getCommandSource()) != 1
+        || owner.getX() != -146
+        || owner.getZ() != 93) throw new AssertionError("Spawn command did not return player");
+    System.out.println(
+        "PASS SPAWN/SEMI: round-end coordinates,3second size return,/spawn and symmetric faster"
+            + " SemiInsta immunity scoped to duel");
+    owner.teleport(world, -140.5, 66, 92.5, Set.of(), 35, 10, false);
+    owner.onTeleportationDone();
+    if (boxDispatcher.execute("box setspawn", owner.getCommandSource().withLevel(2)) != 1)
+      throw new AssertionError("Setspawn command failed");
+    owner.teleport(world, -130, 70, 90, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    boxDispatcher.execute("spawn", owner.getCommandSource());
+    if (owner.getX() != -140.5
+        || owner.getY() != 66
+        || owner.getZ() != 92.5
+        || owner.getYaw() != 35)
+      throw new AssertionError("Spawn must use the saved position and orientation");
+    var spawnDisk =
+        com.google.gson.JsonParser.parseString(Files.readString(config))
+            .getAsJsonObject()
+            .getAsJsonObject("options");
+    if (spawnDisk.get("spawnX").getAsDouble() != -140.5)
+      throw new AssertionError("Setspawn not persisted");
+    LobbyBot.place(owner);
+    var lobbyNpc = server.getPlayerManager().getPlayer(LobbyBot.id());
+    if (lobbyNpc == null
+        || !lobbyNpc.getInventory().isEmpty()
+        || lobbyNpc.getUuid().equals(tacticBot.getUuid()))
+      throw new AssertionError("Lobby NPC must have separate UUID and empty inventory");
+    var anchor = lobbyNpc.getPos();
+    owner.teleport(world, anchor.x + 3, anchor.y, anchor.z, Set.of(), 0, 0, false);
+    owner.onTeleportationDone();
+    LobbyBot.tick(server);
+    if (lobbyNpc.getPos().squaredDistanceTo(anchor) > 0.001
+        || Math.abs(lobbyNpc.getHeadYaw()) < .01)
+      throw new AssertionError("Lobby NPC must stay anchored and look toward player");
+    dev.duckbox.cosmetic.CosmeticState.setLobby(new LobbyBotPayload(lobbyNpc.getUuid(), 15));
+    if (!dev.duckbox.cosmetic.CosmeticState.isBot(lobbyNpc.getUuid())
+        || !dev.duckbox.cosmetic.CosmeticState.enabled(lobbyNpc.getUuid(), 8))
+      throw new AssertionError(
+          "Lobby NPC must keep robot skin/cape and cosmetic mask outside combat");
+    LobbyBot.clear(server);
+    DuckBox.options.lobbyBotEnabled = false;
+    dev.duckbox.cosmetic.CosmeticState.clear();
+    System.out.println(
+        "PASS CONFIGURED SPAWN/LOBBY: saved setspawn coordinates+yaw, separate stationary empty NPC"
+            + " looks at player and retains cosmetic/skin identity");
+    BlockPos panelPos = new BlockPos(0, 64, 0), holoTarget = new BlockPos(2, 64, 0);
+    var panel = dev.duckbox.panels.MapPanels.BLOCKS.get("kit_1");
+    world.setBlockState(panelPos, panel.getDefaultState(), 3);
+    if (!(world.getBlockEntity(panelPos) instanceof dev.duckbox.panels.MapPanelEntity))
+      throw new AssertionError("Registered map panel must create native block entity");
+    var panelNbt =
+        world.getBlockEntity(panelPos).createNbtWithIdentifyingData(world.getRegistryManager());
+    if (!(net.minecraft.block.entity.BlockEntity.createFromNbt(
+            panelPos, panel.getDefaultState(), panelNbt, world.getRegistryManager())
+        instanceof dev.duckbox.panels.MapPanelEntity))
+      throw new AssertionError("Map panel must reload from world NBT");
+    world.setBlockState(holoTarget, Blocks.STONE.getDefaultState(), 3);
+    var firstFace =
+        new net.minecraft.util.hit.BlockHitResult(
+            net.minecraft.util.math.Vec3d.ofCenter(panelPos),
+            net.minecraft.util.math.Direction.NORTH,
+            panelPos,
+            false);
+    var secondFace =
+        new net.minecraft.util.hit.BlockHitResult(
+            net.minecraft.util.math.Vec3d.ofCenter(holoTarget),
+            net.minecraft.util.math.Direction.SOUTH,
+            holoTarget,
+            false);
+    FixedHolograms.command(owner, "<gradient:#00ffff:#ff00ff>Treino</gradient>");
+    if (!FixedHolograms.click(owner, firstFace))
+      throw new AssertionError("Prepared holo must consume block click");
+    var holos =
+        world.getEntitiesByType(
+            net.minecraft.entity.EntityType.TEXT_DISPLAY,
+            new net.minecraft.util.math.Box(panelPos).expand(2),
+            e -> e.getCommandTags().contains("duckbox_holo"));
+    if (holos.size() != 1)
+      throw new AssertionError("Block click must place one native text display");
+    var attached = holos.getFirst();
+    var savedHolo = attached.writeNbt(new net.minecraft.nbt.NbtCompound());
+    if (!savedHolo.getString("billboard").equals("fixed")
+        || Math.abs(attached.getZ() - (panelPos.getZ() - .002)) > .001)
+      throw new AssertionError("Holo must be fixed to block face, never camera billboard");
+    if (savedHolo.getCompound("transformation").getList("scale", 5).getFloat(0) != .5f)
+      throw new AssertionError(
+          "Fixed holo must preserve configured scale in native transformation codec");
+    var holoId = attached.getUuid();
+    FixedHolograms.moveCommand(owner);
+    FixedHolograms.click(owner, firstFace);
+    FixedHolograms.click(owner, secondFace);
+    if (!attached.getUuid().equals(holoId)
+        || Math.abs(attached.getZ() - (holoTarget.getZ() + 1.002)) > .001)
+      throw new AssertionError("Moveholo must move same entity to new fixed block face");
+    if (!attached
+        .writeNbt(new net.minecraft.nbt.NbtCompound())
+        .getString("text")
+        .equals(savedHolo.getString("text")))
+      throw new AssertionError("Moveholo must preserve rich text");
+    FixedHolograms.removeAt(world, holoTarget);
+    if (!attached.isRemoved())
+      throw new AssertionError("Broken support block must remove attached text");
+    if (boxDispatcher.execute("box blocos", owner.getCommandSource().withLevel(2)) != 1
+        || !(owner.currentScreenHandler instanceof dev.duckbox.panels.PanelMenu))
+      throw new AssertionError("Block catalog command did not open menu");
+    if (owner.currentScreenHandler.getSlot(0).canTakeItems(owner))
+      throw new AssertionError("Catalog templates must be locked");
+    owner.closeHandledScreen();
+    System.out.println(
+        "PASS MAP PANELS/HOLOGRAMS:19 native registered blocks, block entity world NBT, right-click"
+            + " fixed text, two-click move preserves UUID/text, support removal and locked"
+            + " catalog");
+    BlockPos oldChestPos = new BlockPos(4, 64, 1);
+    world.setBlockState(oldChestPos, Blocks.CHEST.getDefaultState(), 3);
+    var legacyChest =
+        (net.minecraft.block.entity.ChestBlockEntity) world.getBlockEntity(oldChestPos);
+    legacyChest.readComponents(TrainerChests.item(3));
+    legacyChest.setStack(0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.DIAMOND, 7));
+    var migratedChest = dev.duckbox.chests.MapChests.upgrade(world, legacyChest);
+    if (!(migratedChest instanceof dev.duckbox.chests.DuckChestEntity)
+        || TrainerChests.profile(migratedChest) != 3
+        || migratedChest.getStack(0).getCount() != 7
+        || !migratedChest.getStack(0).isOf(net.minecraft.item.Items.DIAMOND))
+      throw new AssertionError("Legacy chest migration must preserve role and stock");
+    var bareChest =
+        new dev.duckbox.chests.DuckChestEntity(
+            oldChestPos, dev.duckbox.chests.MapChests.STOCK.getDefaultState());
+    if (TrainerChests.profile(bareChest) != 0
+        || !TrainerChests.visualData(
+                bareChest, world.getRegistryManager(), new net.minecraft.nbt.NbtCompound())
+            .contains("duckbox_visual_role"))
+      throw new AssertionError("Custom chest visuals must work without item custom-data marker");
+
+    tacticBot.changeGameMode(GameMode.SURVIVAL);
+    // A stale web position must never make the bot camp at the wrong location.
+    for (int x = -4; x <= 3; x++)
+      for (int z = 4; z <= 5; z++) {
+        world.setBlockState(new BlockPos(x, 63, z), Blocks.STONE.getDefaultState(), 3);
+        for (int y = 64; y <= 67; y++)
+          world.setBlockState(new BlockPos(x, y, z), Blocks.AIR.getDefaultState(), 3);
+      }
+    tacticBot.teleport(world, -1.5, 64, 4.5, Set.of(), -90, 0, false);
+    tacticBot.onTeleportationDone();
+    tacticBot.setOnGround(true);
+    tacticBot.setPose(net.minecraft.entity.EntityPose.STANDING);
+    tacticBot.stopGliding();
+    owner.teleport(world, .5, 64, 4.5, Set.of(), 90, 0, false);
+    owner.onTeleportationDone();
+    tacticOptions.footWeb = false;
+    tacticOptions.retotem = false;
+    tacticOptions.gap = false;
+    BlockPos wrongWeb = new BlockPos(-4, 64, 4);
+    world.setBlockState(wrongWeb, Blocks.COBWEB.getDefaultState(), 3);
+    planted.set(tactics, wrongWeb);
+    if ((boolean) footFight.invoke(tactics, 500000, 4.0) || planted.get(tactics) != null)
+      throw new AssertionError("Bot must not camp at a web outside its bounding box");
+    var ownEscape = Session.class.getDeclaredMethod("escapeOwnWeb", int.class);
+    ownEscape.setAccessible(true);
+    BlockPos ownFeetNow = tacticBot.getBlockPos(),
+        ownHeadNow = BlockPos.ofFloored(tacticBot.getEyePos());
+    world.setBlockState(ownFeetNow, Blocks.COBWEB.getDefaultState(), 3);
+    if ((boolean) ownEscape.invoke(tactics, 500001)
+        || !world.getBlockState(ownFeetNow).isOf(Blocks.COBWEB))
+      throw new AssertionError("Feet-only webs must not interrupt combat for mining");
+    tacticBot.setOnGround(true);
+    tacticBot.setPose(net.minecraft.entity.EntityPose.STANDING);
+    world.setBlockState(ownHeadNow, Blocks.COBWEB.getDefaultState(), 3);
+    if (!(boolean) ownEscape.invoke(tactics, 500002))
+      throw new AssertionError("Standing ground bot must react to head web");
+    var miningTarget = Session.class.getDeclaredField("breakingWeb");
+    miningTarget.setAccessible(true);
+    for (int turn = 0;
+        turn < 12
+            && miningTarget.get(tactics) == null
+            && world.getBlockState(ownHeadNow).isOf(Blocks.COBWEB);
+        turn++) ownEscape.invoke(tactics, 500003 + turn);
+    var mineDeadline = Session.class.getDeclaredField("mineReadyAt");
+    mineDeadline.setAccessible(true);
+    var arenaPredicate = Session.class.getDeclaredMethod("insideArena", BlockPos.class);
+    arenaPredicate.setAccessible(true);
+    if (!ownHeadNow.equals(miningTarget.get(tactics)))
+      throw new AssertionError(
+          "Only head web should be mined: target="
+              + miningTarget.get(tactics)
+              + " head="
+              + ownHeadNow
+              + " state="
+              + world.getBlockState(ownHeadNow)
+              + " mode="
+              + tacticBot.interactionManager.getGameMode()
+              + " tick="
+              + server.getTicks()
+              + " ready="
+              + mineDeadline.getInt(tactics)
+              + " inArena="
+              + arenaPredicate.invoke(tactics, ownHeadNow)
+              + " hand="
+              + tacticBot.getMainHandStack()
+              + " sword0="
+              + tacticBot.getInventory().getStack(0));
+    tacticBot.equipStack(
+        net.minecraft.entity.EquipmentSlot.CHEST,
+        Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM).get(38));
+    tacticBot.setOnGround(false);
+    tacticBot.setVelocity(new net.minecraft.util.math.Vec3d(0, .1, 0));
+    tacticBot.checkGliding();
+    if (!tacticBot.isGliding())
+      throw new AssertionError("Flight escape fixture could not activate elytra");
+    ownEscape.invoke(tactics, 500003);
+    if (miningTarget.get(tactics) != null)
+      throw new AssertionError("Gliding must abort web mining and use movement/rocket");
+    System.out.println(
+        "PASS CHEST MIGRATION/WEB REGRESSIONS: custom role without marker, legacy stock preserved,"
+            + " stale-foot camp released, feet-only no mining, standing head-web mining and flight"
+            + " abort");
+    world.setBlockState(ownFeetNow, Blocks.AIR.getDefaultState(), 3);
+    world.setBlockState(ownHeadNow, Blocks.AIR.getDefaultState(), 3);
+    tacticBot.stopGliding();
+    tacticBot.setOnGround(true);
+    tacticBot.setPose(net.minecraft.entity.EntityPose.STANDING);
+    tacticBot.getInventory().setStack(20, tacticBot.getInventory().getStack(0));
+    tacticBot
+        .getInventory()
+        .setStack(0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLD_INGOT, 3));
+    tacticBot
+        .getInventory()
+        .setStack(
+            2,
+            new net.minecraft.item.ItemStack(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE, 4));
+    var boundedOptions = new Options();
+    boundedOptions.x = 0;
+    boundedOptions.y = 63;
+    boundedOptions.z = 0;
+    boundedOptions.retotem = false;
+    var boundedRecovery = new Session(owner, tacticBot, boundedOptions);
+    var recoveryClock = Session.class.getDeclaredField("clock");
+    recoveryClock.setAccessible(true);
+    recoveryClock.setLong(boundedRecovery, 150);
+    var episodeAt = Session.class.getDeclaredField("recoveryEpisodeAt");
+    episodeAt.setAccessible(true);
+    episodeAt.setInt(boundedRecovery, 1);
+    var healingFlag = Session.class.getDeclaredField("healing");
+    healingFlag.setAccessible(true);
+    healingFlag.setBoolean(boundedRecovery, true);
+    var commitUntil = Session.class.getDeclaredField("attackCommitUntil");
+    commitUntil.setAccessible(true);
+    boundedRecovery.control();
+    if (healingFlag.getBoolean(boundedRecovery)
+        || commitUntil.getInt(boundedRecovery) <= 151
+        || !tacticBot.getInventory().getStack(0).isOf(net.minecraft.item.Items.GOLDEN_SWORD)
+        || !tacticBot.getInventory().getStack(20).isOf(net.minecraft.item.Items.GOLD_INGOT))
+      throw new AssertionError(
+          "Recovery must terminate and restore stored sword without deleting displaced item");
+    for (int step = 0; step < 20; step++) boundedRecovery.control();
+    if (healingFlag.getBoolean(boundedRecovery))
+      throw new AssertionError(
+          "Bot must commit to combat instead of immediately re-entering gap loop");
+    boundedRecovery.closed = true;
+    for (int bar = 6; bar <= 8; bar++)
+      tacticBot
+          .getInventory()
+          .setStack(bar, new net.minecraft.item.ItemStack(net.minecraft.item.Items.GOLDEN_SWORD));
+    for (int reserveSlot = 9; reserveSlot <= 11; reserveSlot++)
+      tacticBot
+          .getInventory()
+          .setStack(
+              reserveSlot,
+              new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    var refillOptions = new Options();
+    refillOptions.difficulty = Options.Difficulty.HIGH;
+    var swordBarRefill = new Session(owner, tacticBot, refillOptions);
+    doRetotem.invoke(swordBarRefill, 600000);
+    doRetotem.invoke(swordBarRefill, 600003);
+    if (swordBarRefill.refillCount() != 1
+        || swordBarRefill.countTotems() != 3
+        || tacticBot.getInventory().count(net.minecraft.item.Items.GOLDEN_SWORD) != 4)
+      throw new AssertionError(
+          "Refill must not stall with swords in slots6..8; preserve swords in reserve");
+    swordBarRefill.closed = true;
+    System.out.println(
+        "PASS COMBAT STALL REGRESSIONS: bounded gap episode, guaranteed combat period, reserve"
+            + " sword recovery and full refill with displaced weapons preserved");
     server.getPlayerManager().remove(tacticBot);
     System.out.println(
         "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"

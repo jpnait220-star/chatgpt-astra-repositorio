@@ -1,5 +1,6 @@
 package dev.duckbox.mixin;
 
+import dev.duckbox.ChestRoleSync;
 import dev.duckbox.TrainerChests;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.item.*;
@@ -17,7 +18,9 @@ public abstract class TrainerChestPlacementMixin {
     if (cir.getReturnValue().isAccepted()
         && context.getWorld() instanceof ServerWorld world
         && world.getBlockEntity(context.getBlockPos()) instanceof ChestBlockEntity chest
-        && TrainerChests.profile(chest) >= 0)
+        && TrainerChests.profile(chest) >= 0) {
+      ChestRoleSync.remember(world, chest);
       world.getChunkManager().markForUpdate(context.getBlockPos());
+    }
   }
 }

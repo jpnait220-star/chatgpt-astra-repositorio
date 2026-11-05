@@ -21,6 +21,7 @@
     "LocalInstaHitDelayMixin",
     "TrainerChestTextureMixin",
     "TrainerChestRenderMixin",
-    "TrainerChestItemMixin"
+    "TrainerChestItemMixin",
+    "PanelModelRegistryAccessor"
   ]
 }

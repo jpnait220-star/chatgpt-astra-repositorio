@@ -16,15 +16,18 @@ public final class TrainingBot extends ServerPlayerEntity {
   private int lastServerTick = Integer.MIN_VALUE;
 
   public TrainingBot(MinecraftServer server, ServerWorld world) {
-    super(
+    this(
         server,
         world,
         new GameProfile(
             UUID.nameUUIDFromBytes(
                 ("DuckBox:" + server.getSaveProperties().getLevelName())
                     .getBytes(java.nio.charset.StandardCharsets.UTF_8)),
-            "DuckBot"),
-        SyncedClientOptions.createDefault());
+            "DuckBot"));
+  }
+
+  public TrainingBot(MinecraftServer server, ServerWorld world, GameProfile profile) {
+    super(server, world, profile, SyncedClientOptions.createDefault());
   }
 
   private long incomingHits,

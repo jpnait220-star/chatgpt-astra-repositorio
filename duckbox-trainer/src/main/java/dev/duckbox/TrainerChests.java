@@ -19,7 +19,11 @@ public final class TrainerChests {
   public static ItemStack item(int profile) {
     if (profile < 0 || profile > 4)
       throw new IllegalArgumentException("Bau: stock ou profile1..4.");
-    var stack = new ItemStack(Items.CHEST);
+    var stack =
+        new ItemStack(
+            profile == 0
+                ? dev.duckbox.chests.MapChests.STOCK
+                : dev.duckbox.chests.MapChests.PROFILE);
     var data = new NbtCompound();
     data.putInt(KEY, profile);
     stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(data));
@@ -35,8 +39,13 @@ public final class TrainerChests {
   }
 
   public static int profile(ChestBlockEntity chest) {
+    int synced = ChestRoleSync.clientRole(chest);
+    if (synced >= 0) return synced;
     var data = chest.getComponents().get(DataComponentTypes.CUSTOM_DATA);
-    if (data == null || !data.contains(KEY)) return -1;
+    if (data == null || !data.contains(KEY))
+      return chest.getCachedState().getBlock() instanceof dev.duckbox.chests.DuckChestBlock block
+          ? block.baseRole
+          : -1;
     int id = data.copyNbt().getInt(KEY);
     return id >= 0 && id <= 4 ? id : -1;
   }
@@ -47,11 +56,11 @@ public final class TrainerChests {
       net.minecraft.nbt.NbtCompound base) {
     var result = base.copy();
     if (profile(chest) < 0) return result;
+    var roleData = new NbtCompound();
+    roleData.putInt(KEY, profile(chest));
     var components =
         net.minecraft.component.ComponentMap.builder()
-            .add(
-                DataComponentTypes.CUSTOM_DATA,
-                chest.getComponents().get(DataComponentTypes.CUSTOM_DATA))
+            .add(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(roleData))
             .build();
     net.minecraft.component.ComponentMap.CODEC
         .encodeStart(registries.getOps(net.minecraft.nbt.NbtOps.INSTANCE), components)

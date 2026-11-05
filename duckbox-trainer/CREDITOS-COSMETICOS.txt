@@ -24,3 +24,5 @@ ao Insta Kill durante DuckBox. Fontes do patch em patch_mouse.py/tests.
 Texturas originais dos baus indicadas pelo usuario (sem edicao):
 Azul, бравл старс ящик, NovaSkin https://minecraft.novaskin.me/skin/3527393028
 Roxo, cofre pequeño, NovaSkin https://minecraft.novaskin.me/skin/4850063036
+
+Paineis do mapa: imagens originais fornecidas pelo usuario nos arquivos Kits_BoxPvP_1_a_4(1).zip e BoxPvP_Texturas(1).zip. Arquivos PNG preservados sem edicao.

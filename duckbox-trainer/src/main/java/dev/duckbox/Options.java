@@ -79,12 +79,19 @@ public final class Options {
   public int profile = 1;
 
   public static boolean allowedCps(int cps) {
-    return cps == 10 || cps == 13 || cps == 15;
+    return cps == 10 || cps == 13 || cps == 15 || cps == 20;
   }
 
   public static int nextCps(int cps) {
-    return cps == 10 ? 13 : cps == 13 ? 15 : 10;
+    return cps == 10 ? 13 : cps == 13 ? 15 : cps == 15 ? 20 : 10;
   }
+
+  public double spawnX = -146, spawnY = 65, spawnZ = 93;
+  public float spawnYaw = 0, spawnPitch = 0;
+  public String spawnDimension = "";
+  public boolean lobbyBotEnabled = false;
+  public double lobbyBotX, lobbyBotY, lobbyBotZ;
+  public String lobbyBotDimension = "minecraft:overworld";
 
   public boolean initialized = false, built = false;
   public static final int ARENA_X = -5, ARENA_Y = 78, ARENA_Z = 111;
