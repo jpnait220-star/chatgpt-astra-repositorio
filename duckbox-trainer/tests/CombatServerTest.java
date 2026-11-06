@@ -2497,7 +2497,17 @@ public final class CombatServerTest {
     bot.setSprinting(true); owner.setSprinting(true);
     if (DuckBox.sprintBlocksCritical(bot) || !bot.isSprinting() || !DuckBox.sprintBlocksCritical(owner))
       throw new AssertionError("Scoped sprint critical rule must preserve actual sprint and ordinary player rules");
-    rules.closed = true; DuckBox.session = null;
+    bot.setOnGround(false); bot.startGliding(); bot.fallDistance = 0;
+    bot.setVelocity(new net.minecraft.util.math.Vec3d(.1, -.15, 0));
+    if (DuckBox.criticalFallDistance(bot) <= 0 || bot.fallDistance != 0 || !bot.isSprinting())
+      throw new AssertionError("Descending elytra needs critical predicate without changing actual physics or sprint");
+    bot.setVelocity(new net.minecraft.util.math.Vec3d(0, .2, 0));
+    if (DuckBox.criticalFallDistance(bot) != 0) throw new AssertionError("Ascending elytra must not crit");
+    bot.setOnGround(true); bot.setVelocity(new net.minecraft.util.math.Vec3d(0, -.1, 0));
+    if (DuckBox.criticalFallDistance(bot) != 0) throw new AssertionError("Ground must not crit");
+    bot.setOnGround(false); rules.closed = true;
+    if (DuckBox.criticalFallDistance(bot) != 0) throw new AssertionError("Lobby must not alter crits");
+    DuckBox.session = null;
     System.out.println("PASS OFFHAND/REGEN/CRIT: zero-totem bonus offhand,25HP healing ceiling with exact thresholds and retreat/gap exceptions, scoped sprint-critical permission without changing sprint");
 
     // The generated shell must resize even if an older import incorrectly marked it custom.
@@ -2557,6 +2567,25 @@ public final class CombatServerTest {
         throw new AssertionError("Native falling crit must genuinely increase damage");
       System.out.println("PASS DAMAGE PARITY: critical=" + critical + " player=" + damage[0] + " bot=" + damage[1] + "; offhand1.5active on both");
     }
+      // Exercise the actual transformed PlayerEntity.attack, with elytra and sprint.
+    var cfg = new Options();
+    var fight = new Session(owner, bot, cfg); DuckBox.session = fight;
+    bot.session = fight;
+    float[] airDamage = new float[2];
+    for (int direction = 0; direction < 2; direction++) {
+      owner.setHealth(owner.getMaxHealth()); owner.setAbsorptionAmount(0); owner.timeUntilRegen = 0;
+      bot.setHealth(bot.getMaxHealth()); bot.setAbsorptionAmount(0); bot.timeUntilRegen = 0;
+      bot.stopUsingItem(); bot.getInventory().selectedSlot = 0;
+      bot.setOnGround(false); bot.startGliding(); bot.setSprinting(true); bot.fallDistance = 0;
+      bot.setVelocity(new net.minecraft.util.math.Vec3d(0, direction == 0 ? .15 : -.005, 0));
+      var cooldown = net.minecraft.entity.LivingEntity.class.getDeclaredField("field_6273");
+      cooldown.setAccessible(true); cooldown.setInt(bot, 30);
+      float hp = owner.getHealth(); bot.attack(owner); airDamage[direction] = hp - owner.getHealth();
+    }
+    if (airDamage[0] <= 0 || airDamage[1] <= airDamage[0] || bot.fallDistance != 0)
+      throw new AssertionError("Actual woven elytra sprint crit must increase falling damage without changing fallDistance: " + java.util.Arrays.toString(airDamage));
+    fight.closed = true; bot.session = null; DuckBox.session = null;
+    System.out.println("PASS ACTUAL WOVEN CRITICAL: elytra ascending=" + airDamage[0] + " descending=" + airDamage[1] + " sprint remains active");
   }
 
   private static void verifyBlockedTower(net.minecraft.server.MinecraftServer server,

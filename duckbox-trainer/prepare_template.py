@@ -11,14 +11,16 @@ root=B/'dist/DuckBoxTreino'
 if root.exists():shutil.rmtree(root)
 root.mkdir(parents=True)
 with ZipFile(source) as archive:
+ world_roots=[PurePosixPath(n).parts[0] for n in archive.namelist() if n.endswith('/level.dat') and len(PurePosixPath(n).parts)==2]
+ if len(world_roots)!=1:raise ValueError('ZIP precisa conter uma pasta de mundo com level.dat.')
  for item in archive.infolist():
   p=PurePosixPath(item.filename)
-  if not p.parts or p.parts[0] not in ['DuckBoxTreino','Mundo de Duckzin'] or '..' in p.parts or item.is_dir():continue
+  if not p.parts or p.parts[0] != world_roots[0] or '..' in p.parts or item.is_dir():continue
   parts=p.parts[1:]
   if not parts or parts[0] in ['playerdata','advancements','stats'] or parts[-1] in ['session.lock','level.dat_old']:continue
   dest=root.joinpath(*parts);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(archive.read(item))
 config=json.loads((root/'duckbox-training.json').read_text())
-config['options'].update(customMap=False,autoBuildOnJoin=False,initialized=True,built=True)
+config['options'].update(autoBuildOnJoin=False,initialized=True,built=True)
 config["emptyProfilesRevision"]=1
 for number in ["2","3","4"]:config.setdefault("kitProfiles",{})[number]={"inventory":[None]*41}
 config['backups']={}

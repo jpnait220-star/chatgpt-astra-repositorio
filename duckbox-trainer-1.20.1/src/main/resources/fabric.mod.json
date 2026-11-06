@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "duckbox",
+  "version": "0.3.30-alpha",
+  "name": "Duck Box Trainer",
+  "description": "Treino experimental de Box PvP: bot jogador, arena e kit configuraveis. Minecraft 1.20.1.",
+  "authors": [
+    "Duck"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.duckbox.DuckBox"
+    ],
+    "client": [
+      "dev.duckbox.DuckBoxClient"
+    ]
+  },
+  "mixins": [
+    "duckbox.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "1.20.1",
+    "java": ">=17",
+    "fabric-api": ">=0.92.6"
+  },
+  "icon": "assets/duckbox/icon.png"
+}

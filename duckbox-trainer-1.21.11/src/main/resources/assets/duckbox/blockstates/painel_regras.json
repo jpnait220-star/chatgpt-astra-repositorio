@@ -1,0 +1,1 @@
+{"variants": {"facing=north": {"model": "duckbox:block/map_panel"}, "facing=south": {"model": "duckbox:block/map_panel"}, "facing=east": {"model": "duckbox:block/map_panel"}, "facing=west": {"model": "duckbox:block/map_panel"}}}

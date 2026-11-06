@@ -78,13 +78,19 @@ public class MixinTest {
         throw new AssertionError("missing shooter accessor");
       if (target.endsWith("class_1657")) {
         var attack = changed.methods.stream().filter(m -> m.name.equals("method_7324")).findFirst().orElseThrow();
-        int nativeSprint = 0, scopedCrit = 0;
+        int nativeSprint = 0, scopedCrit = 0, descent = 0;
         for (var instruction : attack.instructions) if (instruction instanceof MethodInsnNode call) {
           if (call.name.equals("method_5624")) nativeSprint++;
           if (call.name.contains("critSprint")) scopedCrit++;
+          if (call.name.contains("critDescent")) descent++;
         }
-        if (nativeSprint != 1 || scopedCrit != 1)
+        if (nativeSprint != 1 || scopedCrit != 1 || descent != 1)
           throw new AssertionError("Sprint critical hook must preserve native knockback and change only critical check");
+      }
+      if (target.endsWith("class_1657") && System.getProperty("duckbox.woven") != null) {
+        try (var archive = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(System.getProperty("duckbox.woven")))) {
+          archive.putNextEntry(new java.util.zip.ZipEntry(target + ".class")); archive.write(result); archive.closeEntry();
+        }
       }
       System.out.println(
           "PASS real Mixin APPLY "

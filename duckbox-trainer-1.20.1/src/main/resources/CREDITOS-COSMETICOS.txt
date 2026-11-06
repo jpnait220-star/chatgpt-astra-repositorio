@@ -1,0 +1,8 @@
+Duck Box Trainer: codigo independente do DuckClientZ.
+Modelos, texturas e animacoes dos packs fornecidos pelo usuario, creditados aos
+respectivos criadores originais. Identificadores mantidos:
+- demon2024BloodFists
+- theobaldMoneyAura
+- gamerGamerGlasses
+- spring2025FrogHat
+O codigo do treinador usa MIT; essa licenca nao altera os direitos dos assets.

@@ -39,3 +39,5 @@ Mapa Mundo de Duckzin: DuckBoxTreino.zip fornecido pelo usuario; construcoes,
 perfis, regioes e entidades preservados. Dados pessoais de jogadores omitidos.
 
 Avatar de Robo e Pato Cibernetico: imagem fornecida pelo usuario em Nova pasta.zip. Original preservado em art/avatar-original.png; apenas redimensionado para os icones do mod e do mundo, sem recorte.
+
+Mapa atual: Mundo de Duckzin (3).zip, fornecido pelo autor. SHA256 original: 90cbbfee41f405c8b0fa0eb61396c720c828451cff04eee162ef64a19d8bae34

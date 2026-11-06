@@ -1,0 +1,1 @@
+{"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [{"type": "minecraft:item", "name": "duckbox:painel_nao_correr_retotem"}], "conditions": [{"condition": "minecraft:survives_explosion"}]}]}

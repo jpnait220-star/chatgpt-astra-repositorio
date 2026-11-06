@@ -615,6 +615,14 @@ public final class DuckBox implements ModInitializer {
                                                         })))))));
   }
 
+  public static float criticalFallDistance(net.minecraft.entity.player.PlayerEntity player) {
+    if (player instanceof TrainingBot bot && bot.session != null && !bot.session.closed
+        && !bot.session.countingDown() && !player.isOnGround()
+        && player.isGliding() && player.getVelocity().y < 0)
+      return Math.max(player.fallDistance, 0.01f);
+    return player.fallDistance;
+  }
+
   public static boolean sprintBlocksCritical(net.minecraft.entity.player.PlayerEntity player) {
     if (player instanceof TrainingBot bot && bot.session != null && !bot.session.closed
         && !bot.session.countingDown()) return false;

@@ -1,0 +1,27 @@
+{
+  "required": true,
+  "package": "dev.duckbox.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "WebMovementMixin",
+    "RocketBoostMixin",
+    "TrainingPvpMixin",
+    "WebMovementAccess",
+    "WebPacketMovementMixin",
+    "TrainerChestSyncMixin",
+    "TrainerChestPlacementMixin",
+    "TrainerCriticalMixin",
+    "TrainerHealingMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "client": [
+    "CosmeticArmMixin",
+    "BotSkinEntryMixin",
+    "LocalInstaHitDelayMixin",
+    "TrainerChestTextureMixin",
+    "TrainerChestRenderMixin",
+    "BotHeadEquipmentMixin"
+  ]
+}
