@@ -32,6 +32,8 @@ public final class Session {
   private float webBreakProgress;
   private int breakStartedAt, mineReadyAt;
   private boolean mineStopSent;
+  private BlockPos minePrepared;
+  private int minePrepareAt;
   private final Map<BlockPos, net.minecraft.block.BlockState> builtBlocks = new HashMap<>();
   private int rocketAt,
       webAt,
@@ -52,7 +54,7 @@ public final class Session {
 
   private int side = 1, damageCount, gapsLeft, healingStartedAt, appleCountBefore, escapeUntil;
   private float lastHealth, fullHealth;
-  private boolean healing, escaping, airGap, strafeActive;
+  private boolean healing, escaping, airGap, strafeActive, finishAppleThenFight;
   private boolean groundRecovery, landingForGap;
   private int tankGroundAt = 160, landingUntil;
 
@@ -72,6 +74,8 @@ public final class Session {
   private BlockPos plantedFootWeb;
   private boolean leavingFootWeb;
   private int footRetryAt, footAttackWebAt;
+  private int ownerTotemUses, botTotemUses;
+  private int lastOwnerPopAt = -10000, lastBotPopAt = -10000;
 
   /** In this aggressive mode recovery is allowed only when the opponent retreats to eat. */
   private int recoveryEpisodeAt, attackCommitUntil, gapResponseAt;
@@ -81,7 +85,7 @@ public final class Session {
   private boolean recoveryChoice;
 
   public boolean mayRecover(boolean opponentEating, double squaredDistance) {
-    if (!o.noRetreatRetotem || (opponentEating && squaredDistance > 9)) return true;
+    if (countTotems() <= 2 || !o.noRetreatRetotem || (opponentEating && squaredDistance > 9)) return true;
     boolean losing =
         Aim.fraction(bot.getHealth(), bot.getMaxHealth()) + .04
             < Aim.fraction(owner.getHealth(), owner.getMaxHealth());
@@ -105,6 +109,8 @@ public final class Session {
     clickRate = Options.allowedCps(options.cps) ? options.cps : 15;
     clicks = new CpsCadence(clickRate);
     b.session = this;
+    ownerTotemUses = p.getStatHandler().getStat(net.minecraft.stat.Stats.USED, Items.TOTEM_OF_UNDYING);
+    botTotemUses = b.getStatHandler().getStat(net.minecraft.stat.Stats.USED, Items.TOTEM_OF_UNDYING);
     lastHealth = b.getHealth() + b.getAbsorptionAmount();
     aimX = p.getX();
     aimY = p.getEyeY();
@@ -193,10 +199,35 @@ public final class Session {
     } else if (countdownTicks % 20 == 0) showCount(Integer.toString(countdownTicks / 20));
   }
 
+  private boolean committedApple() {
+    if (!healing || !bot.isUsingItem()) return false;
+    var item = bot.getActiveItem();
+    if (!item.isOf(Items.GOLDEN_APPLE) && !item.isOf(Items.ENCHANTED_GOLDEN_APPLE)) return false;
+    int used = bot.getItemUseTime(), total = used + bot.getItemUseTimeLeft();
+    return total > 0 && used * 5 >= total * 3;
+  }
+
+  private float combatAimSpeed() {
+    return o.difficulty.aimSpeed * (countTotems() <= 2 ? 1.1f : 1);
+  }
+
   private int speedPotionAt, potionCrouchUntil;
+  private boolean initialPotionChecked;
 
   private boolean useSpeedPotion(int t) {
-    if (t < speedPotionAt || bot.hasStatusEffect(StatusEffects.SPEED)) return false;
+    return useSpeedPotion(t, false);
+  }
+
+  private boolean useSpeedPotion(int t, boolean preparingGap) {
+    boolean initial = !initialPotionChecked && t <= 20;
+    initialPotionChecked = true;
+    if (committedApple() || t < speedPotionAt || bot.hasStatusEffect(StatusEffects.SPEED)) return false;
+    double distance = bot.squaredDistanceTo(owner);
+    boolean opponentRecovering = owner.isUsingItem() && distance > 9
+        && (owner.getActiveItem().isOf(Items.GOLDEN_APPLE)
+            || owner.getActiveItem().isOf(Items.ENCHANTED_GOLDEN_APPLE));
+    if (!initial && !preparingGap && !healing && !escaping && !landingForGap
+        && distance <= 25 && !opponentRecovering) return false;
     int chosen = -1, bestPower = -1, bestDuration = -1;
     for (int i = 0; i < 36; i++) {
       var stack = bot.getInventory().getStack(i);
@@ -216,7 +247,8 @@ public final class Session {
     }
     speedPotionAt = t + 20;
     if (chosen < 0) return false;
-    if (healing || escaping || landingForGap) endRecovery(t, 30);
+    boolean resumeGap = healing || escaping || landingForGap || preparingGap;
+    if (healing || escaping || landingForGap) endRecovery(t, 3);
     if (chosen >= 9) {
       var displaced = bot.getInventory().getStack(4);
       bot.getInventory().setStack(4, bot.getInventory().getStack(chosen));
@@ -238,6 +270,7 @@ public final class Session {
     heldUntil = t + (drinking ? Math.max(3, bot.getItemUseTimeLeft() + 1) : 3);
     phase = drinking ? "Bebendo Speed" : "Potando Speed";
     if (!drinking) selectSword();
+    if (resumeGap) { gapWait = t + 3; attackCommitUntil = t + 3; }
     return true;
   }
 
@@ -280,6 +313,7 @@ public final class Session {
       return;
     }
     int t = (int) ++clock;
+    trackTotemPops(t);
     var d = o.difficulty;
     if (!owner.isAlive()
         || owner.isDisconnected()
@@ -294,22 +328,27 @@ public final class Session {
     fullHealth = Math.max(fullHealth, bot.getMaxHealth());
     double dist = bot.squaredDistanceTo(owner);
     float health = bot.getHealth();
+    if (countTotems() <= 2) {
+      gapWait = Math.min(gapWait, t + 35);
+      attackCommitUntil = Math.min(attackCommitUntil, t + 25);
+    }
     if (t % 30 == 0 && random.nextBoolean()) side = -side;
     if (t % d.reaction == 0) strafeActive = random.nextDouble() < d.strafe;
     float vitality = health + bot.getAbsorptionAmount();
     if (vitality < lastHealth) {
       damageCount++;
-      if ((healing || escaping) && damageCount >= 2) endRecovery(t, 45);
+      if (committedApple()) finishAppleThenFight = true;
+      if ((healing || escaping) && damageCount >= 2 && !committedApple()) endRecovery(t, 45);
     } else if (t % 40 == 0) damageCount = 0;
     lastHealth = vitality;
     if (!o.tank
         && recoveryEpisodeAt > 0
         && (healing || escaping || landingForGap)
-        && t - recoveryEpisodeAt >= 100) endRecovery(t, 100);
+        && t - recoveryEpisodeAt >= 100 && !committedApple()) endRecovery(t, 100);
 
     if (!healing && !escaping && !landingForGap && pendingSlot < 0 && heldUntil <= t)
       ensureSwordInHotbar();
-    if (o.retotem && retotem(t)) return;
+    if (o.retotem && !committedApple() && retotem(t)) return;
     if (heldUntil > t) {
       phase = "Trocando item";
       return;
@@ -329,7 +368,8 @@ public final class Session {
     boolean opponentEatingNow =
         owner.isUsingItem()
             && owner.getActiveItem().contains(net.minecraft.component.DataComponentTypes.FOOD);
-    if (!mayRecover(opponentEatingNow, dist) && (healing || escaping || landingForGap))
+    if (committedApple() && !mayRecover(opponentEatingNow, dist)) finishAppleThenFight = true;
+    if (!committedApple() && !mayRecover(opponentEatingNow, dist) && (healing || escaping || landingForGap))
       endRecovery(t, 10);
     boolean retreatForHealth =
         o.noRetreatRetotem
@@ -342,23 +382,27 @@ public final class Session {
         bot.getServerWorld()
             .getBlockState(BlockPos.ofFloored(bot.getEyePos()))
             .isOf(net.minecraft.block.Blocks.COBWEB);
-    if (ownFaceWeb && (healing || escaping || landingForGap)) endRecovery(t, 100);
-    if (ownFaceWeb && bot.isGliding()) escapeOwnWeb(t);
-    if (ownFaceWeb && bot.isOnGround() && !bot.isGliding()) {
+    if (ownFaceWeb && !committedApple() && (healing || escaping || landingForGap)) endRecovery(t, 100);
+    if (ownFaceWeb && !committedApple() && bot.isGliding()) escapeOwnWeb(t);
+    if (ownFaceWeb && !committedApple() && bot.isOnGround() && !bot.isGliding()) {
       plantedFootWeb = null;
       leavingFootWeb = false;
       footRetryAt = t + 60;
       if (escapeOwnWeb(t)) return;
     }
-    if ((!retreatForHealth || plantedFootWeb != null) && footWebFight(t, dist)) return;
+    if (!committedApple() && (!retreatForHealth || plantedFootWeb != null) && footWebFight(t, dist)) return;
     if (!healing && !escaping && !landingForGap && escapeOwnWeb(t)) return;
     // A consumed apple decreases the real inventory count; interruption does not.
     if (healing && !bot.isUsingItem()) {
-      if (apples() < appleCountBefore) gapsLeft--;
+      if (apples() < appleCountBefore) {
+        gapsLeft--;
+        if (finishAppleThenFight) gapsLeft = 0;
+      }
       if (gapsLeft > 0 && health < bot.getMaxHealth() - 2) startApple(t);
       else endRecovery(t, 30);
     }
     if (healing && t - healingStartedAt > 45) endRecovery(t, 35);
+    boolean scarceTotems = countTotems() <= 2;
     boolean behind =
         Aim.fraction(health, bot.getMaxHealth()) + 0.12
             < Aim.fraction(owner.getHealth(), owner.getMaxHealth());
@@ -374,11 +418,12 @@ public final class Session {
         && !landingForGap
         && gapsLeft == 0
         && o.gap
-        && mayRecover(otherEating, dist)
+        && (scarceTotems || mayRecover(otherEating, dist))
         && (respondingToGap || t > gapWait && t >= attackCommitUntil)
         && (health < bot.getMaxHealth() - 4 || tankGroundDue)
-        && (behind || otherEating || o.tank || health < bot.getMaxHealth() * 0.55)
+        && (behind || otherEating || o.tank || scarceTotems && health < bot.getMaxHealth() * .9 || health < bot.getMaxHealth() * 0.55)
         && apples() > 0) {
+      if (useSpeedPotion(t, true)) return;
       recoveryEpisodeAt = t;
       if (respondingToGap) gapResponseAt = t + 20;
       groundRecovery = o.tank && (tankGroundDue || random.nextDouble() < 0.40);
@@ -453,6 +498,7 @@ public final class Session {
             case HIGH -> 0.09;
             case EXPERT -> 0.035;
           };
+      if (scarceTotems) error *= .9;
       aimX = point.x + random.nextGaussian() * error;
       aimY = point.y + random.nextGaussian() * error;
       aimZ = point.z + random.nextGaussian() * error;
@@ -491,9 +537,20 @@ public final class Session {
     }
 
     BlockPos trapped = webAtOwner();
-    boolean elevatedWeb = trapped != null && owner.getY() > o.y + 2.5;
+    boolean elevatedWeb = owner.getY() > o.y + 2.5
+        && (trapped != null || owner.isOnGround());
+    BlockPos elevatedTarget = trapped != null ? trapped : owner.getBlockPos();
     boolean feetTrappedTarget =
         trapped != null && !elevatedWeb && trapped.getY() <= owner.getBlockPos().getY();
+    boolean headTrappedTarget = headWeb() != null && !elevatedWeb;
+    boolean safeWebCombat = feetTrappedTarget || headTrappedTarget;
+    if (headTrappedTarget && !healing && !escaping && !o.tank) {
+      maneuverUntil = 0;
+      bot.stopGliding();
+      bot.setSneaking(false);
+      if (bot.getPos().subtract(owner.getPos()).horizontalLengthSquared() < 4)
+        brakeIntoWeb();
+    }
     if (feetTrappedTarget && !healing && !escaping && !o.tank) {
       maneuverUntil = 0;
       aim = owner.getPos().add(0, owner.getHeight() * .65, 0);
@@ -507,10 +564,10 @@ public final class Session {
       webRoute = WebRoute.NONE;
       routeTarget = null;
       towerColumn = null;
-    } else if (webRoute == WebRoute.NONE || !trapped.equals(routeTarget) || t >= routeUntil) {
-      routeTarget = trapped;
+    } else if (webRoute == WebRoute.NONE || !elevatedTarget.equals(routeTarget) || t >= routeUntil) {
+      routeTarget = elevatedTarget;
       routeUntil = t + 140;
-      webRoute = buildingSlot() < 0 || (webRouteAttempts++ & 1) != 0
+      webRoute = buildingSlot() < 0 || (trapped != null && (webRouteAttempts++ & 1) != 0)
           ? WebRoute.AIR : WebRoute.TOWER;
       towerColumn = webRoute == WebRoute.TOWER ? chooseTowerColumn() : null;
       if (webRoute == WebRoute.TOWER && towerColumn == null) webRoute = WebRoute.AIR;
@@ -536,12 +593,12 @@ public final class Session {
                 : owner.getEyePos();
         phase = webRoute == WebRoute.TOWER ? "Aproximando para torre" : "Voando ate o alvo na teia";
       }
-      if (breakTargetWeb() || breakBlockingWool()) return;
+      if (breakTargetWeb() || (!(elevatedWeb && webRoute == WebRoute.TOWER) && breakBlockingWool())) return;
       if (headWeb() != null && !(elevatedWeb && webRoute == WebRoute.TOWER))
         aim = owner.getPos().add(0, Math.min(0.18, owner.getHeight() * 0.35), 0);
     }
     if (o.tank && !healing && !escaping && !landingForGap && breakBlockingWool()) return;
-    look(aim, d.aimSpeed);
+    look(aim, combatAimSpeed());
     bot.setHeadYaw(bot.getYaw());
     bot.setBodyYaw(bot.getYaw());
     bot.setSprinting(!healing);
@@ -554,22 +611,30 @@ public final class Session {
           bot.getZ() - towerColumn.getZ() - .5);
       bot.forwardSpeed = alignment < .8 ? .3f : 1;
     }
-    if (o.strafe && !healing && !escaping && !elevatedWeb && !feetTrappedTarget && strafeActive)
+    if (o.strafe && !healing && !escaping && !elevatedWeb && !safeWebCombat && strafeActive)
       bot.sidewaysSpeed = side;
     if (o.wtap && !escaping && owner.getY() > bot.getY() + 1 && dist < 12 && t % 18 < 3)
       bot.forwardSpeed = 0;
-    if (!groundRecovery && !(feetTrappedTarget && dist < 12)
+    if (!groundRecovery && !headTrappedTarget && !(safeWebCombat && dist < 12)
         && !(elevatedWeb && webRoute == WebRoute.TOWER)
         && bot.isOnGround() && t >= jumpAt) {
       bot.jump();
       jumpAt = t + 8 + random.nextInt(4);
     } else if (!groundRecovery
+        && !headTrappedTarget
         && !bot.isOnGround()
         && !bot.isGliding()
-        && !(feetTrappedTarget && dist < 12)
+        && !(safeWebCombat && dist < 12)
         && !(elevatedWeb && webRoute == WebRoute.TOWER)
         && bot.getVelocity().y > -0.6
         && bot.getVelocity().y < 0.35) bot.checkGliding();
+    if (headTrappedTarget && !healing && !escaping && !o.tank) {
+      double horizontal = Math.sqrt(bot.getPos().subtract(owner.getPos()).horizontalLengthSquared());
+      bot.forwardSpeed = horizontal < 1.5 ? -.6f : horizontal > 1.9 ? .7f : 0;
+      bot.sidewaysSpeed = 0;
+      bot.setSprinting(false);
+      phase = "Mantendo distancia / atacando os pes";
+    }
     // Match crouching to actual elytra flight, including the tick it starts.
     bot.setSneaking(bot.isGliding());
     if (escaping && bot.isGliding()) useRocket(t);
@@ -590,7 +655,7 @@ public final class Session {
             && dist < 324;
     boolean near = dist >= 4 && dist < 30;
     if (o.giro
-        && !feetTrappedTarget
+        && !safeWebCombat
         && bot.isGliding()
         && !healing
         && !escaping
@@ -606,7 +671,7 @@ public final class Session {
       }
     } else if (o.tank && o.giro && !healing && bot.isGliding()) useRocket(t);
     if (o.teia
-        && !feetTrappedTarget
+        && !safeWebCombat
         && !(dist <= attackReach() * attackReach() && canHit())
         && t >= webAt
         && !healing
@@ -675,7 +740,7 @@ public final class Session {
 
   private void settleGroundGap() {
     if (!healing || !bot.isOnGround() || groundRecovery) return;
-    if (sustainedAirGap() && clock < escapeUntil) {
+    if (sustainedAirGap() && clock < escapeUntil && !committedApple()) {
       bot.stopUsingItem();
       healing = false;
       escaping = true;
@@ -720,8 +785,8 @@ public final class Session {
   private void endRecovery(int t, int pause) {
     boolean wasRecovery = healing || escaping || landingForGap;
     if (wasRecovery && !o.tank) {
-      attackCommitUntil = t + 80;
-      pause = Math.max(pause, 100);
+      attackCommitUntil = t + (countTotems() <= 2 ? 25 : 80);
+      pause = Math.max(pause, countTotems() <= 2 ? 35 : 100);
     }
     bot.stopUsingItem();
     healing = false;
@@ -730,6 +795,7 @@ public final class Session {
     if (groundRecovery && o.tank) tankGroundAt = t + 160 + random.nextInt(161);
     groundRecovery = false;
     gapsLeft = 0;
+    finishAppleThenFight = false;
     gapWait = Math.max(gapWait, t + pause);
     selectSword();
   }
@@ -1011,7 +1077,8 @@ public final class Session {
     breakingWeb = null;
     webBreakProgress = 0;
     mineStopSent = false;
-    mineReadyAt = now + 5;
+    mineReadyAt = now + 8;
+    minePrepared = null;
     selectSword();
   }
 
@@ -1056,6 +1123,7 @@ public final class Session {
       mineStopSent = false;
     }
     if (!reachable) {
+      minePrepared = null;
       selectSword();
       return false;
     }
@@ -1069,6 +1137,11 @@ public final class Session {
     Vec3d direction = Vec3d.ofCenter(target).subtract(bot.getEyePos()).normalize();
     if (bot.getRotationVec(1).dotProduct(direction) < 0.98) return true;
     if (breakingWeb == null) {
+      if (!target.equals(minePrepared)) {
+        minePrepared = target.toImmutable();
+        minePrepareAt = now + 4;
+      }
+      if (now < minePrepareAt) return true;
       breakingWeb = target;
       breakStartedAt = now;
       mineStopSent = false;
@@ -1117,7 +1190,7 @@ public final class Session {
             && !(block.getBlock() instanceof net.minecraft.block.BlockEntityProvider)
             && (pass == 0
                 ? block.getBlock().getDefaultState().isIn(net.minecraft.registry.tag.BlockTags.WOOL)
-                : block.getBlock().getDefaultState().isFullCube(bot.getServerWorld(), bot.getBlockPos())))
+                : false))
           return find(stack.getItem(), true);
       }
     return -1;
@@ -1174,7 +1247,7 @@ public final class Session {
     return Math.abs(pos.getX() - o.x) < o.size / 2
         && Math.abs(pos.getZ() - o.z) < o.size / 2
         && pos.getY() > o.y
-        && pos.getY() < o.y + Arena.HEIGHT;
+        && pos.getY() <= o.y + Arena.HEIGHT;
   }
 
   private boolean placeBuildingBlock(BlockPos pos) {
@@ -1227,7 +1300,8 @@ public final class Session {
       boolean clear = true;
       for (int y = candidate.getY(); y <= owner.getBlockY() + 1; y++) {
         var state = world.getBlockState(candidate.withY(y));
-        if (!state.isAir() && !builtBlocks.containsKey(candidate.withY(y))) {
+        if (!state.isAir() && !builtBlocks.containsKey(candidate.withY(y))
+            && y < owner.getBlockY() - 1) {
           clear = false;
           break;
         }
@@ -1251,7 +1325,7 @@ public final class Session {
         || (bot.isOnGround() && bot.getY() >= owner.getY() - 0.6))
       return false;
     BlockPos place = bot.getBlockPos().down();
-    if (place.getY() < o.y || place.getY() >= o.y + Arena.HEIGHT - 1) return false;
+    if (place.getY() < o.y || place.getY() > o.y + Arena.HEIGHT) return false;
     int slot = buildingSlot();
     if (slot < 0) return false;
     if (towerProgressAt == 0) towerProgressAt = t;
@@ -1302,9 +1376,26 @@ public final class Session {
     builtBlocks.clear();
   }
 
+  private void trackTotemPops(int t) {
+    int own = owner.getStatHandler().getStat(net.minecraft.stat.Stats.USED, Items.TOTEM_OF_UNDYING);
+    int mine = bot.getStatHandler().getStat(net.minecraft.stat.Stats.USED, Items.TOTEM_OF_UNDYING);
+    if (own > ownerTotemUses) lastOwnerPopAt = t;
+    if (mine > botTotemUses) lastBotPopAt = t;
+    ownerTotemUses = own;
+    botTotemUses = mine;
+  }
+
+  private boolean footCampAllowed(int t) {
+    trackTotemPops(t);
+    double disadvantage = Aim.fraction(owner.getHealth(), owner.getMaxHealth())
+        - Aim.fraction(bot.getHealth(), bot.getMaxHealth());
+    return disadvantage <= .10 || t - lastOwnerPopAt <= 60 && t - lastBotPopAt <= 60;
+  }
+
   /** Ground-only web dueling: keep native reach/CPS and native mining when leaving. */
   private boolean footWebFight(int t, double distance) {
     var world = bot.getServerWorld();
+    boolean viable = footCampAllowed(t) && !healing && !escaping && !landingForGap;
     if (plantedFootWeb != null
         && (!world.getBlockState(plantedFootWeb).isOf(net.minecraft.block.Blocks.COBWEB)
             || !bot.getBoundingBox().intersects(new Box(plantedFootWeb)))) {
@@ -1313,7 +1404,7 @@ public final class Session {
       footRetryAt = t + 60;
     }
     if (plantedFootWeb != null
-        && (!o.footWeb
+        && (!viable || !o.footWeb
             || !o.teia
             || !bot.isOnGround()
             || bot.isGliding()
@@ -1327,7 +1418,7 @@ public final class Session {
     }
     if (plantedFootWeb == null) {
       if (leavingFootWeb) return false;
-      if (!o.footWeb
+      if (!viable || !o.footWeb
           || !o.teia
           || !bot.isOnGround()
           || distance > attackReach() * attackReach()
@@ -1365,6 +1456,13 @@ public final class Session {
     return true;
   }
 
+  private void brakeIntoWeb() {
+    Vec3d toward = owner.getPos().subtract(bot.getPos());
+    toward = new Vec3d(toward.x, 0, toward.z).normalize();
+    double inward = bot.getVelocity().dotProduct(toward);
+    if (inward > 0) bot.setVelocity(bot.getVelocity().subtract(toward.multiply(inward)));
+  }
+
   private boolean placeWeb(BlockPos pos, int t) {
     return placeWebAt(pos, t, false);
   }
@@ -1379,6 +1477,7 @@ public final class Session {
                 || pos.getY() <= owner.getBlockPos().getY()
                 || pos.getY() < o.y + 2
                 || pos.getY() > o.y + 3)
+        || !feet && new Box(pos).intersects(bot.getBoundingBox().expand(.1))
         || !bot.getServerWorld().getBlockState(pos).isAir()
         || bot.getEyePos().squaredDistanceTo(Vec3d.ofCenter(pos)) > 9) return false;
     int slot = find(Items.COBWEB, true);
@@ -1410,7 +1509,12 @@ public final class Session {
               new BlockHitResult(face, dir.getOpposite(), support, false));
       if (result.isAccepted()
           && bot.getServerWorld().getBlockState(pos).isOf(net.minecraft.block.Blocks.COBWEB)) {
-        if (!feet) webAt = t + o.webCooldown;
+        if (!feet) {
+          webAt = t + o.webCooldown;
+          maneuverUntil = 0;
+          bot.forwardSpeed = bot.sidewaysSpeed = 0;
+          brakeIntoWeb();
+        }
         heldUntil = t + 2;
         bot.swingHand(Hand.MAIN_HAND);
         return true;

@@ -32,6 +32,7 @@ public final class SpawnControl {
       }
     }
     p.teleport(world, o.spawnX, o.spawnY, o.spawnZ, Set.of(), o.spawnYaw, o.spawnPitch, false);
+    DuckBox.applyLobbyMode(p);
   }
 
   public static void set(ServerPlayerEntity p) {

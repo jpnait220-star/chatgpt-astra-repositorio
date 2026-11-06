@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.networking.v1.*;
 public final class DuckBoxClient implements ClientModInitializer {
   @Override
   public void onInitializeClient() {
+    DuckWorldScreen.register();
     dev.duckbox.mixin.PanelModelRegistryAccessor.duckbox$types()
         .put(
             net.minecraft.util.Identifier.of("duckbox", "panel"),

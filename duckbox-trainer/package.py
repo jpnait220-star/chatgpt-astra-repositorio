@@ -1,19 +1,19 @@
 from pathlib import Path
 from zipfile import ZipFile,ZIP_DEFLATED
 import hashlib,json,shutil,subprocess,re
-B=Path(__file__).parent;R=Path('/workspace/duckbox-publish');D=B/'dist';name='DuckBoxTrainer-1.21.4-0.3.27-alpha';jar=D/(name+'.jar')
+B=Path(__file__).parent;R=Path('/workspace/duckbox-publish');D=B/'dist';name='DuckBoxTrainer-1.21.4-0.3.28-alpha';jar=D/(name+'.jar')
 assert jar.exists()
 with ZipFile(jar) as z:
  assert z.testzip() is None
- meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.3.27-alpha' and meta['depends']['minecraft']=='1.21.4'
+ meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.3.28-alpha' and meta['depends']['minecraft']=='1.21.4'
  classes=[n for n in z.namelist() if n.endswith('.class')];assert classes and all(n.startswith('dev/duckbox/') for n in classes)
-validation='Duck Box Trainer0.3.27-alpha / Minecraft1.21.4\nSem execucao grafica de combate ou garantia de naturalidade/FPS.\nTestes usam bibliotecas/registries/bytecode Minecraft reais, sem substitutos de entidades.\nInclui TestServer vanilla sem janela: dano/locomocao, buffs/pop/resistencia, offhand,2macas, kit135HP, bau e mapa; guard pre-totem, torre real de la preta, limite de teia, armadilha60ticks e golpes nos pes; meshes/UVs dos4cosmeticos em coletor de vertices sem GPU. Nao e partida grafica nem testa todas dificuldades.\n\n'
+validation='Duck Box Trainer0.3.28-alpha / Minecraft1.21.4\nSem execucao grafica de combate ou garantia de naturalidade/FPS.\nTestes usam bibliotecas/registries/bytecode Minecraft reais, sem substitutos de entidades.\nInclui TestServer vanilla sem janela: dano/locomocao, buffs/pop/resistencia, offhand,2macas, kit135HP, bau e mapa; guard pre-totem, torre real de la preta, limite de teia, armadilha60ticks e golpes nos pes; meshes/UVs dos4cosmeticos em coletor de vertices sem GPU. Nao e partida grafica nem testa todas dificuldades.\n\n'
 for log in ['build.log','test.log','mixins-test.log','combat-test.log','mouse-patch.log','assets-test.log']:
  s=(B/log).read_text();assert not re.search(r'\[[^\]]*/ERROR\]',s),log;assert 'Traceback' not in s and 'Exception in thread' not in s and 'error:' not in s,log
  assert ({'build.log':'COMPILED','mouse-patch.log':'PATCHED'}.get(log,'PASS')) in s
  validation+=log+'\n'+s+'\n'
 (D/'VALIDACAO.txt').write_text(validation)
-paths=[p for folder in ['src','tests'] for p in (B/folder).rglob('*') if p.is_file()]+[B/n for n in ['README.md','LICENSE','CREDITOS-COSMETICOS.txt','.gitignore','bootstrap.py','build.py','make_map.py','test.py','test_mixins.py','test_combat.py','test_assets.py','patch_mouse.py','package.py']]
+paths=[p for folder in ['src','tests'] for p in (B/folder).rglob('*') if p.is_file()]+[B/n for n in ['README.md','LICENSE','CREDITOS-COSMETICOS.txt','.gitignore','bootstrap.py','build.py','make_map.py','prepare_template.py','test.py','test_mixins.py','test_combat.py','test_assets.py','patch_mouse.py','package.py']]
 source=D/(name+'-fontes.zip')
 with ZipFile(source,'w',ZIP_DEFLATED) as z:
  for p in paths:z.write(p,p.relative_to(B).as_posix())

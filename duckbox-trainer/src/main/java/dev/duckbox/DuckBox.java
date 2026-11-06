@@ -65,8 +65,8 @@ public final class DuckBox implements ModInitializer {
     ServerLifecycleEvents.SERVER_STOPPING.register(
         s -> {
           KitEditor.flush();
-          LobbyBot.clear(s);
           if (session != null) stop("Servidor encerrado.");
+          LobbyBot.clear(s);
         });
     ServerLifecycleEvents.SERVER_STOPPED.register(
         s -> {
@@ -106,6 +106,7 @@ public final class DuckBox implements ModInitializer {
         (handler, sender, s) -> {
           if (handler.player instanceof TrainingBot) return;
           restore(handler.player);
+          applyLobbyMode(handler.player);
           ChestRoleSync.forget(handler.player.getUuid());
           syncCosmetics();
           Arena.updateRulesLabel(handler.player.getServerWorld(), options);
@@ -614,6 +615,23 @@ public final class DuckBox implements ModInitializer {
                                                         })))))));
   }
 
+  public static void applyLobbyMode(ServerPlayerEntity player) {
+    if (player instanceof TrainingBot || !options.initialized || !options.built) return;
+    String lobbyDimension = options.spawnDimension.isEmpty() ? options.dimension : options.spawnDimension;
+    if (player.getServerWorld().getRegistryKey().getValue().toString().equals(lobbyDimension))
+      player.changeGameMode(GameMode.ADVENTURE);
+  }
+
+  public static boolean canPlaceTrainingBlock(net.minecraft.entity.player.PlayerEntity p,
+      net.minecraft.block.BlockState state) {
+    if (p == null) return true;
+    boolean participant = p.getWorld().isClient()
+        ? ClientTrainingState.participant(p)
+        : session != null && !session.closed && (p == session.owner || p == session.bot);
+    return !participant || state.isOf(net.minecraft.block.Blocks.COBWEB)
+        || state.isIn(net.minecraft.registry.tag.BlockTags.WOOL);
+  }
+
   public static ServerPlayerEntity resolveCommandPlayer(ServerCommandSource source) {
     if (source.getEntity() instanceof ServerPlayerEntity p && !(p instanceof TrainingBot)) return p;
     return source.getWorld().getPlayers().stream()
@@ -641,7 +659,13 @@ public final class DuckBox implements ModInitializer {
       task.run(resolveCommandPlayer(s));
       return 1;
     } catch (Exception e) {
-      s.sendError(Text.literal("DuckBox: " + e.getMessage()));
+      Text error = Text.literal("DuckBox: " + e.getMessage()).formatted(Formatting.RED);
+      try {
+        var player = resolveCommandPlayer(s);
+        player.sendMessage(error, false);
+      } catch (Exception noPlayer) {
+        s.sendError(error);
+      }
       return 0;
     }
   }
@@ -984,14 +1008,8 @@ public final class DuckBox implements ModInitializer {
     boolean sword = kit.stream().anyMatch(i -> i.isIn(net.minecraft.registry.tag.ItemTags.SWORDS));
     if (!sword) throw new IllegalArgumentException("O kit precisa de uma espada.");
     backup(p);
-    TrainingBot bot = new TrainingBot(server, world());
+    TrainingBot bot = LobbyBot.takeForCombat(p);
     try {
-      server
-          .getPlayerManager()
-          .onPlayerConnect(
-              new TrainingBot.LocalConnection(),
-              bot,
-              ConnectedClientData.createDefault(bot.getGameProfile(), false));
       bot.changeGameMode(GameMode.SURVIVAL);
       Kits.give(bot, kit);
       Kits.give(p, kit);
@@ -1017,8 +1035,7 @@ public final class DuckBox implements ModInitializer {
               + (options.tank ? "TANK" : "DUEL")
               + ". /box parar para sair.");
     } catch (Exception error) {
-      if (server.getPlayerManager().getPlayer(bot.getUuid()) != null)
-        server.getPlayerManager().remove(bot);
+      LobbyBot.finishCombat(bot);
       restore(p);
       throw error;
     }
@@ -1033,17 +1050,18 @@ public final class DuckBox implements ModInitializer {
           s.owner, new TrainingPayload(s.owner.getUuid(), new UUID(0, 0), false));
     session = null;
     syncCosmetics();
+    ServerWorld matchWorld = s.bot.getServerWorld();
     s.cleanupBuilding();
     s.bot.stopUsingItem();
     s.bot.getInventory().clear();
-    server.getPlayerManager().remove(s.bot);
+    LobbyBot.finishCombat(s.bot);
     rockets.clear();
     if (!s.owner.isDisconnected()) {
       restore(s.owner);
-      SpawnControl.move(s.owner, s.bot.getServerWorld());
+      SpawnControl.move(s.owner, matchWorld);
       s.owner.sendMessage(Text.literal(reason).formatted(Formatting.GOLD), false);
     }
-    Arena.clearWebs(s.bot.getServerWorld(), options);
+    Arena.clearWebs(matchWorld, options);
   }
 
   private static void load() {

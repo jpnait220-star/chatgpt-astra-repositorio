@@ -25,6 +25,10 @@ public final class LobbyBot {
     o.lobbyBotZ = p.getZ();
     o.lobbyBotDimension = p.getServerWorld().getRegistryKey().getValue().toString();
     DuckBox.save();
+    if (npc != null && DuckBox.session != null && DuckBox.session.bot == npc) {
+      DuckBox.setting(p, "Ponto do lobby salvo; o DuckBot voltara para ca ao terminar.");
+      return;
+    }
     if (npc != null && p.getServer().getPlayerManager().getPlayer(npc.getUuid()) == npc) {
       npc.teleport(
           p.getServerWorld(),
@@ -52,8 +56,18 @@ public final class LobbyBot {
   }
 
   private static void ensure(MinecraftServer server) {
-    if (npc != null || !DuckBox.options.lobbyBotEnabled) return;
+    if (npc != null && server.getPlayerManager().getPlayer(npc.getUuid()) != npc) npc = null;
+    if (npc != null) return;
     var o = DuckBox.options;
+    if (!o.lobbyBotEnabled) {
+      if (!o.initialized || !o.built) return;
+      o.lobbyBotEnabled = true;
+      o.lobbyBotX = o.spawnX + 2;
+      o.lobbyBotY = o.spawnY;
+      o.lobbyBotZ = o.spawnZ;
+      o.lobbyBotDimension = o.spawnDimension.isEmpty() ? o.dimension : o.spawnDimension;
+      DuckBox.save();
+    }
     var dim = Identifier.tryParse(o.lobbyBotDimension);
     if (dim == null) return;
     ServerWorld world = server.getWorld(RegistryKey.of(RegistryKeys.WORLD, dim));
@@ -78,9 +92,50 @@ public final class LobbyBot {
     DuckBox.syncCosmetics();
   }
 
+  public static TrainingBot takeForCombat(ServerPlayerEntity player) {
+    ensure(player.getServer());
+    if (npc == null) throw new IllegalStateException("DuckBot do mundo indisponivel.");
+    npc.session = null;
+    npc.setInvulnerable(false);
+    npc.setNoGravity(false);
+    npc.stopUsingItem();
+    npc.stopGliding();
+    npc.setVelocity(Vec3d.ZERO);
+    npc.getHungerManager().setFoodLevel(20);
+    return npc;
+  }
+
+  public static void finishCombat(TrainingBot bot) {
+    if (bot != npc) {
+      if (bot.getServer().getPlayerManager().getPlayer(bot.getUuid()) == bot)
+        bot.getServer().getPlayerManager().remove(bot);
+      return;
+    }
+    bot.session = null;
+    bot.stopUsingItem();
+    bot.stopGliding();
+    bot.clearStatusEffects();
+    bot.getInventory().clear();
+    bot.setHealth(bot.getMaxHealth());
+    bot.timeUntilRegen = 0;
+    bot.setInvulnerable(true);
+    bot.setNoGravity(true);
+    bot.setVelocity(Vec3d.ZERO);
+    bot.forwardSpeed = bot.sidewaysSpeed = 0;
+    bot.setSneaking(false);
+    bot.setSprinting(false);
+    var o = DuckBox.options;
+    var dim = Identifier.tryParse(o.lobbyBotDimension);
+    var world = dim == null ? bot.getServerWorld() : bot.getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, dim));
+    if (world == null) world = bot.getServerWorld();
+    bot.teleport(world, o.lobbyBotX, o.lobbyBotY, o.lobbyBotZ, Set.of(), bot.getYaw(), 0, false);
+    bot.onTeleportationDone();
+    DuckBox.syncCosmetics();
+  }
+
   public static void tick(MinecraftServer server) {
     ensure(server);
-    if (npc == null) return;
+    if (npc == null || DuckBox.session != null && DuckBox.session.bot == npc) return;
     var o = DuckBox.options;
     npc.setVelocity(Vec3d.ZERO);
     npc.setPosition(o.lobbyBotX, o.lobbyBotY, o.lobbyBotZ);

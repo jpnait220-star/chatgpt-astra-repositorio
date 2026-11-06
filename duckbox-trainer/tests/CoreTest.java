@@ -361,11 +361,38 @@ public class CoreTest {
                   "/assets/duckbox/textures/map_panels/" + panelName + ".png"));
       check(image.getWidth() <= 2048 && image.getHeight() <= 2048);
     }
+    var savedMaps = java.nio.file.Files.createTempDirectory("duckbox-map-test");
+    var imported = WorldTemplate.create(savedMaps);
+    var importedAgain = WorldTemplate.create(savedMaps);
+    check(!imported.equals(importedAgain));
+    check(java.nio.file.Files.isRegularFile(imported.resolve("level.dat")));
+    check(!java.nio.file.Files.exists(imported.resolve("playerdata")));
+    var importedLevel = NbtIo.readCompressed(imported.resolve("level.dat"), NbtSizeTracker.ofUnlimitedBytes()).getCompound("Data");
+    check(importedLevel.getString("LevelName").equals("Mundo de Duckzin"));
+    check(!importedLevel.contains("Player"));
+    check(importedLevel.getInt("GameType") == 2);
+    var importedConfig = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(imported.resolve("duckbox-training.json"))).getAsJsonObject();
+    check(importedConfig.getAsJsonObject("options").get("customMap").getAsBoolean());
+    check(!importedConfig.getAsJsonObject("options").get("autoBuildOnJoin").getAsBoolean());
+    check(importedConfig.getAsJsonObject("kitProfiles").size() > 0);
+    check(java.nio.file.Files.size(imported.resolve("region/r.-1.0.mca")) > 0);
+    var unsafe = new java.io.ByteArrayOutputStream();
+    try (var z = new java.util.zip.ZipOutputStream(unsafe)) {
+      z.putNextEntry(new java.util.zip.ZipEntry("../escaped.txt")); z.write(1); z.closeEntry();
+    }
+    try { WorldTemplate.extract(savedMaps, new java.io.ByteArrayInputStream(unsafe.toByteArray())); throw new AssertionError("Unsafe world zip accepted"); }
+    catch (java.io.IOException expected) { }
+    check(!java.nio.file.Files.exists(savedMaps.resolve("escaped.txt")));
+    check(java.nio.file.Files.isRegularFile(imported.resolve("level.dat")));
+    try (var all = java.nio.file.Files.walk(savedMaps)) {
+      for (var path : all.sorted(java.util.Comparator.reverseOrder()).toList()) java.nio.file.Files.delete(path);
+    }
+    System.out.println("PASS USER WORLD TEMPLATE: fresh unique imports preserve map/kits, no personal data, no overwrite, zip traversal rejected");
     NbtCompound root =
         NbtIo.readCompressed(new FileInputStream(args[0]), NbtSizeTracker.ofUnlimitedBytes());
     NbtCompound data = root.getCompound("Data");
     check(data.getInt("DataVersion") == 4189);
-    check(data.getString("LevelName").equals("DuckBoxTreino"));
+    check(data.getString("LevelName").equals("Mundo de Duckzin"));
     check(
         data.getCompound("WorldGenSettings")
             .getCompound("dimensions")

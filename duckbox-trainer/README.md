@@ -1,4 +1,4 @@
-# Duck Box Trainer — 0.3.27-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.28-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
@@ -7,7 +7,7 @@ DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.27 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.28 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   as configuracoes e os baus continuam salvos; use /box configurar para os controles.
@@ -82,7 +82,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.27, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.28, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -268,12 +268,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.27 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.28 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.27 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.28 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -295,7 +295,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.27 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.28 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -303,14 +303,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.27 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.28 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.27 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.28 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -460,7 +460,7 @@ com botoes em `/box configurar` e comandos em chat/command block:
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
 
 
-## Alteracoes0.3.27
+## Alteracoes0.3.28
 
 - `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
   mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
@@ -528,7 +528,7 @@ no JSON como copia de seguranca. A partir dai, edicoes sao compartilhadas
 pelos dois modos e cada perfil continua independente dos demais.
 
 
-## Atualizacao0.3.27
+## Atualizacao0.3.28
 
 - `/spawn` retorna ao ponto salvo por `/box setspawn` (fallback **-146 65 93**).
   Ao terminar ou sair do x1, o inventario original e restaurado e o jogador
@@ -702,3 +702,53 @@ uma altura fixa. Continuam os limites para sair da recuperacao e voltar a atacar
 
 Os cosmeticos do Trainer equipam somente o bot do duelo e o NPC de lobby.
 Nao equipam o jogador, nem na primeira pessoa.
+
+## Atualizacao0.3.28
+
+- Ao completar60% do consumo de uma maca, o bot termina de comer mesmo quando
+  o jogador volta ao combate. Depois retorna a espada. Antes desse ponto ainda
+  pode reagir e cancelar; a maca precisa realmente ser consumida no inventario.
+- Com2totens ou menos prioriza recuperar, reduz as pausas e melhora10% a mira.
+- Alvos em plataformas altas podem provocar torre sem precisar de teia.
+  Somente la do inventario e usada e a estrutura do mapa nao e minerada.
+- Durante o treino, jogador e bot so colocam teia e qualquer cor de la.
+  Fora do treino, a construcao normal do mapa continua disponivel.
+- Mineracao do bot tem4ticks de preparacao, usa a velocidade nativa da ferramenta
+  e espera8ticks antes de iniciar outro bloco, evitando cortes seguidos excessivos.
+- Cofre com textura Gift solicitada; bau de perfil roxo mantido. Modelos no
+  inventario e no mundo usam o UV correspondente, sem alterar o PNG original.
+- Ao abrir Criar Mundo, escolha **Mundo de Duckzin** para copiar e abrir o mapa
+  enviado, incluindo arena e perfis. **Gerar mundo normal** continua disponivel.
+  Cada copia usa uma pasta nova; saves existentes nao sao substituidos.
+  O gerador automatico da arena e desativado nesse mapa para preservar a build.
+  Foram removidos dados pessoais de jogadores e referencias a datapacks externos
+  declarados no level.dat que nao estavam presentes no ZIP fornecido.
+- Erros de comandos executados por command block sao mostrados em vermelho no
+  chat do jogador resolvido pelo comando, inclusive validacao dos kits.
+
+O pacoteZIP inclui o mesmo mapa em `saves/DuckBoxTreino` para importacao manual.
+O bot continua sendo um treino experimental: testes nativos de servidor, NBT,
+modelos e Mixin passaram, mas nao substituem a verificacao grafica no jogo.
+Para reconstruir o arquivo de mapa a partir do ZIP original, instale `nbtlib`
+no Python e use `prepare_template.py`; o JAR pronto nao depende de Python.
+
+O mapa de Duckzin usa Adventure por padrao. Entrar no lobby e voltar pelo
+`/spawn` ou fim do duelo coloca o jogador em Adventure para proteger a build.
+O treino usa Survival com as restricoes de la/teia; para editar o mapa fora
+do treino, use `/gamemode creative` com permissao.
+
+Depois da pocao inicial, perder Speed no retotem nao faz o bot potar no meio
+do corpo a corpo. Ele espera preparar uma gap ou uma abertura quando o
+jogador se afasta/come. Potar antes da gap nao cria outra pausa longa.
+
+Teiar os proprios pes deixa de ser uma escolha quando o bot esta perdendo
+por mais de10% da vida maxima, salvo quando os dois poparam totem nos ultimos
+3segundos. Uma campagem existente tambem e liberada ao perder essa condicao.
+Durante gap/fuga o bot nao inicia a tecnica, priorizando recuperar e movimentar.
+
+O DuckBot permanece conectado ao mundo e usa a mesma entidade no lobby e
+na arena. Ao encerrar o x1 volta ao ponto de `/box spawnbot`, sem sair/entrar
+novamente. Se nao houver ponto configurado, usa um ponto ao lado do spawn.
+Quando a cabeca do alvo esta na teia, ele mantem aproximadamente1.5a1.9bloco
+de distancia horizontal, mira nos pes e suspende giro/pulo para nao entrar
+na propria teia. A colocacao tambem evita sobrepor a hitbox do proprio bot.

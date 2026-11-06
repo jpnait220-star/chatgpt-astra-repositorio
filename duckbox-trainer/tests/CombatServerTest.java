@@ -683,12 +683,12 @@ public final class CombatServerTest {
     if (!world.getBlockState(woolPos).isAir()) throw new AssertionError("Native wool break failed");
     int woolFinishedAt = server.getTicks();
     world.setBlockState(woolPos, Blocks.RED_WOOL.getDefaultState(), 3);
-    for (int n = 0; n < 5; n++) {
+    for (int n = 0; n < 8; n++) {
       ticks.setInt(server, woolFinishedAt + n);
       if ((boolean) woolBreak.invoke(DuckBox.session))
-        throw new AssertionError("Missing five-tick break pause");
+        throw new AssertionError("Missing eight-tick break pause");
     }
-    ticks.setInt(server, woolFinishedAt + 5);
+    ticks.setInt(server, woolFinishedAt + 8);
     if (!(boolean) woolBreak.invoke(DuckBox.session) || world.getBlockState(woolPos).isAir())
       throw new AssertionError("New wool mining must begin progressively, not instant");
     world.setBlockState(woolPos, Blocks.STONE.getDefaultState(), 3);
@@ -1365,8 +1365,10 @@ public final class CombatServerTest {
     System.out.println(
         "PASS BARE CONFIG CYCLES: real command blocks cycle rules2, spin4, profile4"
             + " and size3 with actionbar confirmations");
-    if (boxDispatcher.execute("box cps 11", blockSource) != 0 || DuckBox.options.cps != 13)
-      throw new AssertionError("Invalid CB option must fail without changing setting");
+    feedbackConnection.messages.clear();
+    if (boxDispatcher.execute("box cps 11", blockSource) != 0 || DuckBox.options.cps != 13
+        || !feedbackConnection.chat())
+      throw new AssertionError("Invalid CB option must fail without changing setting and tell actual player");
     if (boxDispatcher.execute("box kit abrir", blockSource) != 1
         || !(owner.currentScreenHandler instanceof KitEditor)
         || !owner.currentScreenHandler.canUse(owner))
@@ -1633,6 +1635,8 @@ public final class CombatServerTest {
     tacticBot
         .getInventory()
         .setStack(1, new net.minecraft.item.ItemStack(net.minecraft.item.Items.COBWEB, 16));
+    for (int slot = 6; slot < 9; slot++) tacticBot.getInventory().setStack(slot,
+        new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
     var tactics = new Session(owner, tacticBot, tacticOptions);
     if (tactics.mayRecover(false, 4)
         || tactics.mayRecover(true, 4)
@@ -1742,6 +1746,7 @@ public final class CombatServerTest {
     if (owner.timeUntilRegen != 20)
       throw new AssertionError("Spam damage immunity must stay native");
     DuckBox.session = null;
+    DuckBox.options.initialized = true; DuckBox.options.built = true;
     SpawnControl.later(owner);
     int dueSpawn = server.getTicks() + 60;
     ticks.setInt(server, dueSpawn - 1);
@@ -1752,6 +1757,8 @@ public final class CombatServerTest {
     SpawnControl.tick(server);
     if (owner.getX() != -146 || owner.getY() != 65 || owner.getZ() != 93)
       throw new AssertionError("Delayed arena return did not use spawn after60ticks");
+    if (owner.interactionManager.getGameMode() != GameMode.ADVENTURE)
+      throw new AssertionError("Returning to configured lobby must protect spawn with Adventure");
     owner.teleport(world, -140, 65, 90, Set.of(), 0, 0, false);
     owner.onTeleportationDone();
     if (boxDispatcher.execute("spawn", owner.getCommandSource()) != 1
@@ -1778,6 +1785,7 @@ public final class CombatServerTest {
             .getAsJsonObject("options");
     if (spawnDisk.get("spawnX").getAsDouble() != -140.5)
       throw new AssertionError("Setspawn not persisted");
+    owner.changeGameMode(GameMode.SURVIVAL); // Continue independent placement fixtures after testing Adventure lobby.
     LobbyBot.place(owner);
     var lobbyNpc = server.getPlayerManager().getPlayer(LobbyBot.id());
     if (lobbyNpc == null
@@ -1796,6 +1804,21 @@ public final class CombatServerTest {
         || !dev.duckbox.cosmetic.CosmeticState.enabled(lobbyNpc.getUuid(), 8))
       throw new AssertionError(
           "Lobby NPC must keep robot skin/cape and cosmetic mask outside combat");
+    var reusedNpc = LobbyBot.takeForCombat(owner);
+    if (reusedNpc != lobbyNpc || reusedNpc.isInvulnerable() || reusedNpc.hasNoGravity())
+      throw new AssertionError("Combat must reuse the connected lobby entity with normal physics");
+    var npcCombat = new Session(owner, reusedNpc, DuckBox.options);
+    DuckBox.session = npcCombat;
+    reusedNpc.setPosition(anchor.x + 5, anchor.y, anchor.z);
+    LobbyBot.tick(server);
+    if (Math.abs(reusedNpc.getX() - (anchor.x + 5)) > .001)
+      throw new AssertionError("Lobby tick must not pull active fighter out of arena");
+    npcCombat.closed = true; DuckBox.session = null;
+    LobbyBot.finishCombat(reusedNpc);
+    if (server.getPlayerManager().getPlayer(lobbyNpc.getUuid()) != lobbyNpc
+        || !lobbyNpc.isInvulnerable() || !lobbyNpc.hasNoGravity()
+        || lobbyNpc.getPos().squaredDistanceTo(anchor) > .001)
+      throw new AssertionError("Finishing combat must park same online DuckBot without disconnect");
     LobbyBot.clear(server);
     DuckBox.options.lobbyBotEnabled = false;
     dev.duckbox.cosmetic.CosmeticState.clear();
@@ -1952,10 +1975,13 @@ public final class CombatServerTest {
     var miningTarget = Session.class.getDeclaredField("breakingWeb");
     miningTarget.setAccessible(true);
     for (int turn = 0;
-        turn < 12
+        turn < 18
             && miningTarget.get(tactics) == null
             && world.getBlockState(ownHeadNow).isOf(Blocks.COBWEB);
-        turn++) ownEscape.invoke(tactics, 500003 + turn);
+        turn++) {
+      ticks.setInt(server, server.getTicks() + 1);
+      ownEscape.invoke(tactics, 500003 + turn);
+    }
     var mineDeadline = Session.class.getDeclaredField("mineReadyAt");
     mineDeadline.setAccessible(true);
     var arenaPredicate = Session.class.getDeclaredMethod("insideArena", BlockPos.class);
@@ -2086,6 +2112,23 @@ public final class CombatServerTest {
     gapAnswer.closed = true; owner.stopUsingItem(); tacticBot.stopUsingItem();
     System.out.println("PASS GAP RESPONSE: distant opponent eating a real gap overrides prior combat wait immediately");
 
+    var previousPlacementSession = DuckBox.session;
+    DuckBox.session = new Session(owner, tacticBot, new Options());
+    if (DuckBox.canPlaceTrainingBlock(owner, Blocks.STONE.getDefaultState())
+        || DuckBox.canPlaceTrainingBlock(tacticBot, Blocks.CHEST.getDefaultState())
+        || !DuckBox.canPlaceTrainingBlock(owner, Blocks.COBWEB.getDefaultState()))
+      throw new AssertionError("Training placement must allow webs/wool only for both participants");
+    for (var color : net.minecraft.util.DyeColor.values()) {
+      var wool = net.minecraft.registry.Registries.BLOCK.get(net.minecraft.util.Identifier.ofVanilla(color.getName() + "_wool"));
+      if (!DuckBox.canPlaceTrainingBlock(owner, wool.getDefaultState()))
+        throw new AssertionError("Every wool color must be placeable during training");
+    }
+    DuckBox.session = null;
+    if (!DuckBox.canPlaceTrainingBlock(owner, Blocks.STONE.getDefaultState()))
+      throw new AssertionError("Map editing outside training must remain available");
+    DuckBox.session = previousPlacementSession;
+    System.out.println("PASS TRAINING PLACEMENT: participants limited to webs/all16wools; ordinary map editing preserved");
+
     // Start actual recovery from the floor, controlling only the random draw.
     var randomField = Session.class.getDeclaredField("random");
     randomField.setAccessible(true);
@@ -2193,7 +2236,13 @@ public final class CombatServerTest {
     if ((boolean) potMethod.invoke(fairSession, 30))
       throw new AssertionError("Must not consume more potion while Speed is active");
     tacticBot.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SPEED);
-    if (!(boolean) potMethod.invoke(fairSession, 40))
+    owner.teleport(world, 2.5, 64, .5, Set.of(), 0, 0, false);
+    owner.onTeleportationDone(); owner.stopUsingItem();
+    if ((boolean) potMethod.invoke(fairSession, 40)
+        || !tacticBot.getInventory().getStack(5).isOf(net.minecraft.item.Items.SPLASH_POTION))
+      throw new AssertionError("Speed lost to retotem must not cause a re-pot in close combat");
+    owner.teleport(world, 6.5, 64, 6.5, Set.of(), 0, 0, false); owner.onTeleportationDone();
+    if (!(boolean) potMethod.invoke(fairSession, 41))
       throw new AssertionError("Bot must use remaining SpeedI after its effect is removed");
     System.out.println("PASS REAL SPEED POTIONS: native splash projectile/effect, strongest reserve potion first, stock consumed, crouch, landing delay and no player effect synchronization");
 
@@ -2242,6 +2291,7 @@ public final class CombatServerTest {
     if ((boolean) mineMethod.invoke(fairSession, new BlockPos(0, 63, 0), "Invalid"))
       throw new AssertionError("Shears must not permit mining arena structure");
     System.out.println("PASS SHEARS/SPEED: real reserve shears mine wool faster and cut cobweb with native hardness, preserved tool and restored sword; real independent inventory Speed potions");
+    verifyRecoveryAndTower(server, world, owner, tacticBot);
     server.getPlayerManager().remove(tacticBot);
     System.out.println(
         "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"
@@ -2251,4 +2301,121 @@ public final class CombatServerTest {
     server.shutdown();
     System.exit(0);
   }
+  private static void verifyRecoveryAndTower(net.minecraft.server.MinecraftServer server,
+      net.minecraft.server.world.ServerWorld world, ServerPlayerEntity owner, TrainingBot bot) throws Exception {
+    var tick = net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572"); tick.setAccessible(true);
+    var start = Session.class.getDeclaredMethod("startApple", int.class); start.setAccessible(true);
+    var committed = Session.class.getDeclaredMethod("committedApple"); committed.setAccessible(true);
+    var healing = Session.class.getDeclaredField("healing"); healing.setAccessible(true);
+    for (int progress : new int[] {16, 20}) {
+      bot.session = null;
+      Kits.give(bot, Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM));
+      tick.setInt(server, server.getTicks() + 1); bot.tick();
+      for (int slot = 0; slot < 41; slot++) if (Kits.isTotem(bot.getInventory().getStack(slot)))
+        bot.getInventory().setStack(slot, net.minecraft.item.ItemStack.EMPTY);
+      for (int slot = 6; slot < 9; slot++) bot.getInventory().setStack(slot,
+          new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+      bot.teleport(world, .5, 64, .5, Set.of(), 0, 0, false); bot.onTeleportationDone();
+      bot.stopGliding(); bot.stopUsingItem(); bot.setOnGround(true); bot.setHealth(bot.getMaxHealth());
+      bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO); bot.clearStatusEffects();
+      owner.teleport(world, 6.5, 64, 6.5, Set.of(), 0, 0, false); owner.onTeleportationDone();
+      owner.setHealth(owner.getMaxHealth()); owner.stopUsingItem();
+      owner.getInventory().setStack(2, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE, 3));
+      owner.getInventory().selectedSlot = 2;
+      owner.getMainHandStack().use(world, owner, net.minecraft.util.Hand.MAIN_HAND);
+      var settings = new Options(); settings.x = 0; settings.y = 63; settings.z = 0;
+      settings.giro = false; settings.gap = false; settings.retotem = false; settings.teia = false;
+      settings.noRetreatRetotem = true;
+      var recovery = new Session(owner, bot, settings);
+      int stock = bot.getInventory().getStack(2).getCount();
+      start.invoke(recovery, 0);
+      for (int i = 0; i < progress; i++) { tick.setInt(server, server.getTicks() + 1); bot.tick(); }
+      if ((boolean) committed.invoke(recovery) != (progress >= 20))
+        throw new AssertionError("Native apple60percent threshold incorrect at " + bot.getItemUseTime());
+      owner.stopUsingItem();
+      tick.setInt(server, server.getTicks() + 1); bot.tick();
+      if (progress >= 20) {
+        if (!bot.isUsingItem()) throw new AssertionError("Late apple must survive opponent resuming combat");
+        for (int i = 0; i < 18; i++) { tick.setInt(server, server.getTicks() + 1); bot.tick(); }
+        if (bot.getInventory().getStack(2).getCount() != stock - 1 || healing.getBoolean(recovery)
+            || !bot.getMainHandStack().isOf(net.minecraft.item.Items.GOLDEN_SWORD))
+          throw new AssertionError("Late apple must actually be consumed once, then resume sword combat");
+      } else if (healing.getBoolean(recovery) || bot.getInventory().getStack(2).getCount() != stock)
+        throw new AssertionError("Early apple remains interruptible without consuming stock");
+      recovery.closed = true;
+    }
+    var scarceOptions = new Options(); scarceOptions.noRetreatRetotem = true;
+    scarceOptions.difficulty = Options.Difficulty.EXPERT;
+    var scarcity = new Session(owner, bot, scarceOptions);
+    var aim = Session.class.getDeclaredMethod("combatAimSpeed"); aim.setAccessible(true);
+    float normalAim = (float) aim.invoke(scarcity);
+    bot.getInventory().setStack(8, net.minecraft.item.ItemStack.EMPTY);
+    if (scarcity.countTotems() != 2 || !scarcity.mayRecover(false, 1)
+        || Math.abs((float) aim.invoke(scarcity) - normalAim * 1.1f) > .001)
+      throw new AssertionError("At two totems, recovery priority and10percent aim boost must apply");
+    scarcity.closed = true;
+
+    var campPolicy = new Session(owner, bot, scarceOptions);
+    var allowedCamp = Session.class.getDeclaredMethod("footCampAllowed", int.class); allowedCamp.setAccessible(true);
+    bot.setHealth(bot.getMaxHealth() * .3f); owner.setHealth(owner.getMaxHealth());
+    if ((boolean) allowedCamp.invoke(campPolicy, 1))
+      throw new AssertionError("Large health disadvantage must refuse self-web camping");
+    bot.setHealth(bot.getMaxHealth() * .95f);
+    if (!(boolean) allowedCamp.invoke(campPolicy, 2))
+      throw new AssertionError("Small health deficit may keep foot-web tactic");
+    for (var fighter : List.of(owner, bot)) {
+      fighter.getInventory().setStack(40, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+      fighter.setHealth(1); fighter.setAbsorptionAmount(0); fighter.timeUntilRegen = 0;
+      if (!fighter.damage(world, world.getDamageSources().generic(), 100000) || !fighter.isAlive())
+        throw new AssertionError("Foot-camp pop fixture must use vanilla totem protection");
+    }
+    bot.setHealth(bot.getMaxHealth() * .3f); owner.setHealth(owner.getMaxHealth());
+    if (!(boolean) allowedCamp.invoke(campPolicy, 3) || (boolean) allowedCamp.invoke(campPolicy, 64))
+      throw new AssertionError("Both real recent totem pops permit camping only within the short exchange");
+    campPolicy.closed = true;
+    System.out.println("PASS FOOT-WEB POLICY: refuse major health deficit, allow minor deficit or both native recent pops, expire mutual-pop exception");
+
+    // Real elevation route without any target cobweb or forced navigation state.
+    for (int x = -8; x <= 8; x++) for (int z = -8; z <= 8; z++)
+      for (int y = 64; y <= 74; y++) world.setBlockState(new BlockPos(x, y, z), Blocks.AIR.getDefaultState(), 3);
+    world.setBlockState(new BlockPos(0, 69, 0), Blocks.BLACK_WOOL.getDefaultState(), 3);
+    owner.teleport(world, .5, 70, .5, Set.of(), 0, 0, false); owner.onTeleportationDone(); owner.setOnGround(true);
+    bot.teleport(world, 6.5, 64, .5, Set.of(), 90, 0, false); bot.onTeleportationDone();
+    bot.setOnGround(true); bot.stopGliding(); bot.stopUsingItem(); bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    bot.setHealth(bot.getMaxHealth()); bot.clearStatusEffects();
+    bot.getInventory().setStack(5, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BLACK_WOOL, 32));
+    var towerOptions = new Options(); towerOptions.x = 0; towerOptions.y = 63; towerOptions.z = 0;
+    towerOptions.gap = false; towerOptions.giro = false; towerOptions.retotem = false; towerOptions.teia = false;
+    var tower = new Session(owner, bot, towerOptions);
+    DuckBox.session = tower;
+    boolean climbed = false;
+    for (int i = 0; i < 400; i++) {
+      tick.setInt(server, server.getTicks() + 1); bot.tick();
+      if (bot.getY() >= 69.4 && bot.getInventory().getStack(5).getCount() < 32) { climbed = true; break; }
+    }
+    if (!climbed || !world.getBlockState(new BlockPos(0, 69, 0)).isOf(Blocks.BLACK_WOOL))
+      throw new AssertionError("Elevated platform must trigger real tower without mining support: " + bot.getPos());
+    tower.cleanupBuilding(); tower.closed = true; DuckBox.session = null;
+    world.setBlockState(new BlockPos(0, 69, 0), Blocks.AIR.getDefaultState(), 3);
+    BlockPos headWebFight = new BlockPos(0, 65, 0);
+    world.setBlockState(headWebFight, Blocks.COBWEB.getDefaultState(), 3);
+    owner.teleport(world, .5, 64, .5, Set.of(), 0, 0, false); owner.onTeleportationDone(); owner.setOnGround(true);
+    owner.setHealth(owner.getMaxHealth()); owner.setAbsorptionAmount(0); owner.timeUntilRegen = 0;
+    bot.teleport(world, 2.3, 64, .5, Set.of(), 90, 0, false); bot.onTeleportationDone();
+    bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO); bot.setOnGround(true); bot.stopGliding();
+    towerOptions.giro = true; towerOptions.spin = Options.SpinLevel.EXTREMO; towerOptions.strafe = true;
+    var headCombat = new Session(owner, bot, towerOptions);
+    float targetBefore = owner.getHealth();
+    for (int i = 0; i < 35; i++) {
+      tick.setInt(server, server.getTicks() + 1); bot.tick();
+      if (bot.getBoundingBox().intersects(new net.minecraft.util.math.Box(headWebFight)) || bot.isGliding())
+        throw new AssertionError("Head-web combat must stay outside web without orbiting/gliding into it");
+    }
+    if (owner.getHealth() >= targetBefore)
+      throw new AssertionError("Safe head-web stance must still hit exposed feet");
+    headCombat.closed = true; world.setBlockState(headWebFight, Blocks.AIR.getDefaultState(), 3);
+    System.out.println("PASS SAFE HEAD-WEB COMBAT: Extreme spin enabled, no self-web intersection or gliding, actual exposed-feet hits");
+    System.out.println("PASS FINAL RECOVERY/TOWER:60percent consumption commitment, real apple consumed then sword, two-totem aim/recovery boost and autonomous elevated tower without web");
+  }
+
 }

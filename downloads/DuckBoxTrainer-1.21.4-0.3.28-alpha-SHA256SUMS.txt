@@ -1,0 +1,5 @@
+9134177e5e04ab0045929d21c168a788cb948135db984bd5fbb2a8560c8dc459  DuckBoxTrainer-1.21.4-0.3.28-alpha.jar
+25ba170d1122adff342f7a2db6ca27a2c5c34250d082b3363bb9c9adfc6871b6  DuckBoxTrainer-1.21.4-0.3.28-alpha.zip
+25beff04a11134e06564db11f988377725db475651af3d0b0e12bd901da84c1d  DuckBoxTrainer-1.21.4-0.3.28-alpha-fontes.zip
+fc9eda03b89e69ca292496b9d3044722f9f30f959edd7708b8b9e8b5b849cd84  MouseTweaks-BETA17-sem-nohitdelay-mundo.jar
+0f65dfdd09b8f473cb12a20f57c14f47bd2c92277cd1e82cbbc5795b2f08e7ce  MouseTweaks-BETA17-PATCH-VALIDACAO.json

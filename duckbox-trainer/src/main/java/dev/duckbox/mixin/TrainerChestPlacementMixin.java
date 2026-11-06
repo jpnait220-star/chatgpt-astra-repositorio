@@ -12,6 +12,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BlockItem.class)
 public abstract class TrainerChestPlacementMixin {
+  @Inject(method = "method_7712", at = @At("HEAD"), cancellable = true, remap = false)
+  private void duckbox$trainingPlacement(ItemPlacementContext context, CallbackInfoReturnable<ActionResult> cir) {
+    if (!dev.duckbox.DuckBox.canPlaceTrainingBlock(context.getPlayer(),
+        ((BlockItem) (Object) this).getBlock().getDefaultState()))
+      cir.setReturnValue(ActionResult.FAIL);
+  }
+
   @Inject(method = "method_7712", at = @At("RETURN"), remap = false)
   private void duckbox$placed(
       ItemPlacementContext context, CallbackInfoReturnable<ActionResult> cir) {
