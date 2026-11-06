@@ -13,12 +13,14 @@ root.mkdir(parents=True)
 with ZipFile(source) as archive:
  for item in archive.infolist():
   p=PurePosixPath(item.filename)
-  if not p.parts or p.parts[0]!='DuckBoxTreino' or '..' in p.parts or item.is_dir():continue
+  if not p.parts or p.parts[0] not in ['DuckBoxTreino','Mundo de Duckzin'] or '..' in p.parts or item.is_dir():continue
   parts=p.parts[1:]
   if not parts or parts[0] in ['playerdata','advancements','stats'] or parts[-1] in ['session.lock','level.dat_old']:continue
   dest=root.joinpath(*parts);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(archive.read(item))
 config=json.loads((root/'duckbox-training.json').read_text())
-config['options'].update(customMap=True,autoBuildOnJoin=False,initialized=True,built=True)
+config['options'].update(customMap=False,autoBuildOnJoin=False,initialized=True,built=True)
+config["emptyProfilesRevision"]=1
+for number in ["2","3","4"]:config.setdefault("kitProfiles",{})[number]={"inventory":[None]*41}
 config['backups']={}
 (root/'duckbox-training.json').write_text(json.dumps(config,ensure_ascii=False,indent=2)+'\n')
 level=nbtlib.load(root/'level.dat');data=level['Data'];data.pop('Player',None)
@@ -32,7 +34,9 @@ if 'DataPacks' in data:
 for field,key in [('SpawnX','spawnX'),('SpawnY','spawnY'),('SpawnZ','spawnZ')]:data[field]=nbtlib.Int(int(config['options'].get(key,{'spawnX':-146,'spawnY':65,'spawnZ':93}[key])))
 data['GameRules']['spawnRadius']=nbtlib.String('0')
 level.save(root/'level.dat',gzipped=True)
-(root/'LEIA-ME.txt').write_text('Mundo de Duckzin: mapa e perfis enviados pelo autor, preservados. Use Fabric1.21.4, FabricAPI e DuckBoxTrainer. O gerador automatico da arena foi desativado neste mapa.\n')
+(root/'LEIA-ME.txt').write_text('Mundo de Duckzin: mapa e perfis enviados pelo autor, preservados. Use Fabric1.21.4, FabricAPI e DuckBoxTrainer. A arena ja esta construida. O botao de tamanho redimensiona somente a caixa, preservando o lobby.\n')
+icon=B/'src/main/resources/assets/duckbox/world_icon.png'
+if icon.exists():shutil.copyfile(icon,root/'icon.png')
 out=B/'src/main/resources/assets/duckbox/world/duckzin.zip';out.parent.mkdir(parents=True,exist_ok=True)
 with ZipFile(out,'w',ZIP_DEFLATED) as z:
  for p in sorted(root.rglob('*')):

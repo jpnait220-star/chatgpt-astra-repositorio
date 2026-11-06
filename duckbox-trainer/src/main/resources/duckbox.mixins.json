@@ -9,7 +9,9 @@
     "WebMovementAccess",
     "WebPacketMovementMixin",
     "TrainerChestSyncMixin",
-    "TrainerChestPlacementMixin"
+    "TrainerChestPlacementMixin",
+    "TrainerCriticalMixin",
+    "TrainerHealingMixin"
   ],
   "injectors": {
     "defaultRequire": 1

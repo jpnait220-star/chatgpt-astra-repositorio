@@ -46,6 +46,19 @@ public final class Arena {
     return !pending.isEmpty();
   }
 
+  public static boolean hasGeneratedShell(ServerWorld world, Options o) {
+    if (!world.getBlockState(new BlockPos(o.x, o.y, o.z)).isOf(Blocks.YELLOW_TERRACOTTA)
+        || !world.getBlockState(new BlockPos(o.x, o.y + HEIGHT, o.z)).isOf(Blocks.GLASS)) return false;
+    for (int size : new int[] {9, 13, 17}) {
+      int h = size / 2;
+      boolean corners = true;
+      for (int x : new int[] {-h, h}) for (int z : new int[] {-h, h})
+        corners &= world.getBlockState(new BlockPos(o.x + x, o.y + 1, o.z + z)).isOf(Blocks.CHISELED_POLISHED_BLACKSTONE);
+      if (corners) return true;
+    }
+    return false;
+  }
+
   public static void create(ServerPlayerEntity player, Options o) {
     DuckBox.requireStopped();
     if (building()) throw new IllegalArgumentException("Aguarde a arena terminar.");

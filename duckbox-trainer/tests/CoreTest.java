@@ -361,6 +361,18 @@ public class CoreTest {
                   "/assets/duckbox/textures/map_panels/" + panelName + ".png"));
       check(image.getWidth() <= 2048 && image.getHeight() <= 2048);
     }
+    var profileMigration = com.google.gson.JsonParser.parseString("{\"kitProfiles\":{\"1\":{\"inventory\":[{\"id\":\"minecraft:golden_sword\"}]},\"2\":{\"inventory\":[{\"id\":\"minecraft:stone\"}]}}}").getAsJsonObject();
+    String firstProfile = profileMigration.getAsJsonObject("kitProfiles").get("1").toString();
+    check(DuckBox.initializeEmptyProfiles(profileMigration));
+    check(profileMigration.getAsJsonObject("kitProfiles").get("1").toString().equals(firstProfile));
+    for (String id : new String[] {"2", "3", "4"}) {
+      var empty = profileMigration.getAsJsonObject("kitProfiles").getAsJsonObject(id).getAsJsonArray("inventory");
+      check(empty.size() == 41); check(empty.asList().stream().allMatch(com.google.gson.JsonElement::isJsonNull));
+    }
+    check(profileMigration.getAsJsonObject("archivedExtraProfiles").has("2"));
+    profileMigration.getAsJsonObject("kitProfiles").getAsJsonObject("2").addProperty("edited", true);
+    check(!DuckBox.initializeEmptyProfiles(profileMigration));
+    check(profileMigration.getAsJsonObject("kitProfiles").getAsJsonObject("2").get("edited").getAsBoolean());
     var savedMaps = java.nio.file.Files.createTempDirectory("duckbox-map-test");
     var imported = WorldTemplate.create(savedMaps);
     var importedAgain = WorldTemplate.create(savedMaps);
@@ -372,7 +384,7 @@ public class CoreTest {
     check(!importedLevel.contains("Player"));
     check(importedLevel.getInt("GameType") == 2);
     var importedConfig = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(imported.resolve("duckbox-training.json"))).getAsJsonObject();
-    check(importedConfig.getAsJsonObject("options").get("customMap").getAsBoolean());
+    check(!importedConfig.getAsJsonObject("options").get("customMap").getAsBoolean());
     check(!importedConfig.getAsJsonObject("options").get("autoBuildOnJoin").getAsBoolean());
     check(importedConfig.getAsJsonObject("kitProfiles").size() > 0);
     check(java.nio.file.Files.size(imported.resolve("region/r.-1.0.mca")) > 0);

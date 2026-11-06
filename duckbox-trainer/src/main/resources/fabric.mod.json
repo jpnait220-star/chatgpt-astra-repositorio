@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "duckbox",
-  "version": "0.3.28-alpha",
+  "version": "0.3.29-alpha",
   "name": "Duck Box Trainer",
   "description": "Treino experimental de Box PvP: bot jogador, arena e kit configuraveis. Minecraft 1.21.4.",
   "authors": [
@@ -25,5 +25,6 @@
     "minecraft": "1.21.4",
     "java": ">=21",
     "fabric-api": ">=0.119.3"
-  }
+  },
+  "icon": "assets/duckbox/icon.png"
 }

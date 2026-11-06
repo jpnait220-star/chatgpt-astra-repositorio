@@ -37,3 +37,5 @@ Cofre Pokemon: pokemon chest, NovaSkin https://minecraft.novaskin.me/skin/515551
 Gift do cofre: NovaSkin https://minecraft.novaskin.me/skin/5929563064 (PNG original).
 Mapa Mundo de Duckzin: DuckBoxTreino.zip fornecido pelo usuario; construcoes,
 perfis, regioes e entidades preservados. Dados pessoais de jogadores omitidos.
+
+Avatar de Robo e Pato Cibernetico: imagem fornecida pelo usuario em Nova pasta.zip. Original preservado em art/avatar-original.png; apenas redimensionado para os icones do mod e do mundo, sem recorte.

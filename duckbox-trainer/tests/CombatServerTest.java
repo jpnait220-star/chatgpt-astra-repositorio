@@ -20,7 +20,10 @@ public final class CombatServerTest {
 
     private void record(net.minecraft.network.packet.Packet<?> packet) {
       if (packet instanceof net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
-          || packet instanceof net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket)
+          || packet instanceof net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket
+          || packet instanceof net.minecraft.network.packet.s2c.play.TitleS2CPacket
+          || packet instanceof net.minecraft.network.packet.s2c.play.SubtitleS2CPacket
+          || packet instanceof net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket)
         messages.add(packet);
     }
 
@@ -2292,6 +2295,16 @@ public final class CombatServerTest {
       throw new AssertionError("Shears must not permit mining arena structure");
     System.out.println("PASS SHEARS/SPEED: real reserve shears mine wool faster and cut cobweb with native hardness, preserved tool and restored sword; real independent inventory Speed potions");
     verifyRecoveryAndTower(server, world, owner, tacticBot);
+    verifyNewRevision(server, world, owner, tacticBot);
+    verifyDamageParity(server, world, owner, tacticBot);
+    verifyBlockedTower(server, world, owner, tacticBot);
+    verifyLowGapCadence(server, world, owner, tacticBot);
+    feedbackConnection.messages.clear();
+    DuckBox.victoryTitle(owner);
+    if (feedbackConnection.messages.stream().noneMatch(p -> p instanceof net.minecraft.network.packet.s2c.play.TitleS2CPacket)
+        || feedbackConnection.messages.stream().noneMatch(p -> p instanceof net.minecraft.network.packet.s2c.play.SubtitleS2CPacket))
+      throw new AssertionError("Victory title/subtitle must actually reach player's connection");
+    System.out.println("PASS VICTORY TITLE: native title/subtitle packets reach player connection");
     server.getPlayerManager().remove(tacticBot);
     System.out.println(
         "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"
@@ -2350,9 +2363,14 @@ public final class CombatServerTest {
     var aim = Session.class.getDeclaredMethod("combatAimSpeed"); aim.setAccessible(true);
     float normalAim = (float) aim.invoke(scarcity);
     bot.getInventory().setStack(8, net.minecraft.item.ItemStack.EMPTY);
-    if (scarcity.countTotems() != 2 || !scarcity.mayRecover(false, 1)
+    if (scarcity.countTotems() != 2
         || Math.abs((float) aim.invoke(scarcity) - normalAim * 1.1f) > .001)
-      throw new AssertionError("At two totems, recovery priority and10percent aim boost must apply");
+      throw new AssertionError("At two totems,10percent aim boost must apply");
+    var end = Session.class.getDeclaredMethod("endRecovery", int.class, int.class); end.setAccessible(true);
+    var wait = Session.class.getDeclaredField("gapWait"); wait.setAccessible(true);
+    healing.setBoolean(scarcity, true); end.invoke(scarcity, 100, 30);
+    if (wait.getInt(scarcity) != 177)
+      throw new AssertionError("Scarce-totem recovery must use only30percent higher frequency, not the old35tick pause");
     scarcity.closed = true;
 
     var campPolicy = new Session(owner, bot, scarceOptions);
@@ -2415,7 +2433,185 @@ public final class CombatServerTest {
       throw new AssertionError("Safe head-web stance must still hit exposed feet");
     headCombat.closed = true; world.setBlockState(headWebFight, Blocks.AIR.getDefaultState(), 3);
     System.out.println("PASS SAFE HEAD-WEB COMBAT: Extreme spin enabled, no self-web intersection or gliding, actual exposed-feet hits");
+    world.setBlockState(headWebFight, Blocks.COBWEB.getDefaultState(), 3);
+    world.setBlockState(headWebFight.down(), Blocks.COBWEB.getDefaultState(), 3);
+    owner.setPose(net.minecraft.entity.EntityPose.STANDING); owner.stopGliding(); owner.setHealth(owner.getMaxHealth()); owner.timeUntilRegen = 0;
+    bot.getInventory().setStack(21, new net.minecraft.item.ItemStack(net.minecraft.item.Items.SHEARS));
+    var fullWebCombat = new Session(owner, bot, towerOptions);
+    boolean minedFeet = false, resumedHit = false;
+    float beforeFullWeb = owner.getHealth();
+    for (int i = 0; i < 100; i++) {
+      tick.setInt(server, server.getTicks() + 1); bot.tick();
+      if (world.getBlockState(headWebFight.down()).isAir()) minedFeet = true;
+      if (!world.getBlockState(headWebFight).isOf(Blocks.COBWEB))
+        throw new AssertionError("Standing double-web tactic must preserve head web and cut feet first");
+      if (owner.getHealth() < beforeFullWeb) {
+        if (!minedFeet) throw new AssertionError("No damage through fully blocking webs");
+        resumedHit = true; break;
+      }
+    }
+    if (!minedFeet || !resumedHit) throw new AssertionError("Full-web target must have feet cut and combat resumed");
+    fullWebCombat.closed = true; world.setBlockState(headWebFight, Blocks.AIR.getDefaultState(), 3);
+    System.out.println("PASS FULL WEB: standing target feet web cut with real shears, head web preserved, damage only after opening");
     System.out.println("PASS FINAL RECOVERY/TOWER:60percent consumption commitment, real apple consumed then sword, two-totem aim/recovery boost and autonomous elevated tower without web");
+  }
+
+  private static void verifyNewRevision(net.minecraft.server.MinecraftServer server,
+      net.minecraft.server.world.ServerWorld world, ServerPlayerEntity owner, TrainingBot bot) throws Exception {
+    var ticks = net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572"); ticks.setAccessible(true);
+    var cfg = new Options(); cfg.x = 0; cfg.y = 63; cfg.z = 0; cfg.difficulty = Options.Difficulty.HIGH;
+    cfg.gap = false; cfg.teia = false; cfg.retotem = false;
+    var rules = new Session(owner, bot, cfg); DuckBox.session = rules;
+    owner.teleport(world, 2.5, 64, .5, Set.of(), 0, 0, false); owner.onTeleportationDone(); owner.stopUsingItem(); owner.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    bot.teleport(world, .5, 64, .5, Set.of(), 0, 0, false); bot.onTeleportationDone();
+    for (int slot = 0; slot < 41; slot++) if (Kits.isTotem(bot.getInventory().getStack(slot))) bot.getInventory().setStack(slot, net.minecraft.item.ItemStack.EMPTY);
+    bot.getInventory().setStack(20, Kits.duckCharm()); bot.getInventory().setStack(40, net.minecraft.item.ItemStack.EMPTY);
+    bot.setHealth(10);
+    var retotem = Session.class.getDeclaredMethod("retotem", int.class); retotem.setAccessible(true);
+    retotem.invoke(rules, 1000); retotem.invoke(rules, 1003);
+    if (!Kits.isCharm(bot.getOffHandStack()) || rules.countTotems() != 0)
+      throw new AssertionError("Zero totems must equip bonus offhand even at low health");
+    bot.setHealth(24);
+    if (DuckBox.limitTrainingHealing(bot, 10) != 1 || DuckBox.limitTrainingHealing(owner, 10) != 10)
+      throw new AssertionError("With less than2totems, only bot regeneration must stop at25 total HP");
+    bot.setHealth(40);
+    if (DuckBox.limitTrainingHealing(bot, 5) != 0 || bot.getHealth() != 40)
+      throw new AssertionError("Healing cap must not remove existing health");
+    bot.setHealth(24);
+    owner.teleport(world, 6.5, 64, .5, Set.of(), 0, 0, false); owner.onTeleportationDone();
+    owner.setVelocity(new net.minecraft.util.math.Vec3d(.2, 0, 0));
+    if (DuckBox.limitTrainingHealing(bot, 10) != 10)
+      throw new AssertionError("Opponent actively retreating must open full recovery");
+    owner.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    if (DuckBox.limitTrainingHealing(bot, 10) != 1)
+      throw new AssertionError("Bot creating distance alone must not bypass regeneration cap");
+    owner.getInventory().setStack(2, new net.minecraft.item.ItemStack(net.minecraft.item.Items.ENCHANTED_GOLDEN_APPLE, 2));
+    owner.getInventory().selectedSlot = 2; owner.getMainHandStack().use(world, owner, net.minecraft.util.Hand.MAIN_HAND);
+    if (DuckBox.limitTrainingHealing(bot, 10) != 10)
+      throw new AssertionError("Opponent distant gap must permit full recovery");
+    owner.stopUsingItem();
+    bot.getInventory().setStack(6, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    bot.getInventory().setStack(7, new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+    if (DuckBox.limitTrainingHealing(bot, 10) != 10)
+      throw new AssertionError("Two totems must not use the strict less-than-two cap");
+    bot.setSprinting(true); owner.setSprinting(true);
+    if (DuckBox.sprintBlocksCritical(bot) || !bot.isSprinting() || !DuckBox.sprintBlocksCritical(owner))
+      throw new AssertionError("Scoped sprint critical rule must preserve actual sprint and ordinary player rules");
+    rules.closed = true; DuckBox.session = null;
+    System.out.println("PASS OFFHAND/REGEN/CRIT: zero-totem bonus offhand,25HP healing ceiling with exact thresholds and retreat/gap exceptions, scoped sprint-critical permission without changing sprint");
+
+    // The generated shell must resize even if an older import incorrectly marked it custom.
+    var before = DuckBox.options; var generated = new Options(); generated.x = 0; generated.y = 63; generated.z = 0;
+    generated.initialized = true; generated.size = 13; DuckBox.options = generated;
+    Arena.create(owner, generated); while (Arena.building()) Arena.tick();
+    generated.customMap = true;
+    if (!Arena.hasGeneratedShell(world, generated)) throw new AssertionError("Generated arena recognition failed");
+    BlockPos lobby = new BlockPos(20, 64, 0); world.setBlockState(lobby, Blocks.GOLD_BLOCK.getDefaultState(), 3);
+    DuckBox.control(owner, "tamanho");
+    if (!Arena.building() || generated.size != 17 || generated.customMap)
+      throw new AssertionError("Size must rebuild generated arena, not only change bounds");
+    while (Arena.building()) Arena.tick();
+    if (!world.getBlockState(new BlockPos(8, 64, 8)).isOf(Blocks.CHISELED_POLISHED_BLACKSTONE)
+        || !world.getBlockState(lobby).isOf(Blocks.GOLD_BLOCK))
+      throw new AssertionError("Resizing must update the real box and preserve external lobby");
+    DuckBox.options = before;
+    System.out.println("PASS PHYSICAL RESIZE: old custom-marked generated arena becomes17x17 without recreating command or changing lobby");
+  }
+
+  private static void verifyDamageParity(net.minecraft.server.MinecraftServer server,
+      net.minecraft.server.world.ServerWorld world, ServerPlayerEntity owner, TrainingBot bot) throws Exception {
+    var ticks = net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572"); ticks.setAccessible(true);
+    bot.session = null; DuckBox.session = null;
+    var kit = Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM);
+    Kits.give(owner, kit); Kits.give(bot, kit);
+    owner.changeGameMode(GameMode.SURVIVAL); bot.changeGameMode(GameMode.SURVIVAL);
+    owner.setInvulnerable(false); bot.setInvulnerable(false);
+    owner.stopUsingItem(); bot.stopUsingItem(); owner.stopGliding(); bot.stopGliding();
+    owner.clearStatusEffects(); bot.clearStatusEffects();
+    for (int step = 0; step < 4; step++) {
+      ticks.setInt(server, server.getTicks() + 1); owner.tick(); owner.playerTick(); bot.tick();
+    }
+    double ownerDamage = owner.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
+    double botDamage = bot.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
+    if (Math.abs(ownerDamage - 27.5) > .001 || Math.abs(ownerDamage - botDamage) > .001)
+      throw new AssertionError("Same sword/offhand must give same actual attack attribute including1.5offhand bonus: " + ownerDamage + "/" + botDamage);
+    float normal = 0;
+    for (boolean critical : new boolean[] {false, true}) {
+      float[] damage = new float[2];
+      for (int direction = 0; direction < 2; direction++) {
+        owner.teleport(world, .5, 64, .5, Set.of(), -90, 0, false); owner.onTeleportationDone(); owner.setLoaded(true);
+        bot.teleport(world, 2.3, 64, .5, Set.of(), 90, 0, false); bot.onTeleportationDone(); bot.setLoaded(true);
+        for (var actor : List.of(owner, bot)) {
+          actor.getInventory().selectedSlot = 0; actor.setHealth(actor.getMaxHealth()); actor.setAbsorptionAmount(0);
+          actor.timeUntilRegen = 0; actor.setSprinting(false); actor.setOnGround(!critical); actor.fallDistance = critical ? .5f : 0;
+          actor.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+          actor.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.RESISTANCE, -1, 0));
+        }
+        ServerPlayerEntity attacker = direction == 0 ? owner : bot;
+        ServerPlayerEntity defender = direction == 0 ? bot : owner;
+        float before = defender.getHealth(); attacker.attack(defender); damage[direction] = before - defender.getHealth();
+      }
+      if (damage[0] <= 0 || Math.abs(damage[0] - damage[1]) > .001)
+        throw new AssertionError("Native player/bot damage must match with identical crit state and kit: " + damage[0] + "/" + damage[1]);
+      if (!critical) normal = damage[0]; else if (damage[0] <= normal)
+        throw new AssertionError("Native falling crit must genuinely increase damage");
+      System.out.println("PASS DAMAGE PARITY: critical=" + critical + " player=" + damage[0] + " bot=" + damage[1] + "; offhand1.5active on both");
+    }
+  }
+
+  private static void verifyBlockedTower(net.minecraft.server.MinecraftServer server,
+      net.minecraft.server.world.ServerWorld world, ServerPlayerEntity owner, TrainingBot bot) throws Exception {
+    var ticks = net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572"); ticks.setAccessible(true);
+    for (int x = -8; x <= 8; x++) for (int z = -8; z <= 8; z++)
+      for (int y = 64; y <= 74; y++) world.setBlockState(new BlockPos(x,y,z), Blocks.AIR.getDefaultState(),3);
+    var settings = new Options(); settings.x=0;settings.y=63;settings.z=0;
+    settings.gap=false;settings.giro=false;settings.retotem=false;settings.teia=false;
+    bot.session=null; Kits.give(bot,Kits.defaults(world.getRegistryManager(),Options.Rules.NORMAL_SPAM));
+    bot.getInventory().setStack(21,new net.minecraft.item.ItemStack(net.minecraft.item.Items.SHEARS));
+    bot.getInventory().setStack(5,new net.minecraft.item.ItemStack(net.minecraft.item.Items.CYAN_WOOL,32));
+    owner.teleport(world,.5,70,.5,Set.of(),0,0,false);owner.onTeleportationDone();owner.setOnGround(true);owner.setInvulnerable(true);
+    world.setBlockState(new BlockPos(0,69,0),Blocks.BLACK_WOOL.getDefaultState(),3);
+    bot.teleport(world,6.5,64,.5,Set.of(),90,0,false);bot.onTeleportationDone();bot.stopGliding();bot.setOnGround(true);
+    bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);bot.setHealth(bot.getMaxHealth());bot.clearStatusEffects();
+    var recovery = new Session(owner,bot,settings);DuckBox.session=recovery;
+    var column=Session.class.getDeclaredField("towerColumn");column.setAccessible(true);
+    boolean knocked=false,fell=false,blocked=false,cleared=false,climbed=false;
+    BlockPos obstruction=null;
+    for(int i=0;i<500;i++) {
+      ticks.setInt(server,server.getTicks()+1);bot.tick();
+      if(!knocked && bot.getInventory().getStack(5).getCount()<32 && bot.getY()>64.4) {
+        bot.move(net.minecraft.entity.MovementType.SELF,new net.minecraft.util.math.Vec3d(1.15,-.4,0));
+        bot.setVelocity(new net.minecraft.util.math.Vec3d(.45,-.4,0));knocked=true;
+      }
+      if(knocked && !blocked && bot.isOnGround() && bot.getY()<65) {
+        fell=true;var base=(BlockPos)column.get(recovery);
+        if(base!=null){obstruction=base.up(2);world.setBlockState(obstruction,Blocks.CYAN_WOOL.getDefaultState(),3);blocked=true;}
+      }
+      if(blocked && world.getBlockState(obstruction).isAir()) cleared=true;
+      if(cleared && bot.getY()>=69.4){climbed=true;break;}
+    }
+    if(!knocked||!fell||!blocked||!cleared||!climbed)
+      throw new AssertionError("Tower must recover from real fall and mine blocking wool: "+knocked+"/"+fell+"/"+blocked+"/"+cleared+"/"+climbed+" pos="+bot.getPos());
+    recovery.cleanupBuilding();recovery.closed=true;DuckBox.session=null;owner.setInvulnerable(false);
+    System.out.println("PASS BLOCKED TOWER: real knockback/fall, user wool obstacle cut through main AI, tower resumed to target height");
+  }
+
+  private static void verifyLowGapCadence(net.minecraft.server.MinecraftServer server,
+      net.minecraft.server.world.ServerWorld world, ServerPlayerEntity owner, TrainingBot bot) throws Exception {
+    var tick=net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572");tick.setAccessible(true);
+    bot.session=null; Kits.give(bot,Kits.defaults(world.getRegistryManager(),Options.Rules.NORMAL_SPAM));
+    for(int slot=0;slot<41;slot++)if(Kits.isTotem(bot.getInventory().getStack(slot)))bot.getInventory().setStack(slot,net.minecraft.item.ItemStack.EMPTY);
+    bot.teleport(world,.5,64,.5,Set.of(),0,0,false);bot.onTeleportationDone();bot.stopUsingItem();bot.stopGliding();
+    bot.setOnGround(true);bot.setVelocity(net.minecraft.util.math.Vec3d.ZERO);bot.clearStatusEffects();bot.setHealth(10);bot.setAbsorptionAmount(0);
+    owner.teleport(world,6.5,64,6.5,Set.of(),0,0,false);owner.onTeleportationDone();owner.stopUsingItem();owner.setInvulnerable(true);owner.setVelocity(net.minecraft.util.math.Vec3d.ZERO);
+    var cfg=new Options();cfg.x=0;cfg.y=63;cfg.z=0;cfg.giro=false;cfg.retotem=false;cfg.teia=false;
+    var limited=new Session(owner,bot,cfg);DuckBox.session=limited;
+    int stock=bot.getInventory().getStack(2).getCount();
+    for(int step=0;step<80;step++){tick.setInt(server,server.getTicks()+1);bot.tick();}
+    if(bot.getInventory().getStack(2).getCount()!=stock-1)
+      throw new AssertionError("Low-totem bot must consume one real gap, not spam/chains during initial80ticks");
+    limited.closed=true;DuckBox.session=null;owner.setInvulnerable(false);
+    System.out.println("PASS LOW GAP CADENCE: zero-totem recovery consumed exactly one real apple over80ticks");
   }
 
 }

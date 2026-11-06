@@ -615,6 +615,26 @@ public final class DuckBox implements ModInitializer {
                                                         })))))));
   }
 
+  public static boolean sprintBlocksCritical(net.minecraft.entity.player.PlayerEntity player) {
+    if (player instanceof TrainingBot bot && bot.session != null && !bot.session.closed
+        && !bot.session.countingDown()) return false;
+    return player.isSprinting();
+  }
+
+  public static float limitTrainingHealing(net.minecraft.entity.LivingEntity entity, float amount) {
+    if (session == null || session.closed || entity != session.bot || session.countingDown()
+        || session.countTotems() >= 2 || session.opponentRecovering()) return amount;
+    return Math.max(0, Math.min(amount, 25 - entity.getHealth()));
+  }
+
+  public static void victoryTitle(ServerPlayerEntity player) {
+    player.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket(10, 60, 20));
+    player.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleS2CPacket(
+        Text.literal("VITÓRIA!").formatted(Formatting.GOLD, Formatting.BOLD)));
+    player.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.SubtitleS2CPacket(
+        Text.literal("Você venceu o DuckBot!").formatted(Formatting.YELLOW)));
+  }
+
   public static void applyLobbyMode(ServerPlayerEntity player) {
     if (player instanceof TrainingBot || !options.initialized || !options.built) return;
     String lobbyDimension = options.spawnDimension.isEmpty() ? options.dimension : options.spawnDimension;
@@ -728,6 +748,23 @@ public final class DuckBox implements ModInitializer {
     if (id < 1 || id > 4) throw new IllegalArgumentException("Perfil deve ser1,2,3 ou4.");
   }
 
+  public static boolean initializeEmptyProfiles(JsonObject data) {
+    if (data.has("emptyProfilesRevision") && data.get("emptyProfilesRevision").getAsInt() >= 1) return false;
+    if (!data.has("kitProfiles")) data.add("kitProfiles", new JsonObject());
+    var profiles = data.getAsJsonObject("kitProfiles");
+    var previous = new JsonObject();
+    for (int id = 2; id <= 4; id++) {
+      String key = Integer.toString(id);
+      if (profiles.has(key)) previous.add(key, profiles.get(key).deepCopy());
+      var empty = new JsonArray();
+      for (int slot = 0; slot < 41; slot++) empty.add(JsonNull.INSTANCE);
+      var kit = new JsonObject(); kit.add("inventory", empty); profiles.add(key, kit);
+    }
+    if (previous.size() > 0) data.add("archivedExtraProfiles", previous);
+    data.addProperty("emptyProfilesRevision", 1);
+    return true;
+  }
+
   private static JsonObject profileKits(ServerPlayerEntity p, int id) {
     checkProfile(id);
     if (!disk.has("kits")) disk.add("kits", new JsonObject());
@@ -779,7 +816,8 @@ public final class DuckBox implements ModInitializer {
     var kit =
         data != null
             ? Kits.decode(p, data)
-            : Kits.defaults(p.getRegistryManager(), Options.Rules.NORMAL_SPAM);
+            : profile == 1 ? Kits.defaults(p.getRegistryManager(), Options.Rules.NORMAL_SPAM)
+                : new ArrayList<>(Collections.nCopies(41, ItemStack.EMPTY));
     boolean repaired =
         migrated && options.rules == Options.Rules.NORMAL_SPAM && Kits.repairNormalKit(kit);
     repaired |= Kits.protectEquipment(p.getRegistryManager(), kit);
@@ -862,6 +900,7 @@ public final class DuckBox implements ModInitializer {
         Text.literal("DuckBot » " + session.roundMessage(entity == session.bot))
             .formatted(Formatting.AQUA),
         false);
+    if (entity == session.bot) victoryTitle(session.owner);
     entity.setHealth(1);
     session.finish = entity == session.bot ? "Voce venceu!" : "O bot venceu. Tente novamente!";
     return false;
@@ -938,7 +977,7 @@ public final class DuckBox implements ModInitializer {
       case "tamanho" -> {
         requireStopped();
         options.size = Options.nextSize(options.size);
-        if (options.customMap) {
+        if (options.customMap && !Arena.hasGeneratedShell(p.getServerWorld(), options)) {
           save();
           setting(p, "Limites da arena: " + options.size + "x" + options.size);
           break;
@@ -1067,9 +1106,10 @@ public final class DuckBox implements ModInitializer {
   private static void load() {
     options = new Options();
     disk = new JsonObject();
-    if (!Files.exists(file)) return;
+    if (!Files.exists(file)) { initializeEmptyProfiles(disk); return; }
     try {
       disk = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+      boolean profilesChanged = initializeEmptyProfiles(disk);
       if (disk.has("options")) options = JSON.fromJson(disk.get("options"), Options.class);
       if (options == null) options = new Options();
       int revision = disk.has("arenaRevision") ? disk.get("arenaRevision").getAsInt() : 0;
@@ -1095,6 +1135,12 @@ public final class DuckBox implements ModInitializer {
         options.z = Options.ARENA_Z;
         disk.addProperty("arenaPositionRevision", 1);
       }
+      boolean iconChanged = false;
+      if (options.initialized && options.built && !disk.has("avatarIconRevision")) {
+        iconChanged = WorldBranding.apply(file.getParent());
+        if (iconChanged) disk.addProperty("avatarIconRevision", 1);
+      }
+      if (profilesChanged || iconChanged) save();
     } catch (Exception e) {
       throw new IllegalStateException(
           "Nao foi possivel ler duckbox-training.json; arquivo preservado.", e);

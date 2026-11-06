@@ -51,6 +51,8 @@ public class MixinTest {
             }
             : new String[] {
               "net/minecraft/class_1297",
+              "net/minecraft/class_1309",
+              "net/minecraft/class_1657",
               "net/minecraft/class_1671",
               "net/minecraft/class_3222",
               "net/minecraft/class_3244",
@@ -74,6 +76,16 @@ public class MixinTest {
                       m.name.equals("duckbox$getShooter")
                           && (m.access & Opcodes.ACC_ABSTRACT) == 0))
         throw new AssertionError("missing shooter accessor");
+      if (target.endsWith("class_1657")) {
+        var attack = changed.methods.stream().filter(m -> m.name.equals("method_7324")).findFirst().orElseThrow();
+        int nativeSprint = 0, scopedCrit = 0;
+        for (var instruction : attack.instructions) if (instruction instanceof MethodInsnNode call) {
+          if (call.name.equals("method_5624")) nativeSprint++;
+          if (call.name.contains("critSprint")) scopedCrit++;
+        }
+        if (nativeSprint != 1 || scopedCrit != 1)
+          throw new AssertionError("Sprint critical hook must preserve native knockback and change only critical check");
+      }
       System.out.println(
           "PASS real Mixin APPLY "
               + target
