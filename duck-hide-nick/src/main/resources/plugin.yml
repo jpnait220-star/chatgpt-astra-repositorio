@@ -1,0 +1,24 @@
+name: DuckHideNick
+version: 1.0.0
+main: dev.duckzin.hidenick.DuckHideNick
+api-version: '1.21'
+author: Duckzin
+description: Esconde apenas a etiqueta sobre a cabeca, integrado a TAB e LuckPerms.
+depend: [TAB, LuckPerms]
+commands:
+  escondernick:
+    description: Troca seu nome acima da cabeca por nove caracteres ofuscados.
+    usage: /escondernick
+  mostrarnick:
+    description: Restaura seu nome acima da cabeca.
+    usage: /mostrarnick
+  ducknick:
+    description: Recarrega o DuckHideNick.
+    usage: /ducknick reload
+permissions:
+  escondernick.usar:
+    description: Permite esconder o proprio nick.
+    default: false
+  escondernick.admin:
+    description: Permite recarregar a configuracao.
+    default: op

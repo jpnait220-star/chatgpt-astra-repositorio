@@ -1,0 +1,43 @@
+# Requer TAB com scoreboard-teams.enabled: true e LuckPerms.
+# Nao altera o nick, prefixo ou sufixo do chat/TAB. Apenas a etiqueta sobre a cabeca.
+permissao: escondernick.usar
+salvar-estado: true
+
+etiqueta:
+  # Sempre nove caracteres. A animacao e feita pelo Minecraft (formato &k).
+  altura-acima-dos-olhos: 0.45
+  distancia-maxima: 64.0
+  fundo: true
+  ver-atraves-de-blocos: true
+  respeitar-invisibilidade: true
+
+cores:
+  padrao: '&7'
+  usar-cor-do-prefixo-luckperms: true
+  # Use os nomes exatos dos GRUPOS do LuckPerms, nao o texto do prefixo.
+  # Sem prioridade explicita, usa o peso (weight) do grupo no LuckPerms.
+  # Em empate, prefere o grupo primario e depois o nome em ordem alfabetica.
+  cargos:
+    dono:
+      cor: '&4'
+    admin:
+      cor: '&c'
+    vermelho:
+      cor: '&c'
+    vip:
+      cor: '&6'
+    mvp:
+      cor: '&#55FFFF'
+
+mensagens:
+  sem-permissao: '&7Adquira &f&lEsconder Nick &7na loja para usar esse comando.'
+  escondido: '&aSeu nick acima da cabeca foi escondido.'
+  mostrado: '&aSeu nick acima da cabeca voltou a aparecer.'
+  ja-escondido: '&eSeu nick ja esta escondido.'
+  ja-mostrado: '&eSeu nick ja esta visivel.'
+  somente-jogador: '&cSomente jogadores podem usar este comando.'
+  tab-desativado: '&cAtive scoreboard-teams.enabled no TAB para usar este recurso.'
+  carregando: '&eSeu TAB ainda esta carregando. Tente novamente em instantes.'
+  aguarde-renascer: '&eAguarde renascer para esconder seu nick.'
+  recarregado: '&aDuckHideNick recarregado.'
+  admin-sem-permissao: '&cVoce nao tem permissao para recarregar o plugin.'
