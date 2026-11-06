@@ -45,6 +45,8 @@ public final class DuckBox implements ModInitializer {
   @Override
   public void onInitialize() {
     dev.duckbox.panels.MapPanels.init();
+    net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register(
+        (handler,sender,server)->LegacyStockMigration.repairPlayer(handler.player));
     PayloadTypeRegistry.playS2C().register(TrainingPayload.ID, TrainingPayload.CODEC);
     PayloadTypeRegistry.playS2C().register(ChestRolePayload.ID, ChestRolePayload.CODEC);
     PayloadTypeRegistry.playS2C().register(LobbyBotPayload.ID, LobbyBotPayload.CODEC);

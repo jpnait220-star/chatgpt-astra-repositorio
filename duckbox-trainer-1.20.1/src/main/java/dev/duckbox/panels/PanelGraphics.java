@@ -15,7 +15,7 @@ public final class PanelGraphics {
       int light,
       int overlay) {
     if (whiteBackground(texture))
-      drawLayer(matrices, consumers, new Identifier("textures/misc/white.png"),
+      drawLayer(matrices, consumers, new Identifier("duckbox", "textures/map_panels/white_background.png"),
           height, z + (north ? .0005f : -.0005f), north, light, overlay, false);
     drawLayer(matrices, consumers, texture, height, z, north, light, overlay,
         whiteBackground(texture));

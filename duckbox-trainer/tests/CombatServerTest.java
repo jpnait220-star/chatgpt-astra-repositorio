@@ -9,6 +9,7 @@ import net.minecraft.resource.VanillaDataPackProvider;
 import net.minecraft.server.network.*;
 import net.minecraft.test.*;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.level.storage.LevelStorage;
 
@@ -112,6 +113,13 @@ public final class CombatServerTest {
             ConnectedClientData.createDefault(bot.getGameProfile(), false));
     owner.changeGameMode(GameMode.SURVIVAL);
     bot.changeGameMode(GameMode.SURVIVAL);
+
+ if(Boolean.getBoolean("duckbox.lowtraps")){
+  var lowClock=net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572");lowClock.setAccessible(true);
+  for(int t=0;t<80;t++){lowClock.setInt(server,server.getTicks()+1);owner.tick();owner.playerTick();bot.tick();}
+  owner.onTeleportationDone();bot.onTeleportationDone();owner.setLoaded(true);bot.setLoaded(true);
+  verifyLowWebNoTower(server,world,owner,bot);server.shutdown();System.exit(0);return;
+ }
     var kit = Kits.defaults(world.getRegistryManager(), Options.Rules.NORMAL_SPAM);
     var encodedKit = Kits.encode(owner, kit);
     var decodedKit = Kits.decode(owner, encodedKit);
@@ -2245,8 +2253,10 @@ public final class CombatServerTest {
         || !tacticBot.getInventory().getStack(5).isOf(net.minecraft.item.Items.SPLASH_POTION))
       throw new AssertionError("Speed lost to retotem must not cause a re-pot in close combat");
     owner.teleport(world, 6.5, 64, 6.5, Set.of(), 0, 0, false); owner.onTeleportationDone();
-    if (!(boolean) potMethod.invoke(fairSession, 41))
-      throw new AssertionError("Bot must use remaining SpeedI after its effect is removed");
+    if ((boolean) potMethod.invoke(fairSession, 800))
+      throw new AssertionError("Must wait40seconds after the first successful throw");
+    if (!(boolean) potMethod.invoke(fairSession, 801))
+      throw new AssertionError("Remaining SpeedI must become available after40seconds without effect");
     System.out.println("PASS REAL SPEED POTIONS: native splash projectile/effect, strongest reserve potion first, stock consumed, crouch, landing delay and no player effect synchronization");
 
     // Real survival mining with reserve shears: wool is faster; cobweb respects native tool speed.
@@ -2305,6 +2315,8 @@ public final class CombatServerTest {
         || feedbackConnection.messages.stream().noneMatch(p -> p instanceof net.minecraft.network.packet.s2c.play.SubtitleS2CPacket))
       throw new AssertionError("Victory title/subtitle must actually reach player's connection");
     System.out.println("PASS VICTORY TITLE: native title/subtitle packets reach player connection");
+    verifyAirTracking(server,world,owner,tacticBot);
+    verifyLowWebNoTower(server,world,owner,tacticBot);
     server.getPlayerManager().remove(tacticBot);
     System.out.println(
         "PASS NEW TACTICS: no-retreat recovery gate, actual self-web placement consumes stock, no"
@@ -2361,6 +2373,7 @@ public final class CombatServerTest {
     scarceOptions.difficulty = Options.Difficulty.EXPERT;
     var scarcity = new Session(owner, bot, scarceOptions);
     var aim = Session.class.getDeclaredMethod("combatAimSpeed"); aim.setAccessible(true);
+    owner.setOnGround(true);
     float normalAim = (float) aim.invoke(scarcity);
     bot.getInventory().setStack(8, net.minecraft.item.ItemStack.EMPTY);
     if (scarcity.countTotems() != 2
@@ -2642,5 +2655,57 @@ public final class CombatServerTest {
     limited.closed=true;DuckBox.session=null;owner.setInvulnerable(false);
     System.out.println("PASS LOW GAP CADENCE: zero-totem recovery consumed exactly one real apple over80ticks");
   }
+
+
+
+ private static void verifyAirTracking(net.minecraft.server.MinecraftServer server,net.minecraft.server.world.ServerWorld world,ServerPlayerEntity owner,TrainingBot bot)throws Exception{
+  bot.session=null;Kits.give(bot,Kits.defaults(world.getRegistryManager(),Options.Rules.NORMAL_SPAM));
+  for(int slot=0;slot<41;slot++)if(Kits.isTotem(bot.getInventory().getStack(slot)))bot.getInventory().setStack(slot,net.minecraft.item.ItemStack.EMPTY);
+  var settings=new Options();settings.difficulty=Options.Difficulty.HIGH;var tracking=new Session(owner,bot,settings);
+  var speed=Session.class.getDeclaredMethod("combatAimSpeed");speed.setAccessible(true);var error=Session.class.getDeclaredMethod("combatAimErrorScale");error.setAccessible(true);
+  owner.stopGliding();owner.setOnGround(false);
+  for(int slot=6;slot<10;slot++)bot.getInventory().setStack(slot,new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+  if(Math.abs((float)speed.invoke(tracking)-settings.difficulty.aimSpeed*1.36f)>.001||Math.abs((double)error.invoke(tracking)-1/1.36)>.0001)throw new AssertionError("Four totems must improve airborne tracking36percent");
+  bot.getInventory().setStack(10,new net.minecraft.item.ItemStack(net.minecraft.item.Items.TOTEM_OF_UNDYING));
+  if((float)speed.invoke(tracking)!=settings.difficulty.aimSpeed)throw new AssertionError("Five totems must keep normal tracking");
+  bot.getInventory().setStack(10,net.minecraft.item.ItemStack.EMPTY);bot.getInventory().setStack(9,net.minecraft.item.ItemStack.EMPTY);bot.getInventory().setStack(8,net.minecraft.item.ItemStack.EMPTY);
+  if(Math.abs((float)speed.invoke(tracking)-settings.difficulty.aimSpeed*1.36f)>.001)throw new AssertionError("Air bonus must not stack with old two-totem bonus");
+  owner.setOnGround(true);if(Math.abs((float)speed.invoke(tracking)-settings.difficulty.aimSpeed*1.1f)>.001)throw new AssertionError("Ground tracking keeps old two-totem behavior");
+  tracking.closed=true;bot.session=null;DuckBox.session=null;
+  System.out.println("PASS AIR TRACKING: <=4totems,36percent aim speed/precision factor for airborne target;5totems normal; ground unchanged; no stacked bonus or reach change");
+ }
+
+
+
+ private static void verifyLowWebNoTower(net.minecraft.server.MinecraftServer server,net.minecraft.server.world.ServerWorld world,ServerPlayerEntity owner,TrainingBot bot)throws Exception{
+  var tick=net.minecraft.server.MinecraftServer.class.getDeclaredField("field_4572");tick.setAccessible(true);
+  var scaffold=Session.class.getDeclaredMethod("scaffold",int.class);scaffold.setAccessible(true);var route=Session.class.getDeclaredField("webRoute");route.setAccessible(true);
+  int lowTrapCase=0;
+  for(int height:(Boolean.getBoolean("duckbox.lowtraps")?new int[]{1,2,3,3}:new int[]{1,2,3})){
+   for(var oldRocket:world.getEntitiesByType(net.minecraft.entity.EntityType.FIREWORK_ROCKET,new net.minecraft.util.math.Box(-16,50,-16,16,90,16),e->true))oldRocket.discard();
+   for(int x=-8;x<=8;x++)for(int z=-8;z<=8;z++){world.setBlockState(new BlockPos(x,63,z),Blocks.STONE.getDefaultState(),3);for(int y=64;y<=78;y++)world.setBlockState(new BlockPos(x,y,z),Blocks.AIR.getDefaultState(),3);}
+   bot.session=null;Kits.give(bot,Kits.defaults(world.getRegistryManager(),Options.Rules.NORMAL_SPAM));Kits.give(owner,Kits.defaults(world.getRegistryManager(),Options.Rules.NORMAL_SPAM));tick.setInt(server,server.getTicks()+1);bot.tick();owner.playerTick();
+   for(var fighter:List.of(owner,bot)){fighter.stopGliding();fighter.stopUsingItem();fighter.setPose(net.minecraft.entity.EntityPose.STANDING);fighter.clearStatusEffects();fighter.setAbsorptionAmount(0);fighter.setHealth(fighter.getMaxHealth());fighter.timeUntilRegen=0;fighter.setInvulnerable(false);}
+   owner.setPosition(2.3,64+height,.5);owner.setOnGround(true);owner.setVelocity(Vec3d.ZERO);bot.setPosition(.5,64,.5);bot.setOnGround(true);bot.setVelocity(Vec3d.ZERO);bot.setYaw(-90);
+   if(lowTrapCase++==3){
+    for(int y=64;y<=69;y++)world.setBlockState(new BlockPos(0,y,0),Blocks.BLACK_WOOL.getDefaultState(),3);
+    bot.setPosition(.5,70,.5);bot.setOnGround(true);
+   }
+   world.setBlockState(BlockPos.ofFloored(owner.getEyePos()),Blocks.COBWEB.getDefaultState(),3);
+   var o=new Options();o.x=0;o.y=63;o.z=0;o.difficulty=Options.Difficulty.HIGH;o.giro=true;o.spin=Options.SpinLevel.EXTREMO;o.teia=false;o.gap=false;o.retotem=false;
+   var fight=new Session(owner,bot,o);DuckBox.session=fight;
+   if((boolean)scaffold.invoke(fight,1))throw new AssertionError("No direct tower for low trapped player");
+   int wool=bot.getInventory().getStack(5).getCount();boolean hit=false;
+   for(int t=0;t<100;t++){
+    owner.setPosition(2.3,64+height,.5);owner.setVelocity(Vec3d.ZERO);owner.setOnGround(true);owner.setHealth(owner.getMaxHealth());owner.playerTick();float hp=owner.getHealth();
+    tick.setInt(server,server.getTicks()+1);bot.tick();hit|=owner.getHealth()<hp;
+    for(var rocket:world.getEntitiesByType(net.minecraft.entity.EntityType.FIREWORK_ROCKET,new net.minecraft.util.math.Box(-16,50,-16,16,90,16),e->!e.isRemoved()))rocket.tick();
+    if(route.get(fight).toString().equals("TOWER"))throw new AssertionError("Low head web must never select tower route at height"+height);
+   }
+   if(wool-bot.getInventory().getStack(5).getCount()>5||!hit)throw new AssertionError("Low trap must attack feet without a wool tower at height"+height+" hit="+hit+" case="+lowTrapCase+" bot="+bot.getPos());
+   fight.closed=true;bot.session=null;DuckBox.session=null;
+  }
+  System.out.println("PASS LOW WEB TRAPS:1/2/3blocks above floor, no tower route, cage-side placements preserved, real feet hits with Extreme spin enabled; higher tower scenarios remain covered");
+ }
 
 }

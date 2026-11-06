@@ -5,9 +5,9 @@ import hashlib,json,shutil,re,subprocess
 B=Path(__file__).parent;R=Path('/workspace/duckbox-publish')
 manifest=json.loads((B/'publication.json').read_text())
 for v in ['1.21.1','1.21.11','1.20.1']:
- root=Path('/workspace/duckbox-trainer-'+v);D=root/'dist';name='DuckBoxTrainer-'+v+'-0.3.30-alpha';jar=D/(name+'.jar')
- validation='DuckBoxTrainer0.3.30-alpha / Minecraft'+v+'\nBibliotecas nativas; testes sem janela grafica. Nao e partida grafica nem garantia de FPS/naturalidade.\n'
- for log in ['build.log','mixins-test.log','combat-test.log','mesh-test.log']:
+ root=Path('/workspace/duckbox-trainer-'+v);D=root/'dist';name='DuckBoxTrainer-'+v+'-0.3.31-alpha';jar=D/(name+'.jar')
+ validation='DuckBoxTrainer0.3.31-alpha / Minecraft'+v+'\nBibliotecas nativas; testes sem janela grafica. Nao e partida grafica nem garantia de FPS/naturalidade.\n'
+ for log in ['build.log','mixins-test.log','combat-test.log','low-web-test.log','mesh-test.log']+(['skin-test.log'] if v=='1.20.1' else []):
   text=(root/log).read_text();assert not any(marker in text for marker in ['Traceback','Exception in thread','AssertionError','error:']),log+v
   assert not re.search(r'\[[^\]]*/ERROR\]',text),log+v
   assert ('COMPILED' if log=='build.log' else 'PASS') in text
@@ -16,7 +16,7 @@ for v in ['1.21.1','1.21.11','1.20.1']:
  assert 'PASS ACTUAL WOVEN CRITICAL' in (root/'combat-test.log').read_text()
  with ZipFile(jar) as z:
   assert z.testzip() is None
-  meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.3.30-alpha' and meta['depends']['minecraft']==v
+  meta=json.loads(z.read('fabric.mod.json'));assert meta['version']=='0.3.31-alpha' and meta['depends']['minecraft']==v
   for n in z.namelist():
    if n.endswith('.class'):
     assert n.startswith('dev/duckbox/')
@@ -24,6 +24,8 @@ for v in ['1.21.1','1.21.11','1.20.1']:
  (D/'VALIDACAO.txt').write_text(validation)
  folders=['src','tests','art'];paths=[p for folder in folders for p in (root/folder).rglob('*') if p.is_file()]
  paths += [root/n for n in ['bootstrap.py','build.py','test_mixins.py','test_combat.py','test_meshes.py','README.md','LICENSE','CREDITOS-COSMETICOS.txt','world-conversion.json']]
+ for extra in ['test_skin.py','test_low_web.py','upgrade_legacy_items.py','item-upgrades.json']:
+  if (root/extra).exists():paths.append(root/extra)
  source=D/(name+'-fontes.zip')
  with ZipFile(source,'w',ZIP_DEFLATED) as z:
   for p in paths:z.write(p,p.relative_to(root).as_posix())

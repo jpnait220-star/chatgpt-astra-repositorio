@@ -44,7 +44,7 @@ public final class Kits {
     List<ItemStack> list = new ArrayList<>();
     var ops = RegistryOps.of(JsonOps.INSTANCE, p.getRegistryManager());
     for (JsonElement e : a)
-      list.add(e.isJsonNull() ? ItemStack.EMPTY : ItemStack.CODEC.parse(ops, e).getOrThrow());
+      list.add(e.isJsonNull() ? ItemStack.EMPTY : LegacyStockMigration.repairSavedCopy(ItemStack.CODEC.parse(ops, e).getOrThrow(), p.getRegistryManager()));
     return list;
   }
 

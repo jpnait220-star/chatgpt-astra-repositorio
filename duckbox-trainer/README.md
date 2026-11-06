@@ -1,10 +1,10 @@
-# Duck Box Trainer — 0.3.30-alpha / Fabric 1.21.4
+# Duck Box Trainer — 0.3.31-alpha / Fabric 1.21.4
 
 Treino local de Box PvP com bot ServerPlayerEntity, inventario e fisica vanilla,
 arena procedural, modos de combate e quatro cosmeticos locais independentes do
 DuckClientZ. Esta e uma alpha: a aparencia e a naturalidade exigem teste em jogo.
 
-## Atualizacao0.3.30
+## Atualizacao0.3.31
 
 Corrigido o critico do bot ao descer de elytra com sprint: o voo pode zerar
 fallDistance, entao a verificacao nativa usa a velocidade vertical real para
@@ -16,7 +16,7 @@ As versoes1.20.1,1.21.1 e1.21.11 possuem fontes/compilacoes proprias.
 ## Instalar / atualizar
 
 - Minecraft Java1.21.4, Java21, Fabric Loader0.16.10+ e Fabric API0.119.3+1.21.4.
-- Coloque apenas o JAR0.3.30 em `mods`, substituindo o DuckBox anterior.
+- Coloque apenas o JAR0.3.31 em `mods`, substituindo o DuckBox anterior.
 - Para um mundo novo, copie `saves/DuckBoxTreino` para `.minecraft/saves`.
 - O mundo DuckBoxTreino antigo pode ser reutilizado. Na primeira entrada,
   as configuracoes e os baus continuam salvos; use /box configurar para os controles.
@@ -91,7 +91,7 @@ Ate6 blocos do alvo, o bot ja tenta os cliques na cadencia selecionada e balanca
 mira encaixada. Isso nao estende o alcance do dano: so acerta com a linha da
 mira livre dentro de2,4 blocos (W-tap off) ou3 (W-tap on).
 A precisao da mira e as decisoes variam com a dificuldade.
-Na0.3.30, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
+Na0.3.31, Low equivale ao Medium anterior (inclusive salto/ativacao da elytra).
 Medium reage em8 ticks, gira a mira ate18 graus por tick e tem menos erro de
 pontaria, strafe mais frequente e troca de totem em4 ticks. High/Expert seguem iguais.
 
@@ -277,12 +277,12 @@ da1.21.4. Assets dos quatro cosmeticos ja estao no fonte, sem depender de outro
 mod para compilar ou executar. O codigo e MIT; direitos dos assets originais
 nao sao alterados por essa licenca.
 
-Na0.3.30 o bot pode quebrar la no caminho com quebra nativa, sem destruir
+Na0.3.31 o bot pode quebrar la no caminho com quebra nativa, sem destruir
 outros materiais. A teia do alvo continua exigindo subir na torre primeiro.
 A limpeza de inicio/fim de rodada remove todas as16 cores de la e teias do
 interior da arena, preservando piso, teto, paredes e outros materiais.
 
-Na0.3.30 o preset Normal e kits Normal salvos reconhecidos recuperam o
+Na0.3.31 o preset Normal e kits Normal salvos reconhecidos recuperam o
 modificador nativo de velocidade da espada de ouro (-2,4), que faltava no
 componente customizado de dano. Sem elytra a espada tem1,6 attack_speed, com
 elytra256,6 e mao vazia4. Kits com velocidade personalizada sao preservados.
@@ -304,7 +304,7 @@ a espada, espera8 ticks e tenta corrigir, preservando todos os itens. A chance
 nao afeta a volta do corante quando se recupera. A habilidade precisa estar
 ligada e ainda precisa haver totens no inventario; nao ha reposicao infinita.
 
-Na0.3.30 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
+Na0.3.31 a reposicao acontece quando nao ha mais totem na hotbar, mesmo que
 a offhand ainda esteja protegida. O bot pausa/agacha e move ate3 totens reais
 da reserva para os slots6..8. Itens deslocados vao para os slots liberados da
 reserva, sem exclusao; espadas nesses slots sao preservadas. O HUD de status
@@ -312,14 +312,14 @@ mostra o contador Refill. Sem reserva nao ha reposicao. O teste sequencial
 consome12 totens vanilla e confirma3 refills, incluindo refill antes do pop
 do ultimo totem da offhand.
 
-Na0.3.30 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
+Na0.3.31 o nome visivel e Spam (NORMAL_SPAM continua aceito em comandos e
 configs antigos). Refill: Low8 ticks, Medium5, High3, Expert2. A actionbar usa
 cores/simbolos e mostra dificuldade, modo, totens e refills; sem vida do bot
 nem estado Combate. Ao comer no chao, o bot trava novos saltos de elytra,
 anda devagar em direcao ao interior e deixa de mirar no teto; a deteccao de
 travamento agora considera deslocamento horizontal, nao os pulos.
 
-Na0.3.30 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
+Na0.3.31 o centro do piso fica em **-5 78 111**, com botoes de tamanho apenas
 **9x9,13x13,17x17**. A migracao de configs altera limites/posicao sem escrever
 blocos no seu mapa. Mundos existentes nao geram arena automaticamente.
 
@@ -469,7 +469,7 @@ com botoes em `/box configurar` e comandos em chat/command block:
   novas. Nao duplica itens nem quebra blocos fora de la/teia.
 
 
-## Alteracoes0.3.30
+## Alteracoes0.3.31
 
 - `/box habilidade resistencia2` alterna ResistenciaII no Spam. Desligada,
   mantem ResistenciaI da gap para os dois; Semi Insta continua com ResistenciaI.
@@ -537,7 +537,7 @@ no JSON como copia de seguranca. A partir dai, edicoes sao compartilhadas
 pelos dois modos e cada perfil continua independente dos demais.
 
 
-## Atualizacao0.3.30
+## Atualizacao0.3.31
 
 - `/spawn` retorna ao ponto salvo por `/box setspawn` (fallback **-146 65 93**).
   Ao terminar ou sair do x1, o inventario original e restaurado e o jogador
@@ -712,7 +712,7 @@ uma altura fixa. Continuam os limites para sair da recuperacao e voltar a atacar
 Os cosmeticos do Trainer equipam somente o bot do duelo e o NPC de lobby.
 Nao equipam o jogador, nem na primeira pessoa.
 
-## Atualizacao0.3.30
+## Atualizacao0.3.31
 
 - Ao completar60% do consumo de uma maca, o bot termina de comer mesmo quando
   o jogador volta ao combate. Depois retorna a espada. Antes desse ponto ainda
@@ -762,7 +762,7 @@ Quando a cabeca do alvo esta na teia, ele mantem aproximadamente1.5a1.9bloco
 de distancia horizontal, mira nos pes e suspende giro/pulo para nao entrar
 na propria teia. A colocacao tambem evita sobrepor a hitbox do proprio bot.
 
-## Atualizacao0.3.30
+## Atualizacao0.3.31
 
 - O mapa-base agora e o novo `Mundo de Duckzin.zip` enviado, com a arena criada.
   Perfil1 preservado; perfis2/3/4 vazios. Ao atualizar um mundo antigo, esses
@@ -789,7 +789,7 @@ Teste controlado de dano: espada, offhand, armadura e efeitos iguais produziram
 8.463364HP de dano normal e10.504959HP critico para jogador e bot. O bonus1.5da
 offhand esta ativo nos dois; nao foi adicionado multiplicador arbitrario de dano.
 
-Na0.3.30 a preparacao de mineracao de la nao e cancelada pela rotina de teia.
+Na0.3.31 a preparacao de mineracao de la nao e cancelada pela rotina de teia.
 Ao cair da torre, o bot pode liberar a la que bloqueia a coluna e retomar a
 subida. Teste de queda com colisao e bloqueio adicional passou pelo ciclo
 completo da IA. Quando houver duas teias com alvo em pe, corta primeiro os pes.
@@ -798,3 +798,19 @@ Com menos de2totens, recuperacao usa uma maca por tentativa e aguarda ao menos
 
 Icones do mod e do Mundo de Duckzin usam o avatar de robo/pato enviado pelo autor.
 Mundos de treino existentes recebem o novo icone uma vez, com backup do anterior.
+
+## Correcoes e ajustes0.3.31
+
+- Bot: intervalo de40segundos entre usos bem-sucedidos de Speed, respeitando efeito ativo e oportunidades de recuperar.
+- Com4totens ou menos, alvo no ar recebe ajuste de mira1.36x e erro dividido por1.36. O bonus nao acumula com o antigo de2totens; alcance permanece igual.
+- Alvos presos na teia ate3blocos acima do piso sao atacados nos pes sem escolher rota de torre de la. Torres para alvos mais altos continuam.
+- Paineis de rosto usam textura branca propria, incluida no JAR.
+-1.21.11: itens dos cofres convertidos com o DataFixer nativo; migracao de cofres existentes e reparacao de copias reconhecidas do mapa salvas com nomes JSON/atributos perdidos.
+-1.20.1: correcoes da capa/elytra usam os getters certos; getGameMode e setLatency permanecem nativos.
+
+Revisao: cenarios nativos de retotem/refil nas4dificuldades, foguetes, potes,
+gap, teia no pe/rosto, torre e quebra de la; matriz de16combinacoes de
+dificuldade/modo nos ports. Inclui regressao executando o PlayerListEntry
+transformado da1.20.1. Os testes nao substituem uma partida em cliente grafico.
+
+Validacao adicional: python test_low_web.py executa o cenario baixo com Entity e FireworkRocketEntity realmente transformados pelos Mixins, incluindo descida de uma coluna anterior. O teste da1.20.1executa getGameMode, latencia e as3texturas do PlayerListEntry transformado.

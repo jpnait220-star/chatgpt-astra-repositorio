@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 
 public class MixinTest {
   static ZipFile game, mod, mouse;
+  static final java.util.Map<String,byte[]> webRuntime = new java.util.LinkedHashMap<>();
 
   public static ClassNode read(String name) throws Exception {
     var archives = new java.util.ArrayList<ZipFile>(List.of(game, mod));
@@ -64,6 +65,7 @@ public class MixinTest {
       byte[] result =
           transformer.transformClassBytes(
               target.replace('/', '.'), target.replace('/', '.'), w.toByteArray());
+      if(args.length==2&&(target.equals("net/minecraft/class_1297")||target.equals("net/minecraft/class_1671")))webRuntime.put(target,result);
       ClassNode changed = new ClassNode();
       new ClassReader(result).accept(changed, 0);
       if (changed.methods.size() <= old.methods.size())
@@ -91,6 +93,13 @@ public class MixinTest {
           archive.putNextEntry(new java.util.zip.ZipEntry(target + ".class")); archive.write(result); archive.closeEntry();
         }
       }
+      if(target.equals("net/minecraft/class_640")&&System.getProperty("duckbox.client.woven")!=null){
+        try(var archive=new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(System.getProperty("duckbox.client.woven")))){
+          archive.putNextEntry(new java.util.zip.ZipEntry(target+".class"));archive.write(result);archive.closeEntry();
+        }
+        var gameMode=changed.methods.stream().filter(m->m.name.equals("method_2958")).findFirst().orElseThrow();
+        for(var ins:gameMode.instructions)if(ins instanceof MethodInsnNode call&&call.name.contains("duckbox"))throw new AssertionError("Game mode getter must have no skin/cape injections");
+      }
       System.out.println(
           "PASS real Mixin APPLY "
               + target
@@ -99,6 +108,11 @@ public class MixinTest {
               + " -> "
               + changed.methods.size()
               + " methods");
+    }
+    if(args.length==2&&System.getProperty("duckbox.web.woven")!=null){
+      try(var output=new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(System.getProperty("duckbox.web.woven")))){
+        for(var entry:webRuntime.entrySet()){output.putNextEntry(new java.util.zip.ZipEntry(entry.getKey()+".class"));output.write(entry.getValue());output.closeEntry();}
+      }
     }
   }
 }

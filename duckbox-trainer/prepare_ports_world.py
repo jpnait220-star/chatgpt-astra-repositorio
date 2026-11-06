@@ -86,8 +86,17 @@ REPLACEMENTS={'short_grass':'grass','tuff_bricks':'deepslate_bricks','chiseled_t
 for suffix in ['stairs','slab','wall']:
  for start,end in [('tuff_brick','deepslate_brick'),('polished_tuff','polished_deepslate'),('tuff','cobbled_deepslate')]:REPLACEMENTS[start+'_'+suffix]=end+'_'+suffix
 
+UPGRADED_11={}
+
 def convert_nbt(obj,version,counts):
  if isinstance(obj,n.Compound):
+  if version=='1.21.11' and str(obj.get('id','')).startswith('duckbox:') and 'Items' in obj:
+   fixed=[]
+   for item in obj['Items']:
+    encoded=item.snbt()
+    if encoded not in UPGRADED_11:raise ValueError('Cofre sem migracao nativa de item')
+    fixed.append(n.parse_nbt(UPGRADED_11[encoded]));counts['items']+=1
+   obj['Items']=n.List[n.Compound](fixed)
   if 'components' in obj and 'id' in obj and str(obj['id']).startswith(('minecraft:','duckbox:')) and ('count' in obj or 'Count' in obj):
    raw=json.loads(json.dumps(obj.unpack(),default=lambda o:o.tolist()))
    if version=='1.20.1':
@@ -134,6 +143,10 @@ def prepare(version):
   if key in config and isinstance(config[key],list):config[key]=[kit_json(v,version) for v in config[key]]
  (dest/'duckbox-training.json').write_text(json.dumps(config,ensure_ascii=False,indent=2)+'\n')
  counts={'chunks':0,'items':0,'block_substitutions':0}
+ if version=='1.21.11':
+  global UPGRADED_11
+  UPGRADED_11=json.loads((root/'item-upgrades.json').read_text())
+  for p in dest.rglob('*.mca'):region(p,version,counts)
  if version in ['1.20.1','1.21.1']:
   for p in dest.rglob('*.mca'):region(p,version,counts)
   for persistent in (dest/'data').glob('*.dat'):
@@ -151,4 +164,4 @@ def prepare(version):
  (root/'world-conversion.json').write_text(json.dumps({'minecraft':version,**counts},indent=2)+'\n')
  print('PREPARED',version,counts,flush=True)
 if __name__=='__main__':
- for version in sys.argv[1:] or ['1.21.1','1.21.11','1.20.1']:prepare(version)
+ for version in sys.argv[1:] or ['1.21.1','1.21.11']:prepare(version)

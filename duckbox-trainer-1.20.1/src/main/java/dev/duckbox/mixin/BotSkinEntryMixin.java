@@ -8,6 +8,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class BotSkinEntryMixin {
  @Inject(method="method_2968",at=@At("HEAD"),cancellable=true,remap=false)
  private void duckbox$skin(CallbackInfoReturnable<Identifier> ci){if(dev.duckbox.cosmetic.CosmeticState.isBot(((PlayerListEntry)(Object)this).getProfile().getId()))ci.setReturnValue(dev.duckbox.cosmetic.BotSkin.TEXTURE);}
- @Inject(method={"method_2958","method_2970"},at=@At("HEAD"),cancellable=true,remap=false)
+ @Inject(method={"method_2979()Lnet/minecraft/class_2960;","method_2957()Lnet/minecraft/class_2960;"},at=@At("HEAD"),cancellable=true,remap=false)
  private void duckbox$cape(CallbackInfoReturnable<Identifier> ci){if(dev.duckbox.cosmetic.CosmeticState.isBot(((PlayerListEntry)(Object)this).getProfile().getId()))ci.setReturnValue(dev.duckbox.cosmetic.BotSkin.CAPE);}
 }

@@ -207,8 +207,16 @@ public final class Session {
     return total > 0 && used * 5 >= total * 3;
   }
 
+  private boolean scarceAirTracking() {
+    return countTotems() <= 4 && (owner.isGliding() || !owner.isOnGround());
+  }
+
   private float combatAimSpeed() {
-    return o.difficulty.aimSpeed * (countTotems() <= 2 ? 1.1f : 1);
+    return o.difficulty.aimSpeed * (scarceAirTracking() ? 1.36f : countTotems() <= 2 ? 1.1f : 1);
+  }
+
+  private double combatAimErrorScale() {
+    return scarceAirTracking() ? 1.0 / 1.36 : countTotems() <= 2 ? .9 : 1;
   }
 
   private int speedPotionAt, potionCrouchUntil;
@@ -264,6 +272,7 @@ public final class Session {
       selectSword();
       return false;
     }
+    speedPotionAt = t + 40 * 20;
     bot.swingHand(Hand.MAIN_HAND);
     potionCrouchUntil = t + 3;
     bot.setSneaking(true);
@@ -505,7 +514,7 @@ public final class Session {
             case HIGH -> 0.09;
             case EXPERT -> 0.035;
           };
-      if (scarceTotems) error *= .9;
+      error *= combatAimErrorScale();
       aimX = point.x + random.nextGaussian() * error;
       aimY = point.y + random.nextGaussian() * error;
       aimZ = point.z + random.nextGaussian() * error;
@@ -544,12 +553,15 @@ public final class Session {
     }
 
     BlockPos trapped = webAtOwner();
-    boolean elevatedWeb = owner.getY() > o.y + 2.5
+    // Low web traps are reachable at the feet from the floor; do not climb the cage.
+    boolean lowWebTrap = trapped != null && owner.getY() <= o.y + 4;
+    boolean elevatedWeb = !lowWebTrap && owner.getY() > o.y + 2.5
         && (trapped != null || owner.isOnGround());
     BlockPos elevatedTarget = trapped != null ? trapped : owner.getBlockPos();
     boolean feetTrappedTarget =
         trapped != null && !elevatedWeb && trapped.getY() <= owner.getBlockPos().getY();
-    boolean headTrappedTarget = headWeb() != null && !elevatedWeb;
+    boolean headTrappedTarget = headWeb() != null && !elevatedWeb
+        && bot.getY() <= owner.getY() + .5;
     boolean safeWebCombat = feetTrappedTarget || headTrappedTarget;
     if (headTrappedTarget && !healing && !escaping && !o.tank) {
       maneuverUntil = 0;
@@ -637,7 +649,14 @@ public final class Session {
         && bot.getVelocity().y < 0.35) bot.checkGliding();
     if (headTrappedTarget && !healing && !escaping && !o.tank) {
       double horizontal = Math.sqrt(bot.getPos().subtract(owner.getPos()).horizontalLengthSquared());
-      bot.forwardSpeed = horizontal < 1.5 ? -.6f : horizontal > 1.9 ? .7f : 0;
+      double upper = 1.9, lower = 1.5;
+      if (owner.getY() - bot.getY() > 2.5) {
+        double vertical = owner.getY() + Math.min(.18, owner.getHeight() * .35) - bot.getEyeY();
+        upper = Math.min(upper, Math.max(.7, Math.sqrt(Math.max(0,
+            attackReach() * attackReach() - vertical * vertical)) - .15));
+        lower = Math.min(lower, Math.max(.5, upper - .25));
+      }
+      bot.forwardSpeed = horizontal < lower ? -.6f : horizontal > upper ? .7f : 0;
       bot.sidewaysSpeed = 0;
       bot.setSprinting(false);
       phase = "Mantendo distancia / atacando os pes";
@@ -1248,6 +1267,7 @@ public final class Session {
   }
 
   private boolean cageHead(int t) {
+    if (bot.getY() > owner.getY() + .5) return false;
     BlockPos head = headWeb();
     if (head == null) {
       trappedHead = null;
@@ -1381,6 +1401,7 @@ public final class Session {
   }
 
   private boolean scaffold(int t) {
+    if (webAtOwner() != null && owner.getY() <= o.y + 4) return false;
     double dx = owner.getX() - bot.getX(), dz = owner.getZ() - bot.getZ();
     if (towerColumn != null) {
       dx = towerColumn.getX() + .5 - bot.getX();
