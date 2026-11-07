@@ -96,3 +96,36 @@ test('background worker integration with simulated Chrome APIs', async t => {
   await new Promise(resolve=>setImmediate(resolve));
   delete globalThis.chrome;
 });
+
+test('favorites persist after restarting the browser and changing tab ids', async t => {
+  const h=harness(); globalThis.chrome=h.api;
+  // Query parameter avoids Node's module cache across integration tests.
+  await import('../background.js?persisted-favorites');
+  const tab=await h.api.tabs.create({url:'https://example.org/keep',title:'Keep me'});
+  await h.rpc({type:'getState'});
+  await h.rpc({type:'favorite',id:tab.id});
+  assert.equal(h.api.storage.local.data.savedFavorites.length,1);
+  h.api.storage.session.data.records={};
+  h.tabs.clear();
+  const again=await h.api.tabs.create({id:99,url:'https://example.org/keep',title:'Keep me'});
+  const state=await h.rpc({type:'getState'});
+  assert.equal(state.tabs.find(item=>item.id===99).favorite,true);
+  assert.equal(state.savedFavorites.length,1);
+  await h.rpc({type:'removeFavorite',url:'https://example.org/keep'});
+  assert.equal((await h.rpc({type:'getState'})).savedFavorites.length,0);
+  delete globalThis.chrome;
+});
+test('backup can restore favorites, history and settings', async () => {
+  const h=harness(); globalThis.chrome=h.api;
+  await import('../background.js?backup');
+  const input={app:'DuckCleans',format:1,savedFavorites:[{url:'https://a.test/',title:'My site',savedAt:12}],
+    history:[{title:'Closed tab',at:500}],settings:{minutes:30,paused:true},cleaned:5};
+  const state=await h.rpc({type:'importData',data:input});
+  assert.equal(state.savedFavorites[0].url,'https://a.test/');
+  assert.equal(state.history[0].title,'Closed tab');
+  assert.equal(state.settings.minutes,30);
+  const exported=await h.rpc({type:'exportData'});
+  assert.equal(exported.cleaned,5);
+  assert.equal(exported.savedFavorites.length,1);
+  delete globalThis.chrome;
+});

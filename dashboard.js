@@ -4,7 +4,7 @@ let state, view = 'overview', toastTimer, pending = false;
 const protectionLabels = { 'DuckCleans': 'DuckCleans', 'Favorite': 'Favorita', 'Active now': 'Ativa agora', 'Pinned': 'Fixada', 'Playing audio': 'Reproduzindo áudio', 'Browser page': 'Página do navegador' };
 const titles = {
   overview: ['Menos abas. Mente leve.', 'Guarde o que importa. Deixe o resto com a gente.'],
-  favorites: ['Algumas abas merecem ficar.', 'Suas abas com estrela ficam protegidas durante esta sessão do navegador.'],
+  favorites: ['Algumas abas merecem ficar.', 'Seus sites favoritos continuam salvos após reiniciar o navegador.'],
   activity: ['Já está tudo mais leve.', 'Veja as abas que a DuckCleans fechou para você.'],
   settings: ['Seu navegador. Seu ritmo.', 'Escolha o tempo. A gente cuida da limpeza.']
 };
@@ -55,15 +55,35 @@ function renderTabs() {
     const status = node('span',`tab-status${tab.protection ? '' : ' idle'}`, `${tab.protection === 'Favorite' ? '☆  ' : ''}${label}`);
     const star = node('button',`star${tab.favorite ? ' favorited' : ''}`,tab.favorite ? '★' : '☆');
     star.setAttribute('aria-label',`${tab.favorite ? 'Remover dos favoritos:' : 'Favoritar:'} ${tab.title}`);
-    star.setAttribute('aria-pressed',String(tab.favorite)); star.title = tab.favorite ? 'Remover proteção' : 'Proteger esta aba até ela ser fechada';
-    star.addEventListener('click',() => act({ type:'favorite',id:tab.id },tab.favorite ? 'Proteção removida. A contagem recomeçou.' : 'Aba protegida. Ela fica aberta até você fechá-la.'));
+    star.setAttribute('aria-pressed',String(tab.favorite)); star.title = tab.favorite ? 'Remover dos favoritos salvos' : 'Salvar este site nos favoritos';
+    star.addEventListener('click',() => act({ type:'favorite',id:tab.id },tab.favorite ? 'Favorito removido.' : 'Site salvo! Ele continuará nos favoritos após reiniciar.'));
     row.append(info,status,star); list.append(row);
   }
-  if (!tabs.length) empty(list,view === 'favorites' ? '☆' : '◫',search ? 'Nenhuma aba encontrada.' : view === 'favorites' ? 'Dê uma estrela aos seus favoritos.' : 'Tudo pronto para começar.',search ? 'Tente outro título ou site.' : view === 'favorites' ? 'Marque uma aba com estrela na Visão geral para protegê-la da limpeza automática.' : 'Abra um site e ele aparecerá aqui.');
+  if (view === 'favorites') {
+    const opened = new Set(state.tabs.filter(tab => tab.favorite).map(tab => {
+      try { const url = new URL(tab.url); url.hash = ''; return url.href; } catch { return ''; }
+    }));
+    for (const fav of (state.savedFavorites || [])) {
+      if (opened.has(fav.url) || !(`${fav.title} ${fav.url}`).toLowerCase().includes(search)) continue;
+      const row = node('div', 'tab-row'), info = node('div','tab-info');
+      const icon = node('span','site-icon','☆');
+      const link = node('button','tab-link'); link.title = 'Abrir favorito salvo';
+      link.append(node('span','tab-title',fav.title),node('span','tab-domain',domain(fav.url)));
+      link.addEventListener('click',() => act({type:'openFavorite',url:fav.url}));
+      info.append(icon,link);
+      const status = node('span','tab-status','Salvo para depois');
+      const remove = node('button','star favorited','★');
+      remove.title='Remover favorito salvo'; remove.setAttribute('aria-label','Remover favorito salvo: '+fav.title);
+      remove.addEventListener('click',()=>act({type:'removeFavorite',url:fav.url},'Favorito removido.'));
+      row.append(info,status,remove); list.append(row);
+    }
+  }
+  if (!list.childElementCount) empty(list,view === 'favorites' ? '☆' : '◫',search ? 'Nenhuma aba encontrada.' : view === 'favorites' ? 'Dê uma estrela aos seus favoritos.' : 'Tudo pronto para começar.',search ? 'Tente outro título ou site.' : view === 'favorites' ? 'Marque uma aba com estrela na Visão geral para protegê-la da limpeza automática.' : 'Abra um site e ele aparecerá aqui.');
+  $('#tabCount').textContent = list.querySelectorAll('.tab-row').length;
 }
 function render() {
   if (!state) return;
-  const count = state.tabs.filter(tab => tab.favorite).length;
+  const count = state.savedFavorites?.length || 0;
   $('#openCount').textContent = state.tabs.length; $('#favoriteCount').textContent = count;
   $('#navFavoriteCount').textContent = count; $('#cleanedCount').textContent = state.cleaned;
   $('#heroMinutes').textContent = formatMinutes(state.settings.minutes);
@@ -100,6 +120,26 @@ function renderActivity() {
   if (!state.history.length) empty(list,'✧','Tudo tranquilo por aqui.','As abas fechadas automaticamente aparecerão aqui.');
   $('#clearHistory').disabled = state.history.length === 0;
 }
+$('#exportBackup').addEventListener('click', async () => {
+  try {
+    const backup = await request({type:'exportData'});
+    const blob = new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href=url; link.download='DuckCleans-backup.json'; link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('Backup baixado com sucesso.');
+  } catch (error) { toast(error.message); }
+});
+$('#importBackup').addEventListener('change', async event => {
+  const file = event.target.files?.[0]; event.target.value='';
+  if (!file) return;
+  if (file.size > 2_000_000) return toast('Backup muito grande.');
+  try {
+    const data=JSON.parse(await file.text());
+    if (!confirm('Restaurar este backup? Favoritos e histórico atuais serão substituídos.')) return;
+    await act({type:'importData',data},'Backup restaurado!');
+  } catch(error) { toast('Não foi possível importar: '+error.message); }
+});
 function setView(next, animate = true) {
   view = next;
   document.querySelectorAll('[data-view]').forEach(button => { const selected = button.dataset.view === view; button.classList.toggle('selected',selected); if (selected) button.setAttribute('aria-current','page'); else button.removeAttribute('aria-current'); });
