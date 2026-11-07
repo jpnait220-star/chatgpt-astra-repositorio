@@ -8,8 +8,14 @@ final class ColorPolicy {
     private final Map<String, Rule> rules;
     private final String fallback;
     private final boolean prefixFallback;
+    private final boolean useRankColor;
 
     ColorPolicy(Map<String, Rule> rules, String fallback, boolean prefixFallback) {
+        this(rules, fallback, prefixFallback, true);
+    }
+
+    ColorPolicy(Map<String, Rule> rules, String fallback, boolean prefixFallback, boolean useRankColor) {
+        this.useRankColor = useRankColor;
         var copy = new HashMap<String, Rule>();
         rules.forEach((name, rule) -> copy.put(name.toLowerCase(Locale.ROOT), rule));
         this.rules = Map.copyOf(copy);
@@ -18,6 +24,11 @@ final class ColorPolicy {
     }
 
     String resolve(Collection<Group> groups, String prefix) {
+        if (!useRankColor) return fallback;
+        if (prefixFallback) {
+            var tagColor = ColorCodes.tagColor(prefix);
+            if (tagColor.isPresent()) return tagColor.get();
+        }
         Group best = null;
         int bestPriority = Integer.MIN_VALUE;
         for (var group : groups) {
@@ -32,10 +43,6 @@ final class ColorPolicy {
             }
         }
         if (best != null) return ColorCodes.lastColor(rules.get(best.name().toLowerCase(Locale.ROOT)).color()).orElse(fallback);
-        if (prefixFallback) {
-            var prefixColor = ColorCodes.lastColor(prefix);
-            if (prefixColor.isPresent()) return prefixColor.get();
-        }
         var defaultRule = rules.get("default");
         return defaultRule == null ? fallback : ColorCodes.lastColor(defaultRule.color()).orElse(fallback);
     }

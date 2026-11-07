@@ -6,7 +6,7 @@ Esconde somente a etiqueta acima da cabeça. Não modifica o nome da conta, o ch
 
 1. Instale Paper 1.21 ou 1.21.1 com Java 21, LuckPerms e TAB para essa versão.
 2. No TAB, mantenha `scoreboard-teams.enabled: true`.
-3. Coloque `DuckHideNick-Paper-1.21-1.0.0.jar` em `plugins` e reinicie o servidor.
+3. Coloque `DuckHideNick-Paper-1.21-1.0.1.jar` em `plugins` e reinicie o servidor.
 4. Edite `plugins/DuckHideNick/config.yml` com os nomes dos seus grupos do LuckPerms.
 5. Libere a permissão no cargo desejado:
    ```
@@ -31,6 +31,7 @@ Não é necessário dar permissão dos comandos separadamente. A permissão é v
 
 ```yaml
 cores:
+  usar-cor-do-cargo: true
   padrao: '&7'
   usar-cor-do-prefixo-luckperms: true
   cargos:
@@ -41,22 +42,25 @@ cores:
       cor: '#FFAA00'
 ```
 
-`vermelho` e `vip` são os nomes reais dos grupos no LuckPerms. Entre os grupos configurados herdados pelo jogador, vence a maior `prioridade`; quando omitida, usa o peso do grupo no LuckPerms. Empates preferem o grupo primário, depois ordem alfabética. O grupo `default` é uma alternativa final. Sem um cargo específico configurado, tenta a última cor do prefixo do LuckPerms; sem cor usa `padrao`.
+Por padrão, usa a cor das letras da tag ativa do LuckPerms. Exemplo: `&7[&9Mídia&7] &r` produz os nove caracteres em azul, ignorando colchetes cinza e a cor após a tag. Essa cor tem preferência sobre regras de grupos herdados.
 
+Para desligar a cor do cargo e usar somente `padrao`, configure `cores.usar-cor-do-cargo: false`. Essa nova chave também funciona em configurações antigas; se estiver ausente, o padrão é `true`.
+
+`vermelho` e `vip` são exemplos de grupos do LuckPerms, não são obrigatórios. As regras em `cargos` são alternativas quando a tag não tem cor. Para priorizar somente regras manuais, desative `usar-cor-do-prefixo-luckperms`. A maior `prioridade` vence; quando omitida, usa o peso do grupo. Empates preferem o grupo primário e depois ordem alfabética.
 Aceita `&c`, `&#FF0000`, `#FF0000` e o formato RGB legado. Apenas a cor do cargo é aplicada: prefixos e sufixos não entram na etiqueta escondida.
 
 ## Comportamento
 
 - São exatamente nove caracteres com a ofuscação nativa `&k`, animada pelo Minecraft.
 - A escolha é salva por UUID em `players.yml` e restaurada ao reconectar.
-- O jogador não vê sua própria etiqueta; os outros veem somente a etiqueta substituta.
+- `etiqueta.mostrar-para-si: true` permite ver a própria etiqueta no F5. O servidor não detecta o modo da câmera; ela também pode aparecer em primeira pessoa se você olhar diretamente para ela. Use `false` para ocultá-la somente do próprio jogador.
 - Respeita invisibilidade e `Player.canSee` (plugins de vanish que ocultam jogadores pela API Bukkit).
 - Enquanto agachado, reduz o alcance para até 32 blocos e não mostra o texto através de paredes.
-- A etiqueta acompanha o jogador, não monta nele; não altera passageiros nem impede teleporte.
+- A etiqueta acompanha o jogador com interpolação de três ticks, alinhada à movimentação dos jogadores remotos. Vira para a câmera como um holograma e possui uma área de renderização explícita para observação por baixo. Não monta no jogador, não altera passageiros nem impede teleporte.
 - Ao remover a permissão, restaura o nome. Se o TAB já tinha escondido a etiqueta antes, preserva esse estado.
 - Só jogadores escondidos recebem uma entidade TextDisplay; a animação não envia atualizações de texto por quadro. Cor/permissão são conferidas uma vez por segundo.
 
-Validação: compilação Java 21 e 21 verificações automatizadas de cores, prioridade de cargos, persistência e chamadas da API de nametag. A aparência e interação com a instalação específica do TAB precisam ser conferidas com dois jogadores no servidor; não foi realizado teste gráfico no Minecraft.
+Validação: compilação Java 21 e 25 verificações automatizadas de cores, prioridade de cargos, persistência e chamadas da API de nametag. A aparência e interação com a instalação específica do TAB precisam ser conferidas com dois jogadores no servidor; não foi realizado teste gráfico no Minecraft.
 
 ## Compilar
 

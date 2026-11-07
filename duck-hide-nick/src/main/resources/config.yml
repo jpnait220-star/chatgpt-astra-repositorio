@@ -7,27 +7,23 @@ etiqueta:
   # Sempre nove caracteres. A animacao e feita pelo Minecraft (formato &k).
   altura-acima-dos-olhos: 0.45
   distancia-maxima: 64.0
+  # Permite ver a propria etiqueta no F5 (o servidor nao detecta a camera F5).
+  mostrar-para-si: true
   fundo: true
   ver-atraves-de-blocos: true
   respeitar-invisibilidade: true
 
 cores:
+  # false = todos usam a cor padrao, sem consultar a cor dos cargos.
+  usar-cor-do-cargo: true
   padrao: '&7'
+  # Usa a cor do texto da tag ativa do LuckPerms, por exemplo Midia azul.
+  # Ignora colchetes e a cor/reset colocado depois da tag.
   usar-cor-do-prefixo-luckperms: true
-  # Use os nomes exatos dos GRUPOS do LuckPerms, nao o texto do prefixo.
-  # Sem prioridade explicita, usa o peso (weight) do grupo no LuckPerms.
-  # Em empate, prefere o grupo primario e depois o nome em ordem alfabetica.
-  cargos:
-    dono:
-      cor: '&4'
-    admin:
-      cor: '&c'
-    vermelho:
-      cor: '&c'
-    vip:
-      cor: '&6'
-    mvp:
-      cor: '&#55FFFF'
+  # Opcional: regras por grupo, usadas quando nao houver cor na tag.
+  # Para usar somente estas regras, desative usar-cor-do-prefixo-luckperms.
+  # Exemplo: midia: {cor: '&9', prioridade: 100}
+  cargos: {}
 
 mensagens:
   sem-permissao: '&7Adquira &f&lEsconder Nick &7na loja para usar esse comando.'

@@ -22,6 +22,11 @@ public final class PluginTests {
         check(policy.resolve(List.of(),null).equals("§7"), "no rank fallback");
         var priority=new ColorPolicy(Map.of("vip",new ColorPolicy.Rule("&6",100),"admin",new ColorPolicy.Rule("&c",null)),"&7",false);
         check(priority.resolve(List.of(new ColorPolicy.Group("vip",0,false),new ColorPolicy.Group("admin",10,true)),null).equals("§6"), "explicit priority");
+        check(ColorCodes.tagColor("&7[&9Midia&7] &r").orElseThrow().equals("§9"), "tag color ignores grey brackets and reset");
+        check(ColorCodes.tagColor("&#123456&lMídia &7").orElseThrow().equals("§x§1§2§3§4§5§6"), "RGB tag with trailing chat color");
+        check(policy.resolve(List.of(new ColorPolicy.Group("admin",10,true)),"&9Midia &7").equals("§9"), "active tag overrides inherited rank rule");
+        var disabled=new ColorPolicy(Map.of("admin",new ColorPolicy.Rule("&c",100)),"&f",true,false);
+        check(disabled.resolve(List.of(new ColorPolicy.Group("admin",10,true)),"&9Midia").equals("§f"), "disabled rank color ignores prefix and group");
         var folder=Files.createTempDirectory("ducknick-test-");
         try {
             var store=new HiddenStore(folder.resolve("players.yml"));

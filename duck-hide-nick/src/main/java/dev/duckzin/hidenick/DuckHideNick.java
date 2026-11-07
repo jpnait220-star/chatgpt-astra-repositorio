@@ -48,7 +48,7 @@ public final class DuckHideNick extends JavaPlugin implements Listener {
             var entry = section.getConfigurationSection(group);
             if (entry != null) rules.put(group, new ColorPolicy.Rule(entry.getString("cor", "&7"), entry.contains("prioridade") ? entry.getInt("prioridade") : null));
         }
-        colors = new ColorPolicy(rules, getConfig().getString("cores.padrao", "&7"), getConfig().getBoolean("cores.usar-cor-do-prefixo-luckperms", true));
+        colors = new ColorPolicy(rules, getConfig().getString("cores.padrao", "&7"), getConfig().getBoolean("cores.usar-cor-do-prefixo-luckperms", true), getConfig().getBoolean("cores.usar-cor-do-cargo", true));
     }
     private String color(Player player) {
         var user = luckPerms.getUserManager().getUser(player.getUniqueId());
@@ -118,7 +118,10 @@ public final class DuckHideNick extends JavaPlugin implements Listener {
         if (label == null) {
             var display = player.getWorld().spawn(position, TextDisplay.class, d -> {
                 d.setVisibleByDefault(false); d.setPersistent(false); d.setGravity(false); d.setInvulnerable(true);
-                d.setBillboard(Display.Billboard.CENTER); d.setTeleportDuration(1); d.setShadowed(false);
+                // Match the client's three-tick interpolation of remote players.
+                d.setBillboard(Display.Billboard.CENTER); d.setTeleportDuration(3); d.setShadowed(false);
+                // Give the renderer a real bounding box, including when viewed from below.
+                d.setDisplayWidth(4); d.setDisplayHeight(2);
                 d.setDefaultBackground(getConfig().getBoolean("etiqueta.fundo", true));
                 if (!getConfig().getBoolean("etiqueta.fundo", true)) d.setBackgroundColor(Color.fromARGB(0));
                 d.setAlignment(TextDisplay.TextAlignment.CENTER); d.setLineWidth(300);
@@ -134,7 +137,7 @@ public final class DuckHideNick extends JavaPlugin implements Listener {
         if (player.isSneaking()) range = Math.min(range,32);
         boolean invisible = getConfig().getBoolean("etiqueta.respeitar-invisibilidade",true) && (player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY));
         for (var viewer : getServer().getOnlinePlayers()) {
-            boolean visible = !invisible && !viewer.equals(player) && viewer.canSee(player) && viewer.getWorld() == player.getWorld() && viewer.getLocation().distanceSquared(position) <= range*range;
+            boolean visible = !invisible && (!viewer.equals(player) || getConfig().getBoolean("etiqueta.mostrar-para-si", true)) && viewer.canSee(player) && viewer.getWorld() == player.getWorld() && viewer.getLocation().distanceSquared(position) <= range*range;
             if (visible && label.viewers.add(viewer.getUniqueId())) viewer.showEntity(this,label.display);
             else if (!visible && label.viewers.remove(viewer.getUniqueId())) viewer.hideEntity(this,label.display);
         }

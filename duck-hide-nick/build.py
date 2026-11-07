@@ -21,7 +21,7 @@ subprocess.run(['java','-m','jdk.compiler/com.sun.tools.javac.Main','-source','2
 for p in (ROOT/'src/main/resources').rglob('*'):
     if p.is_file(): shutil.copy2(p,classes/p.relative_to(ROOT/'src/main/resources'))
 dist=ROOT/'dist';dist.mkdir(exist_ok=True)
-jar=dist/'DuckHideNick-Paper-1.21-1.0.0.jar'
+jar=dist/'DuckHideNick-Paper-1.21-1.0.1.jar'
 with zipfile.ZipFile(jar,'w',zipfile.ZIP_DEFLATED) as z:
     for p in classes.rglob('*'):
         if p.is_file():z.write(p,p.relative_to(classes))
