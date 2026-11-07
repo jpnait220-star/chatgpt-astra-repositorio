@@ -6,7 +6,7 @@ Esconde somente a etiqueta acima da cabeça. Não modifica o nome da conta, o ch
 
 1. Instale Paper 1.21 ou 1.21.1 com Java 21, LuckPerms e TAB para essa versão.
 2. No TAB, mantenha `scoreboard-teams.enabled: true`.
-3. Coloque `DuckHideNick-Paper-1.21-1.0.1.jar` em `plugins` e reinicie o servidor.
+3. Coloque `DuckHideNick-Paper-1.21-1.0.2.jar` em `plugins` e reinicie o servidor.
 4. Edite `plugins/DuckHideNick/config.yml` com os nomes dos seus grupos do LuckPerms.
 5. Libere a permissão no cargo desejado:
    ```
@@ -56,9 +56,9 @@ Aceita `&c`, `&#FF0000`, `#FF0000` e o formato RGB legado. Apenas a cor do cargo
 - `etiqueta.mostrar-para-si: true` permite ver a própria etiqueta no F5. O servidor não detecta o modo da câmera; ela também pode aparecer em primeira pessoa se você olhar diretamente para ela. Use `false` para ocultá-la somente do próprio jogador.
 - Respeita invisibilidade e `Player.canSee` (plugins de vanish que ocultam jogadores pela API Bukkit).
 - Enquanto agachado, reduz o alcance para até 32 blocos e não mostra o texto através de paredes.
-- A etiqueta acompanha o jogador com interpolação de três ticks, alinhada à movimentação dos jogadores remotos. Vira para a câmera como um holograma e possui uma área de renderização explícita para observação por baixo. Não monta no jogador, não altera passageiros nem impede teleporte.
+- A etiqueta usa o nome nativo de um armor stand invisível e sem hitbox (marker). A orientação horizontal e vertical e o fundo são renderizados pelo próprio Minecraft, como os nomes normais, inclusive ao observar por cima ou por baixo. Acompanha o jogador com a interpolação normal de entidades. Não monta no jogador, não altera passageiros nem impede teleporte.
 - Ao remover a permissão, restaura o nome. Se o TAB já tinha escondido a etiqueta antes, preserva esse estado.
-- Só jogadores escondidos recebem uma entidade TextDisplay; a animação não envia atualizações de texto por quadro. Cor/permissão são conferidas uma vez por segundo.
+- Só jogadores escondidos recebem um marker invisível; a animação não envia atualizações de texto por quadro. Cor/permissão são conferidas uma vez por segundo.
 
 Validação: compilação Java 21 e 25 verificações automatizadas de cores, prioridade de cargos, persistência e chamadas da API de nametag. A aparência e interação com a instalação específica do TAB precisam ser conferidas com dois jogadores no servidor; não foi realizado teste gráfico no Minecraft.
 
@@ -71,3 +71,7 @@ python3 build.py
 ```
 
 O script baixa as dependências de compilação oficiais para `tools/`, gera o JAR em `dist/` e executa as verificações. Nada de `tools/` é incluído no plugin.
+
+## Atualização 1.0.2
+
+Substitua o JAR anterior e reinicie o servidor. `players.yml`, permissões e cores são preservados. A opção antiga `etiqueta.fundo` deixa de se aplicar: o fundo acompanha o estilo nativo do Minecraft/configurações do cliente. A renderização de nomes nativa usa alcance de até 64 blocos (32 no estilo agachado), sujeita à distância de rastreamento de entidades configurada no servidor.

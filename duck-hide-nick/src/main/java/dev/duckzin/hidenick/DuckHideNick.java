@@ -20,10 +20,10 @@ public final class DuckHideNick extends JavaPlugin implements Listener {
     private int ticks;
     private boolean persistenceHealthy = true;
     private static final class Label {
-        final TextDisplay display;
+        final ArmorStand display;
         final NametagLease lease;
         final Set<UUID> viewers = new HashSet<>();
-        Label(TextDisplay display, NametagLease lease) { this.display = display; this.lease = lease; }
+        Label(ArmorStand display, NametagLease lease) { this.display = display; this.lease = lease; }
     }
 
     @Override public void onEnable() {
@@ -113,26 +113,24 @@ public final class DuckHideNick extends JavaPlugin implements Listener {
         if (label != null && (label.lease.manager != manager || label.lease.player != tabPlayer || !label.display.isValid() || label.display.getWorld() != player.getWorld())) {
             removeLabel(id); label = null;
         }
-        var position = player.getEyeLocation().add(0, Math.clamp(getConfig().getDouble("etiqueta.altura-acima-dos-olhos", .45), 0, 2), 0);
+        // Vanilla entity nametags are anchored half a block above a marker's origin.
+        // Compensate here to keep the configured visible height unchanged.
+        var position = player.getEyeLocation().add(0, Math.clamp(getConfig().getDouble("etiqueta.altura-acima-dos-olhos", .45), 0, 2) - .5, 0);
         position.setYaw(0); position.setPitch(0);
         if (label == null) {
-            var display = player.getWorld().spawn(position, TextDisplay.class, d -> {
+            var display = player.getWorld().spawn(position, ArmorStand.class, d -> {
                 d.setVisibleByDefault(false); d.setPersistent(false); d.setGravity(false); d.setInvulnerable(true);
-                // Match the client's three-tick interpolation of remote players.
-                d.setBillboard(Display.Billboard.CENTER); d.setTeleportDuration(3); d.setShadowed(false);
-                // Give the renderer a real bounding box, including when viewed from below.
-                d.setDisplayWidth(4); d.setDisplayHeight(2);
-                d.setDefaultBackground(getConfig().getBoolean("etiqueta.fundo", true));
-                if (!getConfig().getBoolean("etiqueta.fundo", true)) d.setBackgroundColor(Color.fromARGB(0));
-                d.setAlignment(TextDisplay.TextAlignment.CENTER); d.setLineWidth(300);
-                d.setViewRange((float)(Math.clamp(getConfig().getDouble("etiqueta.distancia-maxima",64),8,128)/64));
-                d.setText(ColorCodes.label(color(player)));
+                // A marker has no body or interactive hitbox. Only its native entity
+                // nametag is rendered: the same camera-facing path used for player names.
+                d.setVisible(false); d.setMarker(true); d.setSmall(true);
+                d.setSilent(true); d.setCollidable(false); d.setBasePlate(false); d.setArms(false);
+                d.setCustomName(ColorCodes.label(color(player))); d.setCustomNameVisible(true);
             });
             label = new Label(display, new NametagLease(manager, tabPlayer)); labels.put(id, label);
         }
-        if (refresh) { label.lease.enforce(); label.display.setText(ColorCodes.label(color(player))); }
+        if (refresh) { label.lease.enforce(); label.display.setCustomName(ColorCodes.label(color(player))); }
         if (label.display.getLocation().distanceSquared(position) > .000001) label.display.teleport(position);
-        label.display.setSeeThrough(!player.isSneaking() && getConfig().getBoolean("etiqueta.ver-atraves-de-blocos", true));
+        label.display.setSneaking(player.isSneaking() || !getConfig().getBoolean("etiqueta.ver-atraves-de-blocos", true));
         double range = Math.clamp(getConfig().getDouble("etiqueta.distancia-maxima",64),8,128);
         if (player.isSneaking()) range = Math.min(range,32);
         boolean invisible = getConfig().getBoolean("etiqueta.respeitar-invisibilidade",true) && (player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY));

@@ -1,0 +1,2 @@
+6c0bf6ba63a7db38b348b8b4dd4ff90f072dd80b06b408bfd3aa0a7efdbf7973  DuckHideNick-Paper-1.21-1.0.2.jar
+3021772507bf28af25757eaf2fb6120738bbc10995ad4ad79b667c633a88d6c3  DuckHideNick-Paper-1.21-1.0.2.zip

@@ -9,7 +9,7 @@ etiqueta:
   distancia-maxima: 64.0
   # Permite ver a propria etiqueta no F5 (o servidor nao detecta a camera F5).
   mostrar-para-si: true
-  fundo: true
+  # Fundo e orientacao usam o renderizador nativo de nomes do Minecraft.
   ver-atraves-de-blocos: true
   respeitar-invisibilidade: true
 
