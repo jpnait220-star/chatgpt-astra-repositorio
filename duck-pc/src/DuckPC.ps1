@@ -9,13 +9,14 @@ Add-Type -Path (Join-Path $PSScriptRoot 'MonitorInfo.cs')
 $script:DataRoot=Join-Path $env:LOCALAPPDATA 'DuckPC'
 $script:History=Join-Path $script:DataRoot 'Historico'
 $script:Icons=Join-Path $script:DataRoot 'icons'
+$script:ProfileState=Join-Path $script:DataRoot 'perfil-ativo.json'
 [IO.Directory]::CreateDirectory($script:History) | Out-Null
 [IO.Directory]::CreateDirectory($script:Icons) | Out-Null
 Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'icons') -Filter '*.ico' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $script:Icons -Force }
 $script:Plan=@();$script:PlannedRoot='';$script:Busy=$false
 $script:Candidates=@('Microsoft.Copilot','Clipchamp.Clipchamp','Microsoft.BingNews','Microsoft.BingWeather','Microsoft.GetHelp','Microsoft.Getstarted','Microsoft.MicrosoftSolitaireCollection','Microsoft.YourPhone')
 $form=New-Object Windows.Forms.Form
-$form.Text='DuckPC 1.0.1 - Windows e Downloads';$form.Size=New-Object Drawing.Size(1080,780);$form.MinimumSize=New-Object Drawing.Size(940,680);$form.StartPosition='CenterScreen'
+$form.Text='DuckPC 1.0.2 - Windows e Downloads';$form.Size=New-Object Drawing.Size(1080,780);$form.MinimumSize=New-Object Drawing.Size(940,680);$form.StartPosition='CenterScreen'
 $form.Font=New-Object Drawing.Font('Segoe UI',10)
 $form.BackColor=[Drawing.Color]::FromArgb(25,27,35);$form.ForeColor=[Drawing.Color]::WhiteSmoke
 $tabs=New-Object Windows.Forms.TabControl;$tabs.Dock='Fill';$form.Controls.Add($tabs)
@@ -52,6 +53,47 @@ function Latest-History($Prefix) {
     }
     return $null
 }
+$allPage=New-Page 'Otimizar tudo'
+[void](Label $allPage 'Perfil recomendado - aplique uma vez e mantenha os ajustes salvos no Windows.' 22 20 990 45)
+[void](Label $allPage 'Um clique aplica o pacote abaixo com backup. O aplicativo pode ser fechado depois.' 22 68 990 45)
+$profileApply=Button $allPage 'OTIMIZAR TUDO - aplicar perfil' 22 130 400
+$profileUndo=Button $allPage 'Desfazer perfil completo' 448 130 340
+$profileReport=TextBox $allPage 22 195 990 410 $true
+$profileReport.Text=@'
+O PERFIL APLICA EM CONJUNTO:
+  - Reducao de dicas, anuncios e sugestoes do Windows.
+  - Politica e icone do Copilot classico para sua conta.
+  - Modo de Jogo ativado.
+  - Menos transparencia e animacoes de janelas/barra de tarefas.
+
+O backup original fica guardado. Clicar de novo nao reaplica nem substitui
+esse backup. Se outro programa mudar os valores, o resultado avisa;
+restaure o perfil antes de aplicar um novo.
+
+Os ajustes ficam salvos depois de fechar o programa e reiniciar o PC.
+Alguns efeitos visuais podem pedir sair e entrar novamente no Windows.
+Nao e necessario deixar um otimizador rodando em segundo plano.
+
+Mouse, 75 Hz, remocao de apps e organizacao dos Downloads continuam nas
+abas proprias: sao preferencias ou mudancas que precisam de sua escolha.
+A manutencao do SSD usa a ferramenta oficial, acessivel em Meu PC.
+'@
+$profileApply.Add_Click({ Run-Action {
+    $r=Invoke-DuckRecommendedProfile $script:ProfileState $script:History
+    switch ($r.Status) {
+        'Applied' { $profileReport.Text=('Perfil aplicado. {0} ajustes salvos. Voce pode fechar o DuckPC; eles continuam ativos.' -f $r.Applied) + "`r`n`r`nBackup original: " + $r.Journal + "`r`n`r`nPara alguns efeitos aparecerem, saia e entre na conta quando for conveniente." }
+        'AlreadyApplied' { $profileReport.Text="O perfil ja esta aplicado. Nao e preciso otimizar novamente nem deixar o aplicativo aberto.`r`n`r`nSeu backup original foi preservado: " + $r.Journal }
+        'AlreadyConfigured' { $profileReport.Text='Seu Windows ja esta com todos os valores deste perfil. Nenhuma mudanca ou novo backup foi necessario. Backups de ajustes anteriores continuam na aba Ajustes reversiveis.' }
+        'ChangedExternally' { $profileReport.Text="O perfil foi aplicado antes, mas alguns valores mudaram fora do DuckPC. Eles foram preservados.`r`n`r`nUse Desfazer perfil completo antes de aplicar um novo. O backup original nao foi substituido: " + $r.Journal }
+        'Partial' { $profileReport.Text=('Concluido parcialmente: {0} valores aplicados; {1} erros. Alguns valores nao ficaram como esperado. Confira o historico e use Restaurar ultimo ajuste na outra aba, se desejar.' -f $r.Applied,$r.Failed) + "`r`n`r`nHistorico: " + $r.Journal }
+    }
+} })
+$profileUndo.Add_Click({ Run-Action {
+    if (!(Confirm 'Restaurar o estado anterior ao perfil completo? Mudancas posteriores de outros programas serao preservadas.')) { return }
+    $r=Undo-DuckRecommendedProfile $script:ProfileState $script:History
+    if ($r.Status -eq 'NoProfile') { $profileReport.Text='Nenhum perfil completo pendente para desfazer. Confira tambem os backups da aba Ajustes reversiveis.' }
+    else { $profileReport.Text=('Restaurados: {0}. Preservados/erros: {1}. O historico continua salvo.' -f $r.Restored,$r.Skipped) }
+} })
 $homePage=New-Page 'Meu PC'
 [void](Label $homePage 'Diagnostico local - Ryzen 7 1700 / RX 580 / 32 GB / SSD' 22 18)
 [void](Label $homePage 'Confira o disco e a inicializacao antes de desativar programas. Nenhum ajuste roda sozinho.' 22 55)

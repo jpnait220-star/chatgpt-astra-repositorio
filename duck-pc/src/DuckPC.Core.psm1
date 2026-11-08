@@ -226,4 +226,58 @@ function Undo-DuckTuning([string]$JournalPath) {
     }
     [pscustomobject]@{Restored=$restored;Skipped=$skipped}
 }
-Export-ModuleMember -Function Get-DuckDownloads,New-DuckDownloadPlan,Invoke-DuckDownloadPlan,Undo-DuckDownloads,Get-DuckTuningPlan,Invoke-DuckTuning,Undo-DuckTuning
+function Get-DuckOwnerSid {
+    if ($env:OS -ne 'Windows_NT') { throw 'Perfil de sistema disponivel apenas no Windows.' }
+    return [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+}
+function Get-DuckRegistrySnapshot($Path,$Name) {
+    $key=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($Path)
+    try {
+        if (!$key -or $key.GetValueNames() -notcontains $Name) { return [pscustomobject]@{Exists=$false;Value=$null;Kind=''} }
+        return [pscustomobject]@{Exists=$true;Value=$key.GetValue($Name,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames);Kind=$key.GetValueKind($Name).ToString()}
+    } finally { if ($key) { $key.Dispose() } }
+}
+function Test-DuckRecommendedValues {
+    foreach ($item in @(Get-DuckTuningPlan @('Suggestions','Copilot','GameMode','Visuals'))) {
+        $current=Get-DuckRegistrySnapshot $item.Path $item.Name
+        if (!$current.Exists -or $current.Kind -ne $item.Kind -or [string]$current.Value -ne [string]$item.Value) { return $false }
+    }
+    return $true
+}
+function Read-DuckProfileState($StatePath,$JournalDirectory) {
+    if (!(Test-Path -LiteralPath $StatePath)) { return $null }
+    $state=Get-Content -LiteralPath $StatePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($state.Version -ne 1 -or $state.OwnerSid -ne (Get-DuckOwnerSid)) { throw 'Estado de perfil invalido ou pertencente a outra conta.' }
+    if ($state.Status -eq 'Restored') { return $null }
+    $backup=Assert-DuckChild $state.BaselineJournal $JournalDirectory
+    if (!(Test-Path -LiteralPath $backup) -or [IO.Path]::GetFileName($backup) -notlike 'ajustes-*.json') { throw 'Backup original do perfil nao encontrado. Preserve a pasta Historico.' }
+    return $state
+}
+function Invoke-DuckRecommendedProfile([string]$StatePath,[string]$JournalDirectory) {
+    $owner=Get-DuckOwnerSid
+    $state=Read-DuckProfileState $StatePath $JournalDirectory
+    $matchesProfile=Test-DuckRecommendedValues
+    if ($state) {
+        $status='AlreadyApplied';if (!$matchesProfile) { $status='ChangedExternally' }
+        return [pscustomobject]@{Status=$status;Applied=0;Failed=0;Journal=$state.BaselineJournal}
+    }
+    if ($matchesProfile) { return [pscustomobject]@{Status='AlreadyConfigured';Applied=0;Failed=0;Journal=''} }
+    $result=Invoke-DuckTuning @('Suggestions','Copilot','GameMode','Visuals') $JournalDirectory
+    # Only complete profiles get a marker. Failed/partial actions keep their
+    # original history for the existing per-operation restore button.
+    if ($result.Failed -gt 0 -or !(Test-DuckRecommendedValues)) {
+        return [pscustomobject]@{Status='Partial';Applied=$result.Applied;Failed=$result.Failed;Journal=$result.Journal}
+    }
+    $state=[pscustomobject]@{Version=1;OwnerSid=$owner;Status='Applied';BaselineJournal=$result.Journal;AppliedUtc=[DateTime]::UtcNow.ToString('o');RestoredUtc=''}
+    Write-DuckJson $StatePath $state
+    return [pscustomobject]@{Status='Applied';Applied=$result.Applied;Failed=0;Journal=$result.Journal}
+}
+function Undo-DuckRecommendedProfile([string]$StatePath,[string]$JournalDirectory) {
+    $state=Read-DuckProfileState $StatePath $JournalDirectory
+    if (!$state) { return [pscustomobject]@{Status='NoProfile';Restored=0;Skipped=0} }
+    $result=Undo-DuckTuning $state.BaselineJournal
+    $state.Status='Restored';$state.RestoredUtc=[DateTime]::UtcNow.ToString('o');Write-DuckJson $StatePath $state
+    return [pscustomobject]@{Status='Restored';Restored=$result.Restored;Skipped=$result.Skipped}
+}
+
+Export-ModuleMember -Function Get-DuckDownloads,New-DuckDownloadPlan,Invoke-DuckDownloadPlan,Undo-DuckDownloads,Get-DuckTuningPlan,Invoke-DuckTuning,Undo-DuckTuning,Invoke-DuckRecommendedProfile,Undo-DuckRecommendedProfile

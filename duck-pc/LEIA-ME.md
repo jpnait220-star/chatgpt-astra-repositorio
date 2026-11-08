@@ -1,4 +1,4 @@
-# DuckPC 1.0.1 — Windows 11 e Downloads
+# DuckPC 1.0.2 — Windows 11 e Downloads
 
 Utilitário portátil para seu Ryzen 7 1700, Radeon RX 580, 32 GB de RAM e SSD. O objetivo é reduzir sugestões/apps dispensáveis e organizar seus arquivos. Não promete ganho de FPS nem conserta defeito físico no SSD.
 
@@ -9,6 +9,14 @@ Utilitário portátil para seu Ryzen 7 1700, Radeon RX 580, 32 GB de RAM e SSD. 
 3. Comece pela aba **Meu PC → Analisar meu PC**. Depois revise as outras abas.
 
 Usa o Windows PowerShell 5.1 que já vem no Windows 11; não precisa de Python, Java, instalador ou serviço. A janela pode abrir um console junto. O lançador usa `ExecutionPolicy Bypass` somente nesse processo; não altera a política global. Restrições de uma organização continuam podendo bloquear a execução. Não desative antivírus/proteção para executar.
+
+## Otimizar tudo — perfil em um clique
+
+A nova primeira aba aplica juntos os ajustes de sugestões/anúncios, Copilot clássico, Modo de Jogo e redução de efeitos visuais. Basta clicar em **OTIMIZAR TUDO — aplicar perfil**. O botão salva o estado anterior antes de mudar os valores e mostra o resultado.
+
+Os valores ficam salvos na sua conta do Windows; você pode fechar o aplicativo e não precisa repetir em toda inicialização. Clicar novamente reconhece o perfil ativo e preserva o primeiro backup. O botão **Desfazer perfil completo** usa esse backup original. Se outro programa alterar os valores, o DuckPC avisa e não os sobrescreve automaticamente: restaure o perfil antes de aplicar um novo.
+
+É um pacote dos ajustes implementados, não uma promessa de otimizar qualquer gargalo do computador. Mouse, frequência do monitor, remoção de apps e organização dos arquivos ficam nas abas próprias, pois dependem das suas preferências ou da revisão dos arquivos. Não faz limpeza permanente, não remove apps por conta própria nem muda os Hz ou a mira em silêncio. Os efeitos podem depender da edição/build do Windows; alterações visuais podem pedir sair e entrar na conta.
 
 ## Downloads e ícones
 
@@ -83,7 +91,7 @@ Pouco espaço livre pode piorar o SSD; tente manter margem, por exemplo 15–20%
 
 Tudo fica local. Não há telemetria, conexão de rede durante o uso, tarefa agendada, inicialização automática ou alteração silenciosa.
 
-O organizador foi testado com arquivos temporários reais, conflitos, desfazer, downloads recentes/parciais, alterações após prévia, caminhos externos e recuperação de interrupção. Foram concluídas **36 verificações**, incluindo compilação do componente nativo e tamanho da estrutura de leitura de monitor. Os scripts passaram pela análise sintática do PowerShell 7.4.6; o código usa sintaxe compatível com 5.1. **A interface WinForms, registro, Appx, leitura real dos modos de monitor, atualização do mouse, saúde do SSD e ícones do Explorador precisam ser validados no seu Windows 11**; o ambiente de desenvolvimento é Linux. Não foi aplicado nenhum ajuste ao seu computador durante a criação.
+O organizador foi testado com arquivos temporários reais, conflitos, desfazer, downloads recentes/parciais, alterações após prévia, caminhos externos e recuperação de interrupção. Foram concluídas **50 verificações (36 do núcleo e 14 do perfil em um clique com acesso ao registro simulado)**, incluindo compilação do componente nativo e tamanho da estrutura de leitura de monitor. Os scripts passaram pela análise sintática do PowerShell 7.4.6; o código usa sintaxe compatível com 5.1. **A interface WinForms, registro, Appx, leitura real dos modos de monitor, atualização do mouse, saúde do SSD e ícones do Explorador precisam ser validados no seu Windows 11**; o ambiente de desenvolvimento é Linux. Não foi aplicado nenhum ajuste ao seu computador durante a criação.
 
 Código-fonte: `DuckPC.ps1`, `DuckPC.Core.psm1` e `MonitorInfo.cs`. Testes: `tests\Test-Core.ps1`.
 
@@ -92,3 +100,9 @@ Código-fonte: `DuckPC.ps1`, `DuckPC.Core.psm1` e `MonitorInfo.cs`. Testes: `tes
 Corrigido o erro de inicialização “Não é possível substituir a variável HOME”. A variável da página foi renomeada; o problema não era a extração do ZIP. A validação agora procura atribuições e parâmetros que usem variáveis reservadas do PowerShell.
 
 Extraia esta versão em uma pasta nova e abra `Abrir-DuckPC.cmd`. Histórico, backups e ícones continuam em `%LOCALAPPDATA%\DuckPC`; não é preciso apagar esses dados.
+
+## Atualização 1.0.2
+
+Nova aba **Otimizar tudo**, com aplicação conjunta de 16 valores e backup original preservado. Repetir o clique reconhece o perfil já aplicado, sem gerar otimizações repetidas. Há restauração do perfil completo; mudanças externas são detectadas e preservadas. Os 14 testes novos exercitam a coordenação do perfil, arquivos de estado e backups usando simulação das chamadas ao registro; não substituem a validação no seu Windows.
+
+A correção da variável reservada HOME da 1.0.1 continua incluída.

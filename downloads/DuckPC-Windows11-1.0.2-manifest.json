@@ -1,0 +1,10 @@
+{
+  "version": "1.0.2",
+  "platform": "Windows 11 / Windows PowerShell 5.1 / .NET WinForms",
+  "tests": "50 checks: 36 core/file checks and 14 profile orchestration checks with Windows registry mocked; Windows UI/native behavior requires local validation",
+  "network_at_runtime": false,
+  "automatic_startup": false,
+  "admin_required_for_own_actions": false,
+  "package": "DuckPC-Windows11-1.0.2.zip",
+  "sha256": "9531178bb93a621ee0f9b40ba791f7489f9946b1605731e25c856bbba4e1cfe9"
+}
