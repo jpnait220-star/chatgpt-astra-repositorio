@@ -15,7 +15,7 @@ Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'icons') -Filter '*.ico' | F
 $script:Plan=@();$script:PlannedRoot='';$script:Busy=$false
 $script:Candidates=@('Microsoft.Copilot','Clipchamp.Clipchamp','Microsoft.BingNews','Microsoft.BingWeather','Microsoft.GetHelp','Microsoft.Getstarted','Microsoft.MicrosoftSolitaireCollection','Microsoft.YourPhone')
 $form=New-Object Windows.Forms.Form
-$form.Text='DuckPC 1.0 - Windows e Downloads';$form.Size=New-Object Drawing.Size(1080,780);$form.MinimumSize=New-Object Drawing.Size(940,680);$form.StartPosition='CenterScreen'
+$form.Text='DuckPC 1.0.1 - Windows e Downloads';$form.Size=New-Object Drawing.Size(1080,780);$form.MinimumSize=New-Object Drawing.Size(940,680);$form.StartPosition='CenterScreen'
 $form.Font=New-Object Drawing.Font('Segoe UI',10)
 $form.BackColor=[Drawing.Color]::FromArgb(25,27,35);$form.ForeColor=[Drawing.Color]::WhiteSmoke
 $tabs=New-Object Windows.Forms.TabControl;$tabs.Dock='Fill';$form.Controls.Add($tabs)
@@ -52,14 +52,14 @@ function Latest-History($Prefix) {
     }
     return $null
 }
-$home=New-Page 'Meu PC'
-[void](Label $home 'Diagnostico local - Ryzen 7 1700 / RX 580 / 32 GB / SSD' 22 18)
-[void](Label $home 'Confira o disco e a inicializacao antes de desativar programas. Nenhum ajuste roda sozinho.' 22 55)
-$scan=Button $home 'Analisar meu PC' 22 100
-$startup=Button $home 'Apps na inicializacao' 280 100
-$storage=Button $home 'Armazenamento / limpeza' 538 100
-$ssd=Button $home 'Otimizar unidades (Windows)' 22 151 300
-$report=TextBox $home 22 210 990 440 $true
+$homePage=New-Page 'Meu PC'
+[void](Label $homePage 'Diagnostico local - Ryzen 7 1700 / RX 580 / 32 GB / SSD' 22 18)
+[void](Label $homePage 'Confira o disco e a inicializacao antes de desativar programas. Nenhum ajuste roda sozinho.' 22 55)
+$scan=Button $homePage 'Analisar meu PC' 22 100
+$startup=Button $homePage 'Apps na inicializacao' 280 100
+$storage=Button $homePage 'Armazenamento / limpeza' 538 100
+$ssd=Button $homePage 'Otimizar unidades (Windows)' 22 151 300
+$report=TextBox $homePage 22 210 990 440 $true
 $report.Text="Clique em Analisar meu PC. O programa nao executa benchmark de escrita no SSD.`r`n`r`nSe o SSD estiver quase cheio, degradado, superaquecendo ou com erros de cabo/controlador,`r`najustes do Windows nao resolvem a causa. Mantenha backup dos seus projetos.`r`n`r`nO botao de unidades abre o otimizador oficial do Windows, que escolhe a operacao`r`napropriada para cada unidade (por exemplo, ReTrim para SSD)."
 $startup.Add_Click({ Start-Process 'ms-settings:startupapps' })
 $storage.Add_Click({ Start-Process 'ms-settings:storagesense' })

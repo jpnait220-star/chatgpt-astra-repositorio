@@ -1,4 +1,4 @@
-# DuckPC 1.0.0 — Windows 11 e Downloads
+# DuckPC 1.0.1 — Windows 11 e Downloads
 
 Utilitário portátil para seu Ryzen 7 1700, Radeon RX 580, 32 GB de RAM e SSD. O objetivo é reduzir sugestões/apps dispensáveis e organizar seus arquivos. Não promete ganho de FPS nem conserta defeito físico no SSD.
 
@@ -83,6 +83,12 @@ Pouco espaço livre pode piorar o SSD; tente manter margem, por exemplo 15–20%
 
 Tudo fica local. Não há telemetria, conexão de rede durante o uso, tarefa agendada, inicialização automática ou alteração silenciosa.
 
-O organizador foi testado com arquivos temporários reais, conflitos, desfazer, downloads recentes/parciais, alterações após prévia, caminhos externos e recuperação de interrupção. Foram concluídas **34 verificações**, incluindo compilação do componente nativo e tamanho da estrutura de leitura de monitor. Os scripts passaram pela análise sintática do PowerShell 7.4.6; o código usa sintaxe compatível com 5.1. **A interface WinForms, registro, Appx, leitura real dos modos de monitor, atualização do mouse, saúde do SSD e ícones do Explorador precisam ser validados no seu Windows 11**; o ambiente de desenvolvimento é Linux. Não foi aplicado nenhum ajuste ao seu computador durante a criação.
+O organizador foi testado com arquivos temporários reais, conflitos, desfazer, downloads recentes/parciais, alterações após prévia, caminhos externos e recuperação de interrupção. Foram concluídas **36 verificações**, incluindo compilação do componente nativo e tamanho da estrutura de leitura de monitor. Os scripts passaram pela análise sintática do PowerShell 7.4.6; o código usa sintaxe compatível com 5.1. **A interface WinForms, registro, Appx, leitura real dos modos de monitor, atualização do mouse, saúde do SSD e ícones do Explorador precisam ser validados no seu Windows 11**; o ambiente de desenvolvimento é Linux. Não foi aplicado nenhum ajuste ao seu computador durante a criação.
 
 Código-fonte: `DuckPC.ps1`, `DuckPC.Core.psm1` e `MonitorInfo.cs`. Testes: `tests\Test-Core.ps1`.
+
+## Correção 1.0.1
+
+Corrigido o erro de inicialização “Não é possível substituir a variável HOME”. A variável da página foi renomeada; o problema não era a extração do ZIP. A validação agora procura atribuições e parâmetros que usem variáveis reservadas do PowerShell.
+
+Extraia esta versão em uma pasta nova e abra `Abrir-DuckPC.cmd`. Histórico, backups e ícones continuam em `%LOCALAPPDATA%\DuckPC`; não é preciso apagar esses dados.

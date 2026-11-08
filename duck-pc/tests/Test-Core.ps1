@@ -108,6 +108,19 @@ try {
     foreach ($p in Get-ChildItem (Split-Path -Parent $module) -Filter '*.ps*') {
         $tokens=$null;$errors=$null;[void][Management.Automation.Language.Parser]::ParseFile($p.FullName,[ref]$tokens,[ref]$errors)
         Assert ($errors.Count -eq 0) ('Script parses: ' + $p.Name)
+        # Windows and Linux both reserve HOME (variable names ignore case).
+        # Scan writable targets, not reads, to catch startup failures before UI execution.
+        $reserved=@('HOME','HOST','PID','PSHOME','PSVERSIONTABLE','SHELLID','EXECUTIONCONTEXT','PSUICULTURE','PSCULTURE','PSSCRIPTROOT','PSCOMMANDPATH','MYINVOCATION','INPUT','ARGS','MATCHES','ERROR')
+        $ast=[Management.Automation.Language.Parser]::ParseFile($p.FullName,[ref]$tokens,[ref]$errors)
+        $bad=@($ast.FindAll({ param($node)
+            if ($node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left -is [Management.Automation.Language.VariableExpressionAst]) {
+                return $node.Left.VariablePath.UserPath.Split(':')[-1].ToUpperInvariant() -in $reserved
+            }
+            if ($node -is [Management.Automation.Language.ForEachStatementAst]) { return $node.Variable.VariablePath.UserPath.Split(':')[-1].ToUpperInvariant() -in $reserved }
+            if ($node -is [Management.Automation.Language.ParameterAst]) { return $node.Name.VariablePath.UserPath.Split(':')[-1].ToUpperInvariant() -in $reserved }
+            return $false
+        },$true))
+        Assert ($bad.Count -eq 0) ('No writes to reserved PowerShell variables: ' + $p.Name + ' ' + ($bad.Extent.Text -join ', '))
     }
     Write-Host "PASS: $script:checks checks. Organizer tested with real temporary files. Windows UI/registry not executed on Linux."
 } finally { if ([IO.Directory]::Exists($temp)) { Remove-Item -LiteralPath $temp -Recurse -Force } }
