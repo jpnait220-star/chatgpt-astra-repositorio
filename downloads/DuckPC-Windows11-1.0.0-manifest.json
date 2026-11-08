@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "platform": "Windows 11 / Windows PowerShell 5.1 / .NET WinForms",
+  "tests": "34 checks on PowerShell 7.4.6 Linux, real temporary-file integration; Windows-only features require local validation",
+  "network_at_runtime": false,
+  "automatic_startup": false,
+  "admin_required_for_own_actions": false,
+  "package": "DuckPC-Windows11-1.0.0.zip",
+  "sha256": "581a09f9f7d2112eee53209e310fec87329aea5ef744078370d761e2ad75b011"
+}
