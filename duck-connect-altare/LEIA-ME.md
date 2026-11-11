@@ -1,56 +1,49 @@
-# Dois sites na mesma host — versão 1.0.1
+# Duck Community original + Duck Connect — Altare 1.0.2
 
-- https://duckcommunity.go.altare.global/ → Community com catálogo de 138 JARs publicados, busca e filtro por Minecraft.
-- https://duckconnect.go.altare.global/ → Connect com estado da API.
-- Ambos continuam apontando para a mesma aplicação/porta 25668. Não crie outro processo ou outra host.
-- A seleção usa o cabeçalho Host enviado pelo proxy HTTPS. Os caminhos /community/ e /connect/ também abrem cada página em qualquer domínio para diagnóstico.
+Este pacote usa os **13 arquivos originais** enviados em `DuckCommunity-Completo.zip`. HTML, estilos, logos, configuração pública do Supabase e 12 dos 13 arquivos estão idênticos ao ZIP. Em `discord-app.js`, foi acrescentada somente uma verificação de compatibilidade: quando o Discord V3 do próprio HTML já está ativo, a interface antiga não tenta acessar elementos que foram removidos. Isso evita o erro `Cannot set properties of null (setting href)` e permite que a inicialização da conta continue. O visual, os cards, as URLs e o conteúdo do site são preservados. Substitui a página de downloads provisória da versão 1.0.1 pela Community original.
 
-## Atualizar a instalação existente
+## Os dois sites na mesma aplicação
 
-1. Pare o app na Altare.
-2. Faça uma cópia dos arquivos atuais. Extraia o conteúdo deste ZIP na raiz, substituindo server.mjs, package.json e as pastas public/, lib/ e test/.
-3. Preserve as variáveis/configurações da host, incluindo a porta 25668. Não precisa alterar os domínios.
-4. Inicie novamente com `npm start`.
-5. Abra os dois domínios e atualize a página com Ctrl+F5. A API /health deve continuar online nos dois.
+- `https://duckcommunity.go.altare.global/`: Canto de Duckzin / DuckzinCommunity original, incluindo projetos, cards, imagens, arquivos de download, membros, conta e interfaces de Discord/suporte/administração existentes.
+- `https://duckconnect.go.altare.global/`: página do Connect e serviço de cosméticos/presença/chat do mod.
+- Uma única instância Node.js, a mesma porta **25668**, comando **`npm start`**. Os dois domínios HTTPS da Altare devem encaminhar para essa aplicação.
+- A página inicial é escolhida pelo cabeçalho HTTP `Host`. Os caminhos `/community/` e `/connect/` também abrem os respectivos sites para diagnóstico.
 
-A Community incluída é uma página nova de downloads; não é uma cópia do site duckzincommunity.vercel.app. A Vercel retorna 402 e não permite recuperar o site antigo. Para preservar o visual e as outras funções antigas, envie o ZIP/código daquele projeto. O catálogo atual é uma lista dos arquivos publicados no GitHub na data deste pacote; novas publicações exigem atualizar public/releases.json. Os JARs são baixados diretamente do GitHub.
+## Atualizar na Altare
 
-O mod não precisa ser reinstalado por causa desta mudança nas páginas. Reiniciar o app limpa o estado temporário em RAM conforme descrito abaixo.
+1. Pare somente a aplicação web do Connect/Community.
+2. Faça uma cópia dos arquivos atuais.
+3. Extraia o conteúdo deste ZIP na raiz da aplicação. Substitua `server.mjs`, `package.json`, `LEIA-ME.md` e as pastas `public/`, `lib/` e `test/`. O `server.mjs` deve ficar diretamente na raiz, sem outra pasta envolvendo o pacote.
+4. Preserve as configurações e variáveis do painel: `PORT`/`SERVER_PORT` devem usar a porta alocada **25668**. O exemplo `.env.example` não é carregado automaticamente.
+5. Inicie com **`npm start`**. Não há dependências npm de execução para instalar. Compatível com Node.js 20.20.2; para novas instalações, prefira Node.js 22 ou 24.
+6. Abra ambos os domínios e use Ctrl+F5 para descartar o HTML antigo. Nos dois endereços, `/health` deve retornar HTTP 200 com `status: online`.
 
-16 testes Node passaram, incluindo seleção por domínio, arquivos estáticos e compatibilidade da API. Busca, filtro, paginação, links e layout móvel também foram verificados em Chromium local. Publicação na sua conta Altare requer enviar este pacote.
+Não precisa alterar os JARs por causa desta atualização dos sites. Ela não consegue atualizar a beta 2.40 original, que ainda consulta o domínio pausado da Vercel.
 
----
+## Dados e funções da Community original
 
-# Duck Connect + Community — Altare
+A Community continua usando o **mesmo projeto Supabase** especificado no `config.js` original. Os projetos, versões, imagens, arquivos, usuários e canais não são recriados nem substituídos por um catálogo inventado. As consultas públicas ao banco responderam com 5 projetos, 12 versões e uma comunidade Discord durante a validação.
 
-API compatível com cosméticos, presença, chat e anúncios do DuckClient. A API já foi testada no endereço público da Altare. Este pacote 1.0.1 precisa ser enviado à host para atualizar as páginas. O modo dedicado deste pacote não depende de Vercel, Upstash ou Supabase.
+O `config.js` contém uma chave **publishable**, própria para o navegador, já presente no site original. O pacote não contém chave `service_role`, chave secreta do Supabase, token Discord ou chave privada de atualização.
 
-A Altare confirma Node.js e endereço HTTPS de app, sem pausa por inatividade: https://altare.gg/en/products/app-hosting . Disponibilidade, recursos e regras precisam ser conferidos na sua conta.
+- Downloads e imagens dos projetos continuam vindo do Storage do Supabase. Fontes e bibliotecas do site também usam os serviços externos originais.
+- O bot que sincroniza Discord e atende a fila de suporte continua sendo um processo separado já existente. Este ZIP não contém nem instala esse bot. Seu funcionamento depende dele estar online e do esquema/permissões do Supabase existentes.
+- Contas continuam no mesmo banco. Como o domínio mudou, usuários precisarão entrar novamente no site; o login salvo no navegador para o endereço antigo não acompanha o domínio novo.
+- Caso a confirmação de e-mail volte ao endereço antigo, no painel **Supabase → Authentication → URL Configuration**, configure o Site URL para `https://duckcommunity.go.altare.global` e autorize esse endereço nos Redirect URLs. Essa configuração da conta não está incluída no ZIP.
 
-## Instalar
+Nenhum projeto, arquivo ou registro foi publicado, apagado ou editado no banco durante os testes. Não foram enviados chat/mensagens, abertos tickets ou criadas contas de teste.
 
-1. Crie um **app Node.js separado** na Altare. Não reinstale/substitua o servidor Minecraft.
-2. Compatível com Node.js 20.20.2 da sua host; para novas instalações, prefira Node.js 22 ou 24. Envie o conteúdo deste ZIP para a raiz do app.
-3. Comando `npm start` ou `node server.mjs`. Arquivo de entrada: `server.mjs`. Não há dependências de execução para instalar.
-4. Configure `PORT` ou `SERVER_PORT` com a **porta realmente alocada** no painel. O processo escuta em `0.0.0.0`. O arquivo `.env.example` é só uma referência; o app não carrega `.env` sozinho.
-5. Use o **endereço HTTPS do App hosting**, não IP:porta de Minecraft nem HTTP sem certificado. O proxy da Altare precisa encaminhar para a porta do processo.
-6. Abra `https://SEU-ENDERECO/health`. Precisa retornar HTTP 200 com `status: online`. Teste de fora da rede da hospedagem.
-7. Informe o endereço HTTPS público para atualizar o client e testar as quatro versões. Este ZIP sozinho não altera os JARs dos jogadores.
+## Estado do Connect
 
-O domínio `duck-connect.vercel.app` está bloqueado antes de executar código. Mudar somente a hospedagem não consegue fazer esse domínio antigo redirecionar. O client precisa usar o endereço novo. Este pacote não contém credenciais nem chave privada de atualização.
+O Connect mantém o modo dedicado anterior, com uma única instância e estado temporário em RAM. Equipamentos, presença, sessões e chat recente expiram; o chat é limitado a 40 mensagens. Reiniciar limpa esse estado e os clients republicam os equipamentos/presença. Isso não apaga os projetos, arquivos ou usuários da Community no Supabase.
 
-## Estado temporário
+São mantidos os limites e verificações anteriores da API: corpo de até 16 KiB, limites por conexão/IP, até 10 mil perfis temporários e validação de sessão/Mojang para anúncios. O IP vem da conexão TCP; não são aceitos cabeçalhos Vercel inventados pelo cliente. O proxy da Altare pode agrupar jogadores em um mesmo IP. Não execute réplicas sem armazenamento compartilhado para o Connect.
 
-Execute **uma única instância/processo Node.js** sempre ativo. Equipamentos, presença, sessões e chat recente ficam em RAM com expiração; o chat é limitado a 40 mensagens. Depois de reiniciar o serviço, os clients republicam seus equipamentos/presença e o chat recente é perdido. As escolhas de cosméticos salvas no mod não são apagadas.
+## Validação
 
-Não é banco permanente de compras, senhas ou inventários. Não execute várias réplicas neste modo: cada uma teria estado diferente. Para escalar entre processos ou manter histórico permanente, é necessário armazenamento compartilhado persistente.
+- `npm test`: 16 testes Node, incluindo API anterior, seleção por domínio, tipos MIME, proteção contra caminhos arbitrários, políticas do navegador e hashes dos arquivos originais e a única adaptação de compatibilidade em `discord-app.js`.
+- O manifesto `test/community-original-sha256.json` registra os hashes dos arquivos do ZIP recebido.
+- Consultas públicas ao Supabase verificam a disponibilidade dos registros sem alterar dados.
+- Login com senha, publicação administrativa, upload, envio de Discord e tickets exigem as contas e serviços reais; essas ações não foram realizadas durante a migração.
 
-Limites e validação preservados: até 10 mil perfis temporários, 32 IDs por consulta/equipamento, corpo de até 16 KiB e limite por conexão/IP. UUID/nick autodeclarado não comprova a identidade da conta e não pode autorizar compras/permissões. Anúncios privilegiados continuam exigindo comprovação pelo serviço de sessão Mojang.
-
-O IP usa a conexão TCP, sem confiar em um cabeçalho Vercel inventado pelo cliente. Se o proxy da Altare agrupar todos os jogadores em um IP local, o limite pode ficar compartilhado (600 por minuto). Confira o proxy real antes de confiar em cabeçalhos de origem ou ajustar limites. Não desligue limites indiscriminadamente.
-
-A hospedagem também tem limites de recursos e termos. Ainda será necessário reduzir consultas redundantes do client, adicionar cache/backoff e medir tráfego. O serviço é compatível com o protocolo atual; não inclui uma atualização assinada dos mods.
-
-## Validar
-
-`npm test` usa dados fictícios e HTTP local. Testa protocolo, expiração, limites, sessões/chat e anúncios. HTTPS, proxy da Altare, disponibilidade pública e visualização dentro do Minecraft só podem ser validados depois de publicar no seu app.
+Este pacote precisa ser enviado para sua conta Altare. Publicar o ZIP no GitHub não atualiza os arquivos da host automaticamente.
