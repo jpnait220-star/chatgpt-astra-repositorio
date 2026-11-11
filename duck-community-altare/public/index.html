@@ -1,0 +1,902 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0c10"><meta name="description" content="Canto de Duckzin — projetos do DuckzinXT e comunidade conectada ao Discord."><title>Canto de Duckzin — DuckzinCommunity</title><link rel="icon" href="/duck-logo.avif" type="image/avif"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/discord-style.css"><link rel="stylesheet" href="/duckzin-enhance.css"><link rel="stylesheet" href="/duckzin-v3.css"><style id="duckzin-profiles-styles">/* DuckzinCommunity — perfis públicos da comunidade */
+#perfis{scroll-margin-top:92px}
+.duck-profiles-header{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:0 0 20px}
+.duck-profiles-header p{max-width:540px;color:#adb2bb;font-size:13px;line-height:1.6;margin:6px 0 0}
+.duck-profiles-header h2{font:800 clamp(24px,3vw,34px) 'Space Grotesk',sans-serif;margin:0;color:#f7f4e7}
+.duck-profiles-header h2 em{font-style:normal;color:#f3c951}
+.duck-profile-search{background:#15171d;border:1px solid #756039;border-radius:12px;color:#fff;padding:11px 14px;width:min(100%,310px);font-size:13px}
+.duck-profile-search:focus{outline:1px solid #f3cf68}
+.duck-profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:16px}
+.duck-profile-card{border:1px solid #4e4432;background:linear-gradient(135deg,#232327,#12141a);border-radius:17px;position:relative;overflow:hidden;padding:0 0 15px;box-shadow:0 12px 27px #0005;transition:transform .2s,border-color .2s,box-shadow .2s}
+.duck-profile-card:hover,.duck-profile-card:focus-within{transform:translateY(-4px);border-color:#f6ce68;box-shadow:0 16px 40px #0009,0 0 20px #ffc04218}
+.duck-profile-banner{height:72px;background:linear-gradient(115deg,var(--accent,#d7a73d),#1a1b20 74%)}
+.duck-profile-avatar{height:57px;width:57px;border-radius:50%;background:linear-gradient(125deg,#cfad55,#605032);border:3px solid #191a21;object-fit:cover;display:grid;place-items:center;color:#201507;font-size:18px;font-weight:900;box-shadow:0 4px 18px #0008}
+.duck-profile-card .duck-profile-avatar{margin:-30px 0 8px 17px;position:relative}
+.duck-profile-card-main{padding:0 16px;display:grid;gap:7px}
+.duck-profile-card-main h3{font-size:15px;margin:0;color:#f5e7b9;overflow-wrap:anywhere}
+.duck-profile-card-main p{font-size:12px;line-height:1.65;color:#b5b8c1;margin:0;min-height:38px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.duck-profile-view{margin-top:6px;width:100%;border-radius:9px;border:1px solid #a58b55;background:#332913;color:#fbe199;padding:10px;cursor:pointer;font-size:12px;font-weight:800;transition:background .2s}
+.duck-profile-view:hover{background:#54401a}
+.duck-profile-note{font-size:12px;color:#adb2bc;margin:8px 0 18px}
+.duck-profile-dialog{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(5,6,8,.84);padding:18px;backdrop-filter:blur(8px)}
+.duck-profile-dialog[hidden]{display:none!important}
+.duck-profile-dialog-card{position:relative;background:#17181e;border:1px solid #a68540;border-radius:20px;overflow:hidden;width:min(100%,470px);box-shadow:0 25px 90px #000a}
+.duck-profile-dialog-banner{height:138px;background:linear-gradient(130deg,var(--accent,#d2a64d),#191b22 80%)}
+.duck-profile-dialog-close{position:absolute;right:13px;top:13px;background:#131419cf;color:#fff;border:1px solid #72737a;border-radius:9px;width:35px;height:35px;cursor:pointer;font-size:22px}
+.duck-profile-dialog-body{padding:0 24px 25px}
+.duck-profile-dialog-body .duck-profile-avatar{width:86px;height:86px;margin:-44px 0 10px;position:relative}
+.duck-profile-dialog-body h3{font:800 24px 'Space Grotesk',sans-serif;color:#ffe19a;margin:0 0 8px;overflow-wrap:anywhere}
+.duck-profile-dialog-body p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.7;color:#d5d4d5}
+.duck-profile-dialog-body small{color:#a4a7b0}
+@media(prefers-reduced-motion:reduce){.duck-profile-card{transition:none}.duck-profile-card:hover{transform:none}}
+</style><style>/* DuckzinCommunity V5: official launch, gold cursor glow, kinetic constellation,
+   premium transitions and admin moderation. */
+:root{--ducky-gold:#ffcf55;--ducky-goldSoft:rgba(253,203,74,.22)}
+html{scroll-behavior:smooth}
+#duckPointerGlow{position:fixed;z-index:14;top:0;left:0;width:170px;height:170px;pointer-events:none;opacity:0;border-radius:50%;transform:translate3d(-800px,-800px,0);will-change:transform,opacity;background:radial-gradient(circle,rgba(255,221,112,.21) 0%,rgba(240,177,50,.12) 22%,rgba(247,178,39,.035) 45%,transparent 69%);mix-blend-mode:screen;transition:opacity .4s ease}
+#duckPointerGlow.is-visible{opacity:1}
+#duckConstellation{position:fixed;z-index:13;pointer-events:none;inset:0;width:100vw;height:100vh;opacity:.92}
+a,button,input,textarea,select{transition-property:color,background-color,border-color,box-shadow,filter;transition-duration:.2s}
+.project-card{position:relative;isolation:isolate;transition:transform .35s cubic-bezier(.21,.8,.22,1),border-color .35s ease,box-shadow .35s ease!important}
+.project-card:before{content:"";position:absolute;inset:-1px;border:1px solid transparent;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent,rgba(248,211,88,.1),transparent) border-box;mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);mask-composite:exclude;opacity:0;transition:opacity .3s}
+.project-card:hover:before{opacity:1}
+.button.gold,.v4-admin-link,.tab.selected{position:relative;overflow:hidden}
+.button.gold:after,.v4-admin-link:after{content:"";pointer-events:none;position:absolute;inset:0;transform:translateX(-140%) skewX(-24deg);width:48%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);transition:transform .62s ease}
+.button.gold:hover:after,.v4-admin-link:hover:after{transform:translateX(330%) skewX(-24deg)}
+.hero .eyebrow:before{content:"";display:inline-block;width:6px;height:6px;vertical-align:middle;border-radius:50%;margin-right:6px;background:#f9d65d;box-shadow:0 0 12px 4px #ffc74655;animation:duckPulse 3.6s ease-in-out infinite}
+@keyframes duckPulse{50%{box-shadow:0 0 22px 7px #ffc746aa;opacity:.65}}
+.section-heading h2,.hero-content h1{filter:drop-shadow(0 0 14px rgba(255,209,69,.08))}
+.mod-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:16px;border-bottom:1px solid #4a4436}
+.mod-head h3{margin:5px 0 6px;color:#ffe49b;font-size:22px}
+.mod-head p{color:#9ca4af;margin:0;font-size:12px;line-height:1.6}
+.mod-eyebrow{font-size:10px;letter-spacing:1.4px;color:#e5b950;font-weight:800}
+.mod-shield{flex:none;width:44px;height:44px;display:grid;place-items:center;background:#42341b;border:1px solid #8c7234;border-radius:12px;font-size:23px}
+.mod-toolbar{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
+.mod-toolbar label{margin:0;font-size:12px;white-space:nowrap}
+.mod-toolbar input{min-width:0;flex:1;margin:0!important}
+.mod-note{min-height:25px;color:#d4c2a0;margin:8px 0;font-size:12px}
+.mod-note.error{color:#ffb5a3}.mod-note.ok{color:#a6dfae}
+.mod-users{display:grid;gap:12px}
+.mod-loading,.mod-empty{padding:35px 18px;text-align:center;color:#aeb4c1;border:1px dashed #414551;border-radius:11px}
+.mod-user{padding:15px;background:linear-gradient(115deg,#202229,#17191e);border:1px solid #363943;border-radius:13px;display:grid;gap:12px}
+.mod-user-main{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.mod-user-avatar{display:grid;place-items:center;width:43px;height:43px;flex:0 0 43px;border-radius:50%;background:#352a17;border:1px solid #786136;color:#ffe098;font-size:14px;font-weight:800;object-fit:cover}
+.mod-user-name{font:700 14px 'Space Grotesk',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mod-user-sub{font-size:11px;color:#a8adb6}
+.mod-user-state{display:inline-flex;align-items:center;gap:6px;border-radius:30px;padding:4px 9px;background:#273728;color:#b5e9b6;font-size:10px;font-weight:800;white-space:nowrap}
+.mod-user-state.muted{background:#42321a;color:#ffda83}.mod-user-state.suspended{background:#482528;color:#ffb7b7}
+.mod-user-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mod-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mod-action{border:1px solid #514b41;background:#292a30;color:#e4dfd3;font-size:11px;font-weight:700;border-radius:8px;padding:8px 10px;cursor:pointer}
+.mod-action:hover{border-color:#e3b958;color:#ffe49b}
+.mod-action.danger{border-color:#7d4447;color:#ffbbb2;background:#332326}
+.mod-action.release{border-color:#4b7154;color:#addeb3}
+.mod-action:disabled{opacity:.55;cursor:not-allowed}
+.mod-reason{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:2px}
+.mod-reason label{margin:0;color:#aeb3bc;font-size:11px}
+.mod-reason input{flex:1;min-width:155px;background:#101116;color:#eee;border:1px solid #41464f;padding:9px;border-radius:7px;font-size:12px}
+.mod-user small{font-size:10px;color:#9299a4}
+#pubShowModeration.is-active{border-color:#e0b84c;color:#ffe6a5;background:#382e18}
+@media(max-width:710px){#duckPointerGlow,#duckConstellation{display:none!important}.mod-toolbar{flex-wrap:wrap}.mod-toolbar label{width:100%}.mod-user-top{align-items:flex-start;flex-direction:column}.mod-user-state{margin-left:54px}}
+@media(prefers-reduced-motion:reduce){#duckPointerGlow,#duckConstellation{display:none!important}.hero .eyebrow:before{animation:none}.button.gold:after,.v4-admin-link:after{display:none}.project-card{transition:none!important}}
+</style><style>
+/* DuckzinCommunity V4 — Discord-style account panel and admin controls. */
+.v3-side{position:relative}
+.v4-profile-panel{margin-top:auto;padding:10px;background:#0d0f13;border-top:1px solid #30343c;position:relative;flex:none;z-index:4}
+.v4-profile-row{display:flex;align-items:center;gap:8px;min-height:60px;border:1px solid #262a31;background:#090a0d;border-radius:10px;padding:7px 8px;box-shadow:0 6px 20px #0006}
+.v4-user-main{display:flex;align-items:center;gap:9px;background:transparent;border:0;color:inherit;padding:0;flex:1;min-width:0;text-align:left;cursor:pointer;border-radius:8px}
+.v4-user-main:hover .v4-user-name{color:#ffe9a3}
+.v4-avatar-wrap{width:39px;height:39px;flex:0 0 39px;position:relative;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#523282,#25171d);border:1px solid #35313c}
+.v4-avatar-img{width:100%;height:100%;object-fit:cover;border-radius:11px}
+.v4-avatar-text{font:800 16px 'Space Grotesk',sans-serif;color:#f4cf68}
+.v4-presence-dot{position:absolute;right:-3px;bottom:-2px;width:14px;height:14px;border:3px solid #0d0f13;border-radius:50%;background:#49d182}
+.v4-presence-dot[data-presence='ocupado']{background:#e95160}
+.v4-presence-dot[data-presence='ausente']{background:#efb541}
+.v4-presence-dot[data-presence='invisivel']{background:#737986}
+.v4-user-text{display:flex;flex-direction:column;min-width:0;line-height:1.3;gap:4px}
+.v4-user-name{font:700 13px 'Space Grotesk',sans-serif;color:#ffc45e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v4-user-status{font-size:10px;color:#9a9da6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v4-settings{display:grid;place-items:center;height:32px;width:32px;flex:0 0 32px;background:transparent;border:0;border-radius:8px;color:#9ba1ac;cursor:pointer}
+.v4-settings:hover,.v4-settings:focus-visible{background:#20242c;color:#f6cb66}
+.v4-settings svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.v4-shortcuts{display:flex;gap:7px;padding-top:8px;flex-wrap:wrap}
+.v4-admin-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:9px 11px;background:linear-gradient(90deg,#f6d45a,#e9b83c);border:1px solid #fce58b;color:#241b07;font-size:12px;font-weight:800;border-radius:8px;cursor:pointer}
+.v4-admin-link:hover{filter:brightness(1.08)}
+.v4-admin-link[hidden],.v4-presence-menu[hidden]{display:none!important}
+.v4-presence-menu{position:absolute;left:9px;right:9px;bottom:79px;padding:7px;background:#1b1d25;border:1px solid #52555e;border-radius:10px;box-shadow:0 16px 40px #000b;z-index:50}
+.v4-presence-title{font-size:10px;letter-spacing:.07em;font-weight:800;color:#9fa4ad;margin:7px 9px}
+.v4-presence-option{display:flex;gap:9px;align-items:center;width:100%;text-align:left;padding:10px;background:none;border:0;color:#e8e8eb;border-radius:7px;font-size:12px;cursor:pointer}
+.v4-presence-option:hover{background:#343944}
+.v4-presence-option span{width:10px;height:10px;border-radius:50%;background:#49d182;flex:none}
+.v4-presence-option[data-status='ocupado'] span{background:#e95160}
+.v4-presence-option[data-status='ausente'] span{background:#efb541}
+.v4-presence-option[data-status='invisivel'] span{background:#737986}
+.v4-profile-quick-status{background:transparent;border:0;color:#a3a7b1;font-size:10px;cursor:pointer;padding:0;text-align:left}
+.v4-profile-quick-status:hover{text-decoration:underline;color:#eacb7b}
+.v4-admin-quick{color:#ffd979;display:inline-flex;gap:4px;align-items:center}
+.nav-actions #adminButton:not([hidden]){display:inline-flex;font-weight:800;background:linear-gradient(120deg,#f8d76e,#eab53e);color:#1e1607;border-color:#ffe58d}
+.nav-links #pubNav:not([hidden]){color:#f6d577;font-weight:800}
+#publicar{scroll-margin-top:95px}
+@media(max-width:710px){.v3-side{display:flex;flex-direction:column;min-height:auto}.v3-channel-list{flex:initial;max-width:100%}.v4-profile-panel{padding:7px 9px}.v4-presence-menu{bottom:73px}.v4-profile-row{min-height:54px}}
+@media(max-width:480px){.nav-actions #adminButton{padding:8px 10px;font-size:11px}.nav-actions #accountButton{max-width:112px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}}
+</style><style id="duckzin-support-card-and-sparkles-v8">/* DuckzinCommunity Tickets • visual preto/dourado com isolamento visual */
+#suporte{scroll-margin-top:88px;padding-bottom:72px}
+.support-intro{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:23px}
+.support-intro h2{font:700 clamp(24px,3vw,34px) 'Space Grotesk',sans-serif;letter-spacing:-.9px;margin:5px 0}
+.support-intro h2 em{font-style:normal;color:#f7ca50}
+.support-intro p{color:#acb1bb;margin:0}
+.support-layout{border-radius:19px;border:1px solid #57472a;background:linear-gradient(140deg,#1b1d24,#111217);min-height:450px;overflow:hidden;display:grid;grid-template-columns:277px minmax(0,1fr);box-shadow:0 22px 55px #0007}
+.support-sidebar{border-right:1px solid #39383b;background:#14161c;min-width:0;display:flex;flex-direction:column}
+.support-side-title{display:flex;align-items:center;justify-content:space-between;padding:17px 15px;border-bottom:1px solid #333740}
+.support-side-title b{font:700 14px 'Space Grotesk'}
+.support-plus{background:#f1c944;color:#251b08;border:0;border-radius:9px;font-weight:900;padding:8px 12px}
+.support-ticket-list{flex:1;max-height:515px;overflow:auto;padding:9px}
+.support-ticket-item{width:100%;border:1px solid transparent;border-radius:10px;background:transparent;color:#ddd;text-align:left;padding:12px;display:block;margin:4px 0;cursor:pointer;transition:background .2s,border-color .2s}
+.support-ticket-item:hover,.support-ticket-item.selected{background:#302a1f;border-color:#846a36}
+.support-ticket-item strong{display:block;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.support-ticket-item span{font-size:10px;color:#a4a8b1;display:block;margin-top:5px}
+.support-tip{font-size:11px;color:#a3a6af;margin:9px 13px 15px;line-height:1.65}
+.support-main{min-width:0;display:flex;flex-direction:column;min-height:450px}
+.support-head{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:72px;border-bottom:1px solid #3b3b40}
+.support-head h3{font:700 16px 'Space Grotesk';margin:0}.support-head small{color:#aaafb8;display:block;margin-top:4px}
+.support-status{display:inline-flex;align-items:center;gap:6px;border:1px solid #6a623e;border-radius:30px;font-size:10px;font-weight:800;padding:5px 10px;color:#f9d56f}
+.support-status.closed{border-color:#555;color:#a8acb7}
+.support-messages{min-height:230px;height:350px;overflow:auto;padding:17px;flex:1;display:flex;flex-direction:column;gap:10px;scrollbar-color:#74623c transparent;scrollbar-width:thin}
+.support-message{display:flex;gap:10px;align-items:flex-start;max-width:96%}
+.support-message.mine{align-self:flex-end;flex-direction:row-reverse}
+.support-message .avatar{border-radius:50%;width:34px;height:34px;object-fit:cover;background:#c8a23f;color:#1c180c;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
+.support-bubble{background:#252831;padding:10px 13px;border:1px solid #393c45;border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.support-message.mine .support-bubble{background:#3d321e;border-color:#716039}
+.support-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.support-meta b{font-size:11px;color:#f8d36e}.support-meta small{font-size:10px;color:#9ca0a9}
+.support-bubble p{margin:0;font-size:12px;white-space:pre-wrap;line-height:1.7;color:#e4e4e7}
+.support-compose{padding:14px 16px;border-top:1px solid #383a42}
+.support-compose textarea{min-height:65px;max-height:160px;resize:vertical;background:#101216;color:#fff;border:1px solid #53515a;border-radius:9px;padding:10px 12px;display:block;width:100%;outline:0}
+.support-compose textarea:focus{border-color:#dfb446}
+.support-compose-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}.support-compose-actions small{color:#aeb1ba;font-size:10px}
+.support-empty{margin:auto;max-width:430px;padding:26px;text-align:center;color:#b5b8c0}.support-empty h3{color:#ffe19a;font:700 22px 'Space Grotesk';margin:10px 0}.support-empty p{font-size:12px;line-height:1.8}
+.support-error{padding:9px 12px;color:#ffd5a5;background:#4a2f1a;border:1px solid #9b6537;border-radius:9px;font-size:11px;line-height:1.6;margin:9px 16px}
+.support-create{padding:25px;max-width:660px;width:100%;margin:auto}.support-create label{display:block;color:#c7cad0;font-size:12px;font-weight:700;margin:14px 0 6px}
+.support-create input,.support-create textarea{width:100%;border:1px solid #51515a;background:#101217;color:white;border-radius:9px;padding:12px;outline:0}
+.support-create input:focus,.support-create textarea:focus{border-color:#edbf4d}.support-create textarea{resize:vertical;min-height:120px}
+.support-create h3{font:700 21px 'Space Grotesk';color:#fff;margin:0}.support-create p{color:#adb3bd;font-size:12px}
+.support-notice{background:#26271e;border:1px solid #686037;border-radius:9px;padding:11px 14px;color:#d9c58a;font-size:11px;line-height:1.65;margin:10px 0}
+.support-actions{display:flex;justify-content:flex-end;gap:9px;align-items:center}.support-mini-btn{border:1px solid #5c5350;color:#c9c4bd;background:#29272a;border-radius:8px;padding:8px 10px;font-size:11px;font-weight:800;cursor:pointer}.support-mini-btn:hover{border-color:#dfbc69}.support-pill{display:inline-block;background:#302916;color:#f5d37a;padding:4px 7px;font-size:10px;border-radius:8px}
+#supportTabLink{font-weight:800;color:#f1cf69}
+@media(max-width:790px){.support-layout{grid-template-columns:1fr}.support-sidebar{border-right:0;border-bottom:1px solid #39383b}.support-ticket-list{max-height:180px;overflow:auto}.support-main{min-height:380px}.support-messages{height:300px}.support-head{flex-wrap:wrap}.support-create{padding:17px}}
+
+/* Pequeno céu animado exclusivo do retângulo com o mascote da home */
+.hero-art{position:relative;isolation:isolate;overflow:hidden}
+#duckHeroSparks{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:.96}
+.hero-art .hero-duck{z-index:3;position:relative}
+.hero-art .float-label{z-index:4}
+@media (prefers-reduced-motion:reduce){#duckHeroSparks{display:none}}
+
+@property --duck-rotation{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes duck-ring-run{to{--duck-rotation:360deg}}
+/* Borda em órbita, incluindo seleção por teclado e os cards do catálogo */
+:is(.button,.tab,.channel-button,.v4-admin-link,.v4-settings,.mod-action,.support-ticket-item){position:relative;isolation:isolate}
+:is(.button,.tab,.channel-button,.v4-admin-link,.v4-settings,.mod-action,.support-ticket-item)::before{
+ content:'';position:absolute;inset:0;box-sizing:border-box;padding:2px;border-radius:inherit;pointer-events:none;z-index:5;
+ background:conic-gradient(from var(--duck-rotation),transparent 0deg,rgba(255,217,87,.12) 45deg,#fff6b5 95deg,#ffba32 130deg,rgba(248,171,28,.4) 175deg,transparent 228deg,transparent 360deg);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+ mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+ opacity:0;transition:opacity .2s ease
+}
+:is(.button,.tab,.channel-button,.v4-admin-link,.v4-settings,.mod-action,.support-ticket-item):is(:hover,:focus-visible,.active,.selected)::before{opacity:1;animation:duck-ring-run 2.8s linear infinite}
+.project-card{--card-x:50%;--card-y:50%;--tilt-x:0deg;--tilt-y:0deg;--depth-x:0px;--depth-y:0px;
+ position:relative;isolation:isolate;overflow:hidden;backface-visibility:hidden;
+ transform:perspective(950px) rotateX(0deg) rotateY(0deg) translateY(0)!important;
+ transition:transform .42s cubic-bezier(.2,.7,.2,1),box-shadow .3s ease!important;}
+.project-card.duck-tilt{will-change:transform;transform:perspective(950px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-5px) scale(1.012)!important;
+ transition:transform .12s ease-out,box-shadow .2s!important;box-shadow:0 20px 42px #0009,0 0 22px #f9c23e20!important}
+.project-card::before{content:'';position:absolute;inset:0;border:0;border-radius:inherit;padding:2px;box-sizing:border-box;pointer-events:none;z-index:5;
+ background:conic-gradient(from var(--duck-rotation),transparent 0deg,#fff6b1 88deg,#ffb939 125deg,rgba(255,207,69,.45) 155deg,transparent 228deg);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+ mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+ opacity:0;transition:opacity .25s ease}
+.project-card:hover::before,.project-card:focus-within::before{opacity:1;animation:duck-ring-run 2.8s linear infinite}
+.project-card::after{content:'';position:absolute;inset:0;z-index:3;border-radius:inherit;pointer-events:none;opacity:0;
+ background:radial-gradient(ellipse 190px 170px at var(--card-x) var(--card-y),#ffe59b30,#ffd45712 52%,transparent);transition:opacity .2s ease}
+.project-card:hover::after,.project-card:focus-within::after{opacity:1}
+.project-card .project-cover,.project-card .project-body{position:relative;z-index:2}
+.project-card .project-cover img,.project-card .project-cover .project-glyph{transition:transform .18s ease-out}
+.project-card.duck-tilt .project-cover img,.project-card.duck-tilt .project-cover .project-glyph{transform:translate3d(var(--depth-x),var(--depth-y),0) scale(1.04)}
+@media(hover:none),(pointer:coarse),(prefers-reduced-motion:reduce){.project-card,.project-card.duck-tilt{transform:none!important;will-change:auto}.project-card .project-cover img,.project-card .project-cover .project-glyph{transform:none!important}.project-card::after{display:none}.project-card::before,:is(.button,.tab,.channel-button,.v4-admin-link,.v4-settings,.mod-action,.support-ticket-item)::before{animation:none!important}}
+</style><style id="duckzin-tickets-v5-styling">
+#suporte .support-intro h2 em{color:#ffd965}#suporte .support-layout{border:1px solid #55452b;box-shadow:0 28px 75px rgba(0,0,0,.34),0 0 50px rgba(254,193,62,.04)}
+#suporte .support-sidebar{background:linear-gradient(175deg,#1a1b21,#111317)}
+#suporte .support-head{border-bottom:1px solid #594a32;background:linear-gradient(90deg,rgba(240,178,58,.08),transparent 68%)}
+.support-link-button{display:flex;gap:6px;justify-content:space-between;align-items:center;margin:11px 11px 4px;padding:10px 11px;border:1px solid #66502d;border-radius:9px;background:#282319;color:#f5d995;font-size:12px;font-weight:800;cursor:pointer;transition:border-color .18s,background .18s,transform .18s}
+.support-link-button:hover{border-color:#f3cc69;background:#30291b;transform:translateY(-1px)}
+.support-launch{flex:1;display:flex;flex-direction:column;overflow:auto;background:radial-gradient(circle at 50% 0%,rgba(234,178,52,.12),transparent 53%);padding:18px 20px 15px}
+.support-launch-top{text-align:center;padding:10px 8px 17px}
+.support-launch-symbol{font-size:34px;margin:3px auto 8px;filter:drop-shadow(0 0 11px rgba(252,202,68,.3))}
+.support-launch-top>span{display:block;color:#e8bd59;letter-spacing:2px;font-size:10px;font-weight:800}
+.support-launch-top h3{font:800 24px 'Space Grotesk',sans-serif;margin:5px 0;color:#f8f4e8}
+.support-launch-top p{max-width:490px;margin:0 auto;font-size:12px;color:#bcbcbf;line-height:1.65}
+.support-topic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.support-topic{appearance:none;display:flex;align-items:center;text-align:left;gap:12px;min-width:0;padding:15px 12px;border-radius:11px;border:1px solid #3c3d41;background:linear-gradient(125deg,#26262c,#1e2025);color:#f2f1eb;cursor:pointer;position:relative;transition:transform .22s,border-color .22s,box-shadow .22s}
+.support-topic:hover,.support-topic:focus-visible{transform:translateY(-3px);border-color:#f4c85e;box-shadow:0 6px 25px #dfac372b;outline:none}
+.support-topic-icon{font-size:25px;flex:none;filter:drop-shadow(0 0 11px #ffd25b33)}
+.support-topic strong{display:block;font-size:13px;font-weight:800;white-space:normal}
+.support-topic small{display:block;font-size:11px;color:#a2a2ac;line-height:1.35;margin-top:2px}
+.support-topic-arrow{margin-left:auto;color:#f4cc68;font-size:18px}
+.support-launch-bottom{font-size:11px;color:#a79e88;border-top:1px solid #ffffff13;margin-top:16px;padding-top:13px}
+.support-create select{background:#171920;border:1px solid #464950;border-radius:9px;padding:11px;color:#f6f1e5;width:100%}
+.support-create select:focus{border-color:#ecc252;outline:1px solid #ecc252}
+.support-link-form{margin:auto;max-width:565px}.support-link-icon{font-size:34px}
+.support-ticket-item.selected{border-color:#c6a350;background:linear-gradient(100deg,#392e19,#292a2c)}
+@media(max-width:750px){.support-topic-grid{grid-template-columns:1fr}.support-launch{padding:12px}.support-launch-top h3{font-size:21px}}
+</style><style id="duckzin-sources-style">
+/* DuckzinCommunity project-version selector and admin library */
+.duck-version-picker{margin-top:13px;padding:12px 11px 11px;border:1px solid #80632d;border-radius:12px;background:linear-gradient(135deg,rgba(255,203,52,.09),rgba(12,13,16,.32));position:relative;z-index:4;display:grid;gap:8px}
+.duck-version-caption{color:#ffe098;font-size:11px;font-weight:800;letter-spacing:.2px}
+.duck-version-select{max-width:100%;width:100%;padding:11px 12px;border-radius:8px;border:1px solid #625335;background:#121319;color:#f5e7bf;font-weight:700;font-size:12px;cursor:pointer;outline:none}
+.duck-version-select:focus-visible{border-color:#ffdc74;box-shadow:0 0 0 2px #ffd54c38}
+.duck-version-download{display:flex;align-items:center;justify-content:center;min-height:36px;border-radius:8px;background:linear-gradient(120deg,#ffea92,#edb83b);color:#201807!important;font-size:12px;font-weight:900;transition:filter .18s ease,transform .18s ease!important}
+.duck-version-download:hover{filter:brightness(1.08);transform:translateY(-2px)}
+.duck-source-manager{margin-top:22px;padding:20px;border:1px solid #725a2e;border-radius:14px;background:#1c1a18;color:#e9e6dc}
+.duck-source-manager[hidden]{display:none!important}
+.duck-source-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #4e4534;padding-bottom:12px;margin-bottom:14px}
+.duck-source-head h3{font-size:18px;margin:0;color:#ffda70}
+.duck-source-head p{margin:7px 0 0;color:#aeb0b8;font-size:12px}
+.duck-source-close{background:#2b2b30;border:1px solid #49464a;border-radius:8px;color:#e9e9eb;padding:7px 12px;cursor:pointer}
+.duck-source-form{display:grid;gap:13px}
+.duck-source-form label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#e8d7b1}
+.duck-source-form input{background:#14151a;border:1px solid #505156;border-radius:8px;color:#f2f2f2;padding:11px;font-size:12px;max-width:100%;width:100%}
+.duck-source-form input[type=file]{cursor:pointer}
+.duck-source-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.duck-source-divider{color:#8e92a0;text-align:center;font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.duck-source-msg{color:#a6dcb2;font-size:12px;margin:0}.duck-source-msg.error{color:#ffa8a8}
+#duckSourceProgress{width:100%;accent-color:#ffcc4b}
+.duck-source-list{margin-top:20px;display:grid;gap:8px}
+.duck-source-entry{display:flex;gap:12px;align-items:center;background:#16171c;border:1px solid #424048;border-radius:9px;padding:12px;font-size:12px}
+.duck-source-entry>div{flex:1;min-width:0;overflow-wrap:anywhere}.duck-source-entry b{color:#ffe6a1}.duck-source-entry small{display:block;color:#888c95}
+.duck-source-entry a{color:#ffcf60;font-weight:800}.duck-source-entry button{background:#402421;color:#ffb1a9;border:1px solid #674140;border-radius:7px;padding:7px 10px;cursor:pointer}
+.duck-source-empty{font-size:12px;color:#a3a3ab}
+@media(max-width:580px){.duck-source-fields{grid-template-columns:1fr}.duck-source-entry{flex-wrap:wrap}.duck-source-manager{padding:13px}}
+@media(prefers-reduced-motion:reduce){.duck-version-download{transition:none!important}}
+
+</style><style id="duck-footer-members-style">.footer-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.duck-footer-members{margin-left:auto;padding:9px 16px;font-size:12px;border-radius:11px;white-space:nowrap}.duck-footer-members:hover{box-shadow:0 0 22px rgba(252,196,57,.28)}@media(max-width:610px){.duck-footer-members{margin-left:0}}</style></head><body>
+<header class="topbar"><div class="container nav-inner"><a class="brand" href="#inicio"><img src="/duck-logo.avif" alt="Logo Duckzin"><span>DUCKZIN<b>COMMUNITY</b></span></a><nav class="nav-links"><a href="#inicio">Início</a><a href="#projetos">Projetos</a><a href="#discord">Discord</a><a href="#perfis">Membros</a><a href="#suporte" id="supportTabLink">Suporte</a><a href="#publicar" class="pub-nav" id="pubNav" hidden>Publicar</a></nav><div class="nav-actions"><button type="button" id="accountButton" class="button subdued">Entrar</button><button type="button" id="registerButton" class="button gold">Criar conta</button><button type="button" id="adminButton" class="button gold" hidden>👑 Publicar</button></div></div></header>
+<main><section class="hero" id="inicio"><div class="container hero-inner"><div class="hero-content"><div class="eyebrow"><span></span> BEM-VINDO À DUCKZINCOMMUNITY</div><h1>Canto de<br><em>Duckzin.</em></h1><p>Descubra projetos feitos por <strong>DuckzinXT</strong>, explore mods e aplicativos exclusivos e participe de nossa comunidade conectada ao Discord.</p><div class="hero-ctas"><a class="button gold large" href="#projetos">Explorar projetos →</a><a class="button large" href="#discord">Ver comunidade</a><a class="button large" href="#suporte">🎫 Suporte</a></div><div class="hero-note">✦ Projetos oficiais e mensagens direto no Discord</div></div><div class="hero-art"><div class="hero-glow"></div><div class="hero-circle"></div><img class="hero-duck" src="/boia.avif" alt="Mascote pato da comunidade"><div class="float-label">✦ O canto do pato</div></div></div></section>
+<section class="container feature-row" aria-label="Recursos"><div><span class="feature-icon">▣</span><span><b>Mods</b><small>Novas experiências</small></span></div><div><span class="feature-icon">▦</span><span><b>Apps</b><small>Aplicativos originais</small></span></div><div><span class="feature-icon">#</span><span><b>Discord</b><small>Conectado ao site</small></span></div><div><span class="feature-icon">✦</span><span><b>Oficial</b><small>Curadoria DuckzinXT</small></span></div></section>
+<section id="projetos" class="container section rise"><div class="section-heading"><div><span class="eyebrow">CATÁLOGO OFICIAL</span><h2>Projetos do <em>DuckzinXT.</em></h2><p>Mods, aplicativos e sources desenvolvidos com identidade própria.</p></div><label class="search-field">⌕ <input id="projectSearch" type="search" placeholder="Buscar projetos..." aria-label="Buscar projetos"></label></div><div class="tabs" id="projectTabs"><button class="tab selected" data-filter="Todos">Todos</button><button class="tab" data-filter="Mods">Mods</button><button class="tab" data-filter="Apps">Apps</button><button class="tab" data-filter="Sources">Sources</button><button class="tab" data-filter="Recursos">Recursos</button></div><div id="projectGrid" class="project-grid"><div class="placeholder">Carregando projetos...</div></div></section>
+<section id="discord" class="container section discord-section rise"><div class="section-heading"><div><span class="eyebrow">DISCORD · COMUNIDADE CONECTADA</span><h2>Converse com o <em>pessoal.</em></h2><p>Leia os canais reais e envie mensagens pelo site, usando sua conta.</p></div><a class="button gold" href="https://discord.gg/QCCXQqGzV" target="_blank" rel="noopener noreferrer">Entrar no Discord ↗</a></div><div id="duckzinV3Root" class="duckzin-v3" aria-label="Canais do Discord conectados ao site"><div class="v3-loading">Carregando canais públicos...</div></div><div class="discord-layout"><aside class="discord-sidebar"><div class="guild-brand"><img id="guildIcon" src="/duck-logo.avif" alt="Servidor Discord"><div><b id="guildName">Discord Duckzin</b><small id="guildStatus">Aguardando conexão do bot</small></div></div><div class="channel-label">CANAIS PÚBLICOS</div><div id="discordChannels" class="channel-list"><div class="side-note">Carregando canais...</div></div><div class="sidebar-foot">🛡️ Canais privados protegidos</div></aside><div class="discord-content"><div class="discord-toolbar"><div><svg class="ico"><use href="#hash"/></svg><b id="currentChannel">Comunidade</b></div><a id="openCurrentChannel" class="text-action" href="https://discord.gg/QCCXQqGzV" target="_blank" rel="noopener noreferrer">Abrir no Discord ↗</a></div><div class="discord-messages" id="discordMessages" role="log" aria-live="polite"><div class="empty-discord"><h3>Carregando Discord...</h3></div></div><div class="discord-composer"><div class="discord-composer-text">Aguardando chat...</div><a id="replyInDiscord" class="button gold tiny" href="https://discord.gg/QCCXQqGzV" target="_blank" rel="noopener noreferrer">Conversar no Discord</a></div></div></div><div class="integration-note">🛡️ Mensagens enviadas pelo site aparecem com o apelido e o avatar do autor, identificadas como “via site”. Canais privados não aparecem.</div></section>
+<section id="publicar" class="container pub-section" hidden><div class="section-heading"><div><span class="eyebrow">ÁREA ADMINISTRATIVA</span><h2>Painel de <em>publicação.</em></h2><p>Cadastre mods, aplicativos e gerencie os downloads do seu catálogo.</p></div></div><div class="pub-tabs"><button id="pubShowCreate" type="button" class="button gold">+ Publicar projeto</button><button id="pubShowList" type="button" class="button">Gerenciar projetos</button><button id="pubShowModeration" type="button" class="button">🛡️ Moderação</button></div><div id="pubCreate" class="pub-card"><h3 id="pubTitle">Publicar novo projeto</h3><form id="pubForm"><input id="pubId" type="hidden"><div class="pub-fields"><label>Nome do projeto<input id="pubName" required maxlength="80" class="field" placeholder="DuckCapture"></label><label>Categoria<select id="pubCategory" class="field"><option>Apps</option><option>Mods</option><option>Sources</option><option>Recursos</option></select></label><label>Versão<input id="pubVersion" class="field" placeholder="1.0.0" maxlength="60"></label><label>Status<input id="pubStatus" class="field" value="Disponível" maxlength="60"></label></div><label>Descrição<textarea id="pubDescription" class="field" rows="4" maxlength="500" required placeholder="Conte sobre seu projeto..."></textarea></label><div class="pub-fields"><label>Ícone (imagem até 2 MB)<input id="pubIcon" class="field" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Banner (imagem até 2 MB)<input id="pubBanner" class="field" type="file" accept="image/png,image/jpeg,image/webp"></label></div><label>Arquivo para download (até 50 MB)<input id="pubFile" class="field" type="file" accept=".zip,.jar,.exe,.msi,.apk,.7z,.rar,.dmg,.deb,.pdf"></label><label>Ou link externo de download<input id="pubDownload" class="field" type="url" placeholder="https://..."></label><p class="pub-help">Se escolher um arquivo, ele será hospedado no Supabase. Caso contrário, o link externo será usado.</p><progress id="pubProgress" max="100" value="0" hidden></progress><div id="pubStatusText" class="pub-status" aria-live="polite"></div><button id="pubSubmit" type="submit" class="button gold">Publicar projeto</button><button id="pubReset" type="button" class="button">Limpar</button></form></div><div id="pubList" class="pub-card" hidden><h3>Projetos publicados</h3><div id="pubItems">Carregando projetos...</div></div><div id="pubModeration" class="pub-card" hidden>
+<div class="mod-head"><div><span class="mod-eyebrow">PAINEL DE MODERAÇÃO</span><h3>Gerenciar membros do site</h3><p>Silencie ou suspenda temporariamente o envio de mensagens do site. A moderação do Discord continua separada.</p></div><span class="mod-shield">🛡️</span></div>
+<div class="mod-toolbar"><label for="modSearch">Buscar nickname</label><input id="modSearch" class="field" type="search" placeholder="Pesquisar membros..." autocomplete="off"><button id="modReload" class="button" type="button">Atualizar</button></div>
+<div id="modMessage" class="mod-note" role="status"></div><div id="modUserList" class="mod-users"><div class="mod-loading">Abra esta aba para carregar os membros.</div></div>
+</div></section><section id="suporte" class="container section rise" aria-label="Central de suporte DuckzinCommunity">
+ <div class="support-intro"><div><span class="eyebrow">ATENDIMENTO PRIVADO · DISCORD + SITE</span><h2>Central de <em>Suporte.</em></h2><p>Abra tickets, converse com a equipe e acompanhe tudo pelo site.</p></div><button type="button" class="button gold" id="supportRefresh">↻ Atualizar tickets</button></div>
+ <div class="support-layout"><aside class="support-sidebar"><div class="support-side-title"><b id="supportCount">Meus tickets</b><button id="supportNew" type="button" class="support-plus">+ Novo</button></div><div id="supportTicketList" class="support-ticket-list"><p class="support-tip">Entre na conta para carregar seus tickets.</p></div><button id="supportLink" type="button" class="support-link-button">🔗 Vincular minha conta Discord <span>↗</span></button><div class="support-tip">🔒 Conversas protegidas. Somente o autor e a equipe de suporte têm acesso.</div></aside>
+ <div class="support-main"><div id="supportHead" class="support-head"><h3>Central de suporte</h3></div><div id="supportAlert" class="support-error" hidden role="status"></div><div id="supportMainContent" style="display:flex;flex:1;flex-direction:column;min-height:0"><div class="support-empty"><h3>Como podemos ajudar? 🦆</h3><p>Abra um ticket para falar com a equipe.</p></div></div></div></div>
+</section>
+<section class="container banner-bottom rise"><div><span class="eyebrow">FEITO PARA A COMUNIDADE</span><h2>Mais do que projetos.<br><em>Um lugar para criar.</em></h2><p>Acompanhe lançamentos e compartilhe ideias com a comunidade.</p></div><a class="button gold" href="https://discord.gg/QCCXQqGzV" target="_blank" rel="noopener noreferrer">Entrar no Discord →</a></section><section id="perfis" class="container section rise" aria-label="Perfis dos membros da comunidade">
+<div class="duck-profiles-header"><div><span class="eyebrow">COMUNIDADE · PERFIS PÚBLICOS</span><h2>Conheça os <em>membros.</em></h2><p>Veja o perfil, o nickname e a bio de quem participa do DuckzinCommunity.</p></div><input id="duckProfileSearch" class="duck-profile-search" placeholder="⌕ Buscar nick..." type="search" aria-label="Buscar perfis"></div>
+<p id="duckProfileMessage" class="duck-profile-note" role="status">Carregando perfis...</p>
+<div id="duckProfilesGrid" class="duck-profile-grid"></div>
+</section></main><footer><div class="container footer-inner"><span>© 2026 <b>DuckzinCommunity</b> · Canto de Duckzin</span><a class="button gold duck-footer-members" href="#perfis" aria-label="Ver perfis dos membros do DuckzinCommunity">👥 Ver membros</a><span>Feito por DuckzinXT 🦆</span></div></footer>
+<div id="duckProfileDialog" class="duck-profile-dialog" role="dialog" aria-modal="true" aria-label="Perfil do membro" hidden>
+<div class="duck-profile-dialog-card"><div id="duckProfileDialogBanner" class="duck-profile-dialog-banner"></div><button type="button" id="duckProfileClose" class="duck-profile-dialog-close" aria-label="Fechar perfil">×</button><div id="duckProfileDialogBody" class="duck-profile-dialog-body"></div></div>
+</div><div id="modalLayer" class="modal-layer" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalHeading"><div class="modal-header"><small>DUCKZINCOMMUNITY</small><button type="button" id="closeModal" class="close" aria-label="Fechar">✕</button></div><div id="modalContents"></div></div></div><div id="toast" class="toast" role="status"></div>
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs><symbol id="hash" viewBox="0 0 24 24"><path d="M5 9h14M4 15h14M11 3 7 21M17 3l-4 18"/></symbol><symbol id="chat" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 1-8 8 9 9 0 0 1-4-1l-4 2 1.5-4A8 8 0 1 1 20 11zM8 11h8m-8 4h6"/></symbol></defs></svg>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="/config.js"></script><script defer src="/discord-app.js"></script><script defer src="/duckzin-enhance.js"></script><script>/* DuckzinCommunity V3: resilient Discord viewer and publication dashboard. No secret keys are included. */
+(()=>{'use strict';
+if(!window.supabase || !window.DUCKZIN_CONFIG){console.error('Duckzin V3: Supabase indisponível');return;}
+const sb=window.supabase.createClient(window.DUCKZIN_CONFIG.url,window.DUCKZIN_CONFIG.key);
+const $=id=>document.getElementById(id);
+const escapeHTML=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const validUrl=v=>{try{let u=new URL(v);return u.protocol==='https:'?u.href:''}catch{return ''}};
+const invite='https://discord.gg/QCCXQqGzV';
+let guild=null,channels=[],selectedId='',history=[],beforeTime='',older=false;
+let generation=0,loadingList=false,busyHistory=false,posting=false,admin=false,activeList='create',projectCache=[];
+let liveChannel=null,liveTimer=null,liveFailureCount=0;
+function setInfo(message,klass=''){$('v3Info').textContent=message;$('v3Info').className='v3-info '+klass}
+function errorView(target,text){$(target).innerHTML='<div class="v3-empty"><strong>Não foi possível carregar</strong>'+escapeHTML(text)+'<br><button class="button gold" type="button" id="v3Retry">Tentar novamente</button></div>';const b=$('v3Retry');if(b)b.onclick=()=>loadChannels(true)}
+function initChat(){const root=$('duckzinV3Root');if(!root)return;
+root.innerHTML=`<aside class="v3-side"><div class="v3-guild"><span id="v3Guild">Discord do Duckzin</span><small id="v3GuildState">Conectando ao servidor...</small></div><div class="v3-chlabel">CANAIS PÚBLICOS</div><div id="v3ChannelList" class="v3-channel-list"><span class="v3-loading">Buscando canais...</span></div><div class="v3-side-footer">🛡 Canais privados não são publicados</div></aside><div class="v3-chat"><div class="v3-bar"><b id="v3Current"># comunidade</b><a id="v3DiscordLink" target="_blank" rel="noopener noreferrer" href="${invite}">Abrir no Discord ↗</a></div><div id="v3Messages" class="v3-messages" role="log" aria-live="polite"><div class="v3-loading">Carregando mensagens...</div></div><div class="v3-input"><form id="v3MessageForm" class="v3-compose"><textarea id="v3Message" maxlength="1500" required rows="2" placeholder="Escreva para o Discord..." aria-label="Sua mensagem"></textarea><button id="v3Send" type="submit" class="button gold">Enviar →</button></form><div id="v3Info" class="v3-info">Entre na sua conta para participar. Suas mensagens aparecem como “via site”.</div></div></div>`;
+$('v3MessageForm').addEventListener('submit',sendMessage);
+$('v3Message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$('v3MessageForm').requestSubmit();}});
+loadChannels(true);
+setInterval(()=>{if(document.visibilityState==='visible'){loadChannels(false);refreshMessages()}},7000);
+}
+async function requestTimeout(task,delay=12000){let timer;try{return await Promise.race([task,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Tempo limite atingido')),delay)})])}finally{clearTimeout(timer)}}
+async function loadChannels(force){if(loadingList)return;loadingList=true;
+try{
+const [g,c]=await requestTimeout(Promise.all([sb.from('discord_guilds').select('id,name,icon_url,updated_at').order('updated_at',{ascending:false}).limit(1),sb.from('discord_channels').select('id,guild_id,name,position,kind').order('position',{ascending:true})]));
+if(g.error)throw g.error;if(c.error)throw c.error;
+guild=g.data?.[0]||null;channels=(c.data||[]).filter(x=>!guild||x.guild_id===guild.id);
+$('v3Guild').textContent=guild?.name||'Discord do Duckzin';$('v3GuildState').textContent=channels.length?channels.length+' canais públicos conectados':'Aguardando canais do bot';
+if(!channels.length){$('v3ChannelList').innerHTML='<div class="v3-loading">Nenhum canal público sincronizado.</div>';$('v3Messages').innerHTML='<div class="v3-empty"><strong>Discord aguardando canais</strong>Mantenha o bot online e confira suas permissões de leitura.</div>';return;}
+const oldId=selectedId;
+if(!channels.some(x=>x.id===selectedId))selectedId=channels[0].id;
+renderChannels();
+if(oldId!==selectedId||force){await chooseChannel(selectedId,true)}
+}catch(e){$('v3GuildState').textContent='Erro de conexão';if(!channels.length){$('v3ChannelList').innerHTML='<div class="v3-loading">Falha ao consultar canais.</div>';errorView('v3Messages',e.message||'Falha de conexão')}}finally{loadingList=false;}
+}
+function renderChannels(){const root=$('v3ChannelList');root.innerHTML='';for(const channel of channels){const btn=document.createElement('button');btn.type='button';btn.className='v3-channel'+(channel.id===selectedId?' active':'');btn.innerHTML='<span class="hash">#</span>'+escapeHTML(channel.name);btn.addEventListener('click',()=>chooseChannel(channel.id,true));root.appendChild(btn);}}
+async function chooseChannel(id,reset){const ch=channels.find(x=>x.id===id);if(!ch)return;selectedId=ch.id;generation++;busyHistory=false;history=[];beforeTime='';older=false;
+if(liveChannel){sb.removeChannel(liveChannel).catch(()=>{});liveChannel=null;}
+
+$('v3Current').textContent='# '+ch.name;const url=`https://discord.com/channels/${encodeURIComponent(ch.guild_id)}/${encodeURIComponent(ch.id)}`;$('v3DiscordLink').href=url;
+renderChannels();$('v3Messages').innerHTML='<div class="v3-loading">Carregando mensagens de #'+escapeHTML(ch.name)+'...</div>';
+await loadMessages(true);
+subscribeLive(ch.id);
+}
+function subscribeLive(id){
+  if(liveChannel){sb.removeChannel(liveChannel).catch(()=>{});liveChannel=null;}
+  const name='duckzin-live-'+id+'-'+Date.now();
+  liveChannel=sb.channel(name).on('postgres_changes',{event:'*',schema:'public',table:'discord_messages',filter:'channel_id=eq.'+id},()=>{
+    if(selectedId!==id)return;clearTimeout(liveTimer);liveTimer=setTimeout(()=>void refreshMessages(),180);
+  }).subscribe((status)=>{
+    if(selectedId!==id)return;
+    if(status==='SUBSCRIBED'){liveFailureCount=0;$('v3GuildState').title='Atualizações automáticas ativadas';}
+    if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){liveFailureCount++;$('v3GuildState').title='Atualização por consulta periódica ativa';}
+  });
+}
+async function loadMessages(reset){if(!selectedId||busyHistory)return;const ref=selectedId,seq=generation;busyHistory=true;
+try{let q=sb.from('discord_messages').select('id,guild_id,channel_id,author_name,author_avatar_url,content,reply_to,sent_at').eq('channel_id',ref).order('sent_at',{ascending:false}).limit(40);
+if(!reset&&beforeTime)q=q.lt('sent_at',beforeTime);
+const {data,error}=await requestTimeout(q,12000);if(error)throw error;if(ref!==selectedId||seq!==generation)return;
+const chunk=(data||[]).reverse();const count=chunk.length;
+if(reset){history=chunk}else{const ids=new Set(history.map(x=>x.id));history=[...chunk.filter(x=>!ids.has(x.id)),...history]}
+older=count===40;beforeTime=history[0]?.sent_at||'';
+renderMessages(reset);
+}catch(e){if(ref===selectedId&&seq===generation)errorView('v3Messages',e.message||'Falha ao carregar mensagens')}
+finally{busyHistory=false;}
+}
+function renderMessages(reset){const root=$('v3Messages'),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<100;const previousHeight=root.scrollHeight,previousTop=root.scrollTop;root.innerHTML='';
+if(!history.length){root.innerHTML='<div class="v3-empty"><strong>Nenhuma mensagem por enquanto</strong>Envie a primeira mensagem por aqui ou pelo Discord.</div>';return;}
+if(older){const more=document.createElement('button');more.type='button';more.className='v3-load-more';more.textContent='↑ Mostrar mensagens antigas';more.onclick=()=>loadMessages(false);root.appendChild(more);}
+for(const m of history){const box=document.createElement('article');box.className='v3-msg';const avatar=validUrl(m.author_avatar_url);const image=avatar?'<img class="v3-avatar" src="'+escapeHTML(avatar)+'" loading="lazy" alt="Avatar de '+escapeHTML(m.author_name)+'">':'<span class="v3-avatar v3-avatar-placeholder">'+escapeHTML((m.author_name||'?').slice(0,2).toUpperCase())+'</span>';const date=new Date(m.sent_at);const time=Number.isNaN(date.valueOf())?'':date.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const jump='https://discord.com/channels/'+encodeURIComponent(m.guild_id)+'/'+encodeURIComponent(m.channel_id)+'/'+encodeURIComponent(m.id);
+box.innerHTML=image+'<div class="v3-msgtext"><div class="v3-msghead"><b>'+escapeHTML(m.author_name||'Membro')+'</b><time>'+escapeHTML(time)+'</time></div>'+ (m.reply_to?'<div class="v3-info">↳ Em resposta a uma mensagem</div>':'')+'<p>'+escapeHTML(m.content||'[Mensagem sem texto]')+'</p><a class="v3-jump" href="'+jump+'" rel="noopener noreferrer" target="_blank">Ver no Discord ↗</a></div>';
+root.appendChild(box);}
+if(reset||nearBottom)root.scrollTop=root.scrollHeight;else root.scrollTop=previousTop+Math.max(0,root.scrollHeight-previousHeight);
+}
+let refreshing=false;
+async function refreshMessages(){if(!selectedId||refreshing||busyHistory)return;refreshing=true;const ref=selectedId,seq=generation;
+try{const r=await requestTimeout(sb.from('discord_messages').select('id,guild_id,channel_id,author_name,author_avatar_url,content,reply_to,sent_at').eq('channel_id',ref).order('sent_at',{ascending:false}).limit(40));if(r.error)throw r.error;if(selectedId!==ref||seq!==generation)return;
+const incoming=(r.data||[]).reverse();{
+ const old=JSON.stringify(history.slice(-40)), latest=JSON.stringify(incoming);
+ if(old!==latest){
+   // Preserve older pages and replace the most recent window with the server's truth.
+   // This also reflects webhook edits and deletions without a page refresh.
+   const oldestNew=incoming[0]?.sent_at;
+   const earlier=oldestNew?history.filter(m=>m.sent_at<oldestNew):[];
+   const unique=new Map([...earlier,...incoming].map(m=>[m.id,m]));
+   history=[...unique.values()].sort((a,b)=>a.sent_at.localeCompare(b.sent_at)).slice(-240);
+   renderMessages(false);
+ }
+}
+}catch(e){console.warn('Duckzin V3: tentativa de atualização',e.message)}finally{refreshing=false;}}
+async function sendMessage(e){e.preventDefault();if(posting)return;const channel=channels.find(x=>x.id===selectedId);const body=$('v3Message').value.trim();if(!channel)return setInfo('Selecione um canal público.','error');if(!body||body.length>1500)return setInfo('A mensagem precisa ter de 1 a 1.500 caracteres.','error');
+try{const auth=await requestTimeout(sb.auth.getUser());if(!auth.data.user){setInfo('Entre na sua conta do site para enviar.','error');$('accountButton')?.click();return;}posting=true;$('v3Send').disabled=true;setInfo('Enviando para o bot...');const r=await requestTimeout(sb.from('discord_outbox').insert({channel_id:channel.id,sender_id:auth.data.user.id,body}).select('id').single());if(r.error)throw r.error;$('v3Message').value='';setInfo('Mensagem na fila do bot. Aguarde alguns segundos...','ok');void waitSent(r.data.id)}catch(err){setInfo('Não foi possível enviar: '+(err.message||'erro desconhecido'),'error')}finally{posting=false;$('v3Send').disabled=false;}}
+async function waitSent(id){for(let i=0;i<14;i++){await new Promise(r=>setTimeout(r,2600));try{const r=await requestTimeout(sb.from('discord_outbox').select('status,error').eq('id',id).maybeSingle(),7000);if(r.error||!r.data)return;if(r.data.status==='sent'){setInfo('Mensagem enviada ao Discord! 🦆','ok');setTimeout(()=>void refreshMessages(),400);setTimeout(()=>void refreshMessages(),1700);return;}if(r.data.status==='failed'){setInfo('O bot não enviou: '+(r.data.error||'Verifique as permissões.'),'error');return;}}catch{}}setInfo('Ainda está na fila. O bot precisa estar online para enviar.');}
+function initAdmin(){const a=$('pubNav'),sec=$('publicar');if(!a||!sec)return;a.addEventListener('click',e=>{e.preventDefault();sec.scrollIntoView({behavior:'smooth',block:'start'})});$('pubShowCreate').onclick=()=>switchTab('create');$('pubShowList').onclick=()=>switchTab('list');$('pubReset').onclick=()=>resetForm();$('pubForm').addEventListener('submit',saveProject);
+$('pubItems').addEventListener('click',e=>{let btn=e.target.closest('button[data-act]');if(!btn)return;const p=projectCache.find(x=>x.id===btn.dataset.id);if(!p)return;if(btn.dataset.act==='edit'){fillForm(p);switchTab('create');sec.scrollIntoView({behavior:'smooth'})}else if(btn.dataset.act==='delete')void removeProject(p)});
+void checkAdmin();sb.auth.onAuthStateChange(()=>{setTimeout(checkAdmin,100)});setInterval(checkAdmin,35000);}
+let authLock=false;
+async function checkAdmin(){if(authLock)return;authLock=true;try{const {data:{user}}=await sb.auth.getUser();const privileged=user?await sb.rpc('is_duckzin_admin'):null;admin=!!(user&&privileged&&!privileged.error&&privileged.data===true);$('publicar').hidden=!admin;$('pubNav').hidden=!admin;if(admin&&!projectCache.length)void loadProjects();}catch(e){admin=false;$('publicar').hidden=true;$('pubNav').hidden=true;}finally{authLock=false;}}
+function switchTab(to){activeList=to;$('pubCreate').hidden=to!=='create';$('pubList').hidden=to!=='list';if(to==='list')void loadProjects();}
+function resetForm(){$('pubForm').reset();$('pubId').value='';$('pubTitle').textContent='Publicar novo projeto';$('pubSubmit').textContent='Publicar projeto';$('pubStatusText').textContent='';$('pubDownload').value='';$('pubProgress').hidden=true;}
+function fillForm(p){resetForm();$('pubId').value=p.id;$('pubName').value=p.title||'';$('pubCategory').value=p.category||'Apps';$('pubVersion').value=p.version||'';$('pubStatus').value=p.status||'Disponível';$('pubDescription').value=p.description||'';$('pubDownload').value=p.download_url||'';$('pubTitle').textContent='Editar '+p.title;$('pubSubmit').textContent='Salvar alterações';}
+async function loadProjects(){const r=await sb.from('projects').select('id,title,category,version,status,description,icon_url,banner_url,download_url').order('created_at',{ascending:false});if(r.error){$('pubItems').textContent='Erro: '+r.error.message;return;}projectCache=r.data||[];$('pubItems').innerHTML=projectCache.length?projectCache.map(p=>'<div class="pub-project-row"><div><b>'+escapeHTML(p.title)+'</b><small>'+escapeHTML(p.category)+' · '+escapeHTML(p.version||'Sem versão')+'</small></div><div class="pub-actions"><button type="button" class="button" data-act="edit" data-id="'+escapeHTML(p.id)+'">Editar</button><button type="button" class="button" data-act="delete" data-id="'+escapeHTML(p.id)+'">Excluir</button></div></div>').join(''):'<p>Nenhum projeto publicado.</p>';}
+function fileStatus(s,state=''){$('pubStatusText').textContent=s;$('pubStatusText').className='pub-status '+state;}
+async function loadTus(){if(window.tus?.Upload)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js';s.onload=()=>window.tus?.Upload?resolve():reject(Error('Falha ao carregar o componente de upload'));s.onerror=()=>reject(Error('Não foi possível carregar upload de arquivos grandes'));document.head.appendChild(s);});}
+async function uploadFile(bucket,file,limit,exts,progress){if(file.size>limit||file.size===0)throw Error('Arquivo vazio ou maior que '+Math.round(limit/1048576)+' MB');if(!exts.includes(file.name.toLowerCase().split('.').pop()))throw Error('Extensão não permitida');const {data:{user},error}=await sb.auth.getUser();if(error||!user)throw Error('Faça login novamente');const role=await sb.rpc('is_duckzin_admin');if(role.error||role.data!==true)throw Error('Sem autorização para publicar');const fname=file.name.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w.-]/g,'_').slice(0,80);
+const path=user.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,10)+'-'+fname;
+if(file.size<=6*1024*1024){const r=await sb.storage.from(bucket).upload(path,file,{contentType:file.type||'application/octet-stream',cacheControl:'3600',upsert:false});if(r.error)throw r.error;progress?.(100);}else{await loadTus();const session=(await sb.auth.getSession()).data.session;if(!session)throw Error('Sua sessão expirou');const host=new URL(window.DUCKZIN_CONFIG.url).hostname.replace('.supabase.co','.storage.supabase.co');await new Promise((resolve,reject)=>{const u=new window.tus.Upload(file,{endpoint:'https://'+host+'/storage/v1/upload/resumable',retryDelays:[0,3000,5000,10000,20000],headers:{authorization:'Bearer '+session.access_token,apikey:window.DUCKZIN_CONFIG.key},uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,metadata:{bucketName:bucket,objectName:path,contentType:file.type||'application/octet-stream',cacheControl:'3600'},chunkSize:6*1024*1024,onProgress:(a,b)=>progress?.(Math.round(a/b*100)),onError:reject,onSuccess:resolve});u.findPreviousUploads().then(p=>{if(p.length)u.resumeFromPreviousUpload(p[0]);u.start()}).catch(reject);});}
+return sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+}
+let saving=false;
+async function saveProject(e){e.preventDefault();if(saving)return;saving=true;$('pubSubmit').disabled=true;try{const auth=await sb.auth.getUser();const r=await sb.rpc('is_duckzin_admin');if(!auth.data.user||r.error||r.data!==true)throw Error('Você precisa entrar com a conta de administrador');const id=$('pubId').value;const old=projectCache.find(p=>p.id===id)||{};const payload={title:$('pubName').value.trim(),category:$('pubCategory').value,version:$('pubVersion').value.trim(),status:$('pubStatus').value.trim(),description:$('pubDescription').value.trim(),download_url:$('pubDownload').value.trim()||null,icon_url:old.icon_url||null,banner_url:old.banner_url||null};
+if(!payload.title||!payload.description)throw Error('Preencha nome e descrição');const allowedImage=['png','jpg','jpeg','webp'],allowedBinary=['zip','jar','exe','msi','apk','7z','rar','dmg','deb','pdf'];const ic=$('pubIcon').files?.[0],bn=$('pubBanner').files?.[0],exe=$('pubFile').files?.[0];const progress=$('pubProgress');
+if(ic){fileStatus('Enviando ícone...');payload.icon_url=await uploadFile('project-images',ic,2097152,allowedImage)}if(bn){fileStatus('Enviando banner...');payload.banner_url=await uploadFile('project-images',bn,2097152,allowedImage)}if(exe){progress.hidden=false;progress.value=0;fileStatus('Enviando arquivo de download...');payload.download_url=await uploadFile('project-files',exe,52428800,allowedBinary,v=>{progress.value=v;fileStatus('Upload do arquivo: '+v+'%')})}
+fileStatus('Salvando projeto...');const query=id?sb.from('projects').update(payload).eq('id',id):sb.from('projects').insert(payload);const output=await query;if(output.error)throw output.error;fileStatus('Projeto publicado com sucesso!','ok');await loadProjects();setTimeout(()=>location.reload(),1800);
+}catch(err){fileStatus('Erro ao publicar: '+(err.message||err),'error')}finally{saving=false;$('pubSubmit').disabled=false;}}
+async function removeProject(p){if(!admin||!window.confirm('Excluir o projeto '+p.title+'?'))return;const r=await sb.from('projects').delete().eq('id',p.id);if(r.error)return window.alert('Erro: '+r.error.message);void loadProjects();window.alert('Projeto excluído. Atualize a página para atualizar o catálogo.');}
+function boot(){
+ initChat();initAdmin();
+ // Realtime is primary; a lightweight poll is a fallback for WebSocket drops.
+ setInterval(()=>{if(document.visibilityState==='visible')void refreshMessages()},5500);
+ window.addEventListener('focus',()=>{void refreshMessages();void loadChannels(false)});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden){void refreshMessages();void loadChannels(false)}});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script><script>/* DuckzinCommunity V4: account bar, site status, and owner-only publishing navigation. */
+(()=>{'use strict';
+const root=document.getElementById('duckzinV3Root');
+if(!root||!window.supabase||!window.DUCKZIN_CONFIG)return;
+const db=window.supabase.createClient(window.DUCKZIN_CONFIG.url,window.DUCKZIN_CONFIG.key);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const httpsImage=s=>{try{const u=new URL(s);return u.protocol==='https:'?u.href:'';}catch{return '';}};
+const icons={settings:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M18.2 5.8l-1.5 1.5M7.3 16.7l-1.5 1.5M18.2 18.2l-1.5-1.5M7.3 7.3L5.8 5.8"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.6"/></svg>'};
+const statuses={online:'Online',ausente:'Ausente',ocupado:'Não perturbar',invisivel:'Invisível'};
+let sessionId=null,roleGranted=false,lastUsername='',rendering=false,currentStatus='online',menuOpened=false,initialized=false;
+let seq=0;
+function panel(){return $('v4ProfilePanel')}
+function mount(){
+ if(panel())return true;
+ const side=document.querySelector('#duckzinV3Root .v3-side');if(!side)return false;
+ const el=document.createElement('div');el.id='v4ProfilePanel';el.className='v4-profile-panel';
+ el.innerHTML=`<div id="v4PresenceMenu" class="v4-presence-menu" role="menu" aria-label="Escolher status" hidden><div class="v4-presence-title">SEU STATUS NO SITE</div>${Object.entries(statuses).map(([key,label])=>`<button type="button" class="v4-presence-option" data-status="${key}" role="menuitem"><span></span>${label}</button>`).join('')}</div><div class="v4-profile-row"><button id="v4UserBtn" type="button" class="v4-user-main" title="Abrir perfil"><span class="v4-avatar-wrap" id="v4Avatar"><span class="v4-avatar-text">🦆</span><span class="v4-presence-dot" id="v4Dot"></span></span><span class="v4-user-text"><span class="v4-user-name" id="v4Name">Entrar na conta</span><span class="v4-user-status" id="v4Status">Clique para entrar</span></span></button><button type="button" id="v4SettingsBtn" class="v4-settings" title="Configurações do perfil" aria-label="Configurações do perfil">${icons.settings}</button></div><div class="v4-shortcuts"><button type="button" id="v4AdminPublish" class="v4-admin-link" hidden>👑 Admin · + Publicar projeto</button></div>`;
+ side.appendChild(el);
+ $('v4UserBtn').addEventListener('click',()=>{if(!sessionId){$('accountButton')?.click();return;}toggleMenu()});
+ $('v4SettingsBtn').addEventListener('click',()=>$('accountButton')?.click());
+ $('v4AdminPublish').addEventListener('click',openPublisher);
+ el.querySelectorAll('[data-status]').forEach(btn=>btn.addEventListener('click',()=>{if(!sessionId)return;const status=btn.dataset.status;if(!statuses[status])return;currentStatus=status;try{localStorage.setItem('duckzin-site-status-'+sessionId,status)}catch{};closeMenu();paintStatus();}));
+ document.addEventListener('click',ev=>{if(panel()&&!panel().contains(ev.target))closeMenu()});
+ document.addEventListener('keydown',ev=>{if(ev.key==='Escape')closeMenu()});
+ return true;
+}
+function openPublisher(){const section=$('publicar');if(!roleGranted||!section||section.hidden)return;closeMenu();$('pubShowCreate')?.click();section.scrollIntoView({behavior:'smooth',block:'start'});if(location.hash!=='#publicar')history.replaceState(null,'','#publicar');}
+function toggleMenu(){menuOpened=!menuOpened;const m=$('v4PresenceMenu');if(m)m.hidden=!menuOpened;}
+function closeMenu(){menuOpened=false;const m=$('v4PresenceMenu');if(m)m.hidden=true;}
+function paintStatus(){const dot=$('v4Dot'),label=$('v4Status');if(dot)dot.dataset.presence=sessionId?currentStatus:'invisivel';if(label)label.textContent=sessionId?statuses[currentStatus]:'Clique para entrar';}
+function setAdmin(value){roleGranted=!!value;
+ const btn=$('adminButton'),nav=$('pubNav'),sec=$('publicar'),shortcut=$('v4AdminPublish');
+ if(btn){btn.hidden=!value;btn.textContent=value?'👑 Publicar':'Painel'}
+ if(nav)nav.hidden=!value;
+ if(sec)sec.hidden=!value;
+ if(shortcut)shortcut.hidden=!value;
+}
+async function renderAccount(){if(rendering)return;rendering=true;const id=++seq;try{
+ if(!mount())return;
+ const res=await db.auth.getUser();if(res.error)throw res.error;
+ const user=res.data?.user;
+ if(!user){sessionId=null;lastUsername='';closeMenu();setAdmin(false);$('v4Name').textContent='Entrar na conta';$('v4Avatar').querySelector('.v4-avatar-img')?.remove();$('v4Avatar').querySelector('.v4-avatar-text')?.replaceChildren(document.createTextNode('🦆'));paintStatus();return;}
+ const oldId=sessionId;sessionId=user.id;
+ if(oldId!==user.id){try{currentStatus=localStorage.getItem('duckzin-site-status-'+sessionId)||'online';}catch{currentStatus='online';}if(!statuses[currentStatus])currentStatus='online';}
+ const [p,a]=await Promise.all([db.from('profiles').select('username,avatar_url').eq('id',user.id).maybeSingle(),db.rpc('is_duckzin_admin')]);
+ if(id!==seq)return;
+ const name=String(p.data?.username||user.email?.split('@')[0]||'Membro');lastUsername=name;
+ $('v4Name').textContent=name;
+ const avatar=httpsImage(p.data?.avatar_url);
+ const avatarBox=$('v4Avatar');if(avatarBox){const old=avatarBox.querySelector('img, .v4-avatar-text');if(old)old.remove();const node=avatar?document.createElement('img'):document.createElement('span');node.className=avatar?'v4-avatar-img':'v4-avatar-text';if(avatar){node.src=avatar;node.alt='Foto de perfil de '+name;node.referrerPolicy='no-referrer';node.addEventListener('error',()=>{node.remove();const replacement=document.createElement('span');replacement.className='v4-avatar-text';replacement.textContent=name.slice(0,2).toUpperCase();avatarBox.prepend(replacement);},{once:true})}else{node.textContent=name.slice(0,2).toUpperCase()}avatarBox.prepend(node);}
+ setAdmin(a.data===true&&!a.error);paintStatus();
+ }catch(e){console.warn('Duckzin V4: perfil indisponível',e?.message||e)}finally{rendering=false;}}
+function boot(){if(initialized)return;initialized=true;
+ if(!mount()){setTimeout(()=>{mount();renderAccount()},200);}
+ void renderAccount();
+ db.auth.onAuthStateChange(()=>{setTimeout(renderAccount,180)});
+ window.addEventListener('focus',()=>void renderAccount());
+ // When the original profile editor saves, it updates the header name. Keep both in sync.
+ const account=$('accountButton');if(account){let syncTimer;new MutationObserver(()=>{clearTimeout(syncTimer);syncTimer=setTimeout(renderAccount,450)}).observe(account,{childList:true,characterData:true,subtree:true})}
+ setInterval(()=>{if(document.visibilityState==='visible')void renderAccount()},45000);
+ const navBtn=$('adminButton');if(navBtn)navBtn.addEventListener('click',(event)=>{if(!roleGranted)return;event.preventDefault();event.stopImmediatePropagation();openPublisher();},true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script><script>/* DuckzinCommunity V5: animated constellation + website moderation panel. */
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const client=window.supabase?.createClient(window.DUCKZIN_CONFIG?.url||'',window.DUCKZIN_CONFIG?.key||'');
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,coarse=matchMedia('(pointer:coarse)').matches;
+function effects(){
+ if(reduced||coarse||innerWidth<710)return;
+ const light=document.createElement('div');light.id='duckPointerGlow';light.setAttribute('aria-hidden','true');document.body.appendChild(light);
+ const canvas=document.createElement('canvas');canvas.id='duckConstellation';canvas.setAttribute('aria-hidden','true');document.body.appendChild(canvas);
+ const ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return;
+ let w=0,h=0,dpr=1,raf=0,points=[],lastX=-9999,lastY=-9999,targetX=-9999,targetY=-9999,active=false,frame=0;
+ function resize(){w=innerWidth;h=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+ const n=Math.min(65,Math.max(22,Math.floor(w*h/25500)));points=Array.from({length:n},(_,i)=>({baseX:(i*0.61803398875%1)*w,baseY:(i*0.754877666%1)*h,x:(i*0.61803398875%1)*w,y:(i*0.754877666%1)*h,vx:0,vy:0,r:.8+(i*17%10)/9,phase:i*1.7}));}
+ function move(e){targetX=e.clientX;targetY=e.clientY;active=true;light.style.transform=`translate3d(${Math.round(targetX-85)}px,${Math.round(targetY-85)}px,0)`;light.classList.add('is-visible');if(!raf)raf=requestAnimationFrame(draw)}
+ document.addEventListener('pointermove',move,{passive:true});
+ document.addEventListener('pointerleave',()=>{active=false;light.classList.remove('is-visible')});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!raf)raf=requestAnimationFrame(draw)});
+ window.addEventListener('resize',resize,{passive:true});resize();
+ function draw(){raf=0;if(document.hidden)return;frame+=.008;
+ lastX+=(targetX-lastX)*.13;lastY+=(targetY-lastY)*.13;
+ if(active)light.style.transform=`translate3d(${Math.round(targetX-85)}px,${Math.round(targetY-85)}px,0)`;
+ ctx.clearRect(0,0,w,h);
+ for(const p of points){
+ const tx=p.baseX+Math.sin(frame+p.phase)*13,ty=p.baseY+Math.cos(frame*.8+p.phase)*12;
+ let dx=p.x-lastX,dy=p.y-lastY,dist=Math.sqrt(dx*dx+dy*dy)||1,near=Math.max(0,1-dist/165);
+ if(active&&near){p.vx+=(dx/dist)*(near*near*1.45);p.vy+=(dy/dist)*(near*near*1.45);}
+ p.vx+=(tx-p.x)*.008;p.vy+=(ty-p.y)*.008;p.vx*=.89;p.vy*=.89;p.x+=p.vx;p.y+=p.vy;
+ ctx.beginPath();ctx.arc(p.x,p.y,p.r+near*1.1,0,Math.PI*2);ctx.fillStyle=`rgba(255,207,92,${.1+near*.49})`;ctx.fill();
+ if(near>.2&&active){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(lastX,lastY);ctx.strokeStyle=`rgba(255,198,77,${near*.11})`;ctx.lineWidth=.7;ctx.stroke();}
+ }
+ raf=requestAnimationFrame(draw);
+ }
+ raf=requestAnimationFrame(draw);
+}
+let moderatorProfiles=[],moderatorActions={},moderatorMe=null,adminAccess=false,opening=false;
+const duration=[['10min','Silenciar 10 min',10*60*1000,'muted_until'],['1h','Silenciar 1 h',60*60*1000,'muted_until'],['24h','Silenciar 24 h',24*60*60*1000,'muted_until'],['ban1d','Suspender 1 dia',24*60*60*1000,'banned_until'],['ban7d','Suspender 7 dias',7*24*60*60*1000,'banned_until']];
+function status(text,type=''){$('modMessage').textContent=text;$('modMessage').className='mod-note '+type;}
+function trimName(s){return String(s||'Membro').slice(0,55)}
+function fmt(date){return new Date(date).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
+async function loadMembers(){if(!adminAccess||opening)return;opening=true;status('Carregando membros...');try{
+ const [p,m]=await Promise.all([client.from('profiles').select('id,username,avatar_url,created_at').order('created_at',{ascending:false}).limit(200),client.from('moderation').select('user_id,muted_until,banned_until,reason,updated_at').limit(500)]);
+ if(p.error)throw p.error;if(m.error)throw m.error;
+ moderatorProfiles=p.data||[];moderatorActions=Object.fromEntries((m.data||[]).map(x=>[x.user_id,x]));renderMembers();status(`${moderatorProfiles.length} conta(s) listada(s). As restrições só afetam mensagens enviadas pelo site.`,'ok');
+ }catch(err){status('Falha ao carregar usuários: '+(err.message||err),'error');$('modUserList').innerHTML='<div class="mod-empty">Não foi possível carregar os perfis.</div>';}finally{opening=false;}}
+function renderMembers(){const q=$('modSearch').value.toLocaleLowerCase('pt-BR').trim();const list=moderatorProfiles.filter(p=>trimName(p.username).toLocaleLowerCase('pt-BR').includes(q));
+ $('modUserList').innerHTML=list.length?list.map(p=>{
+ const o=moderatorActions[p.id]||{},now=Date.now(),ban=o.banned_until&&Date.parse(o.banned_until)>now,mute=o.muted_until&&Date.parse(o.muted_until)>now,own=p.id===moderatorMe;
+ const color=ban?'suspended':mute?'muted':'';
+ const label=ban?'Envio suspenso':mute?'Silenciado':'Liberado';
+ const until=ban?'Até '+fmt(o.banned_until):mute?'Até '+fmt(o.muted_until):'Pode enviar mensagens';
+ const src=(()=>{try{const u=new URL(p.avatar_url);return u.protocol==='https:'?u.href:null}catch{return null}})();
+ const avatar=src?`<img class="mod-user-avatar" src="${escape(src)}" alt="" loading="lazy"/>`:`<span class="mod-user-avatar">${escape(trimName(p.username).slice(0,2).toUpperCase())}</span>`;
+ const buttons=own?'<small>Não é possível aplicar punições na própria conta administrativa.</small>':duration.map(([key,title])=>`<button type="button" class="mod-action ${key.startsWith('ban')?'danger':''}" data-mod-action="${key}" data-id="${escape(p.id)}">${title}</button>`).join('')+(mute?`<button type="button" class="mod-action release" data-mod-action="unmute" data-id="${escape(p.id)}">Retirar silêncio</button>`:'')+(ban?`<button type="button" class="mod-action release" data-mod-action="unban" data-id="${escape(p.id)}">Retirar suspensão</button>`:'');
+ return `<article class="mod-user"><div class="mod-user-top"><div class="mod-user-main">${avatar}<div><div class="mod-user-name">${escape(trimName(p.username))}${own?' <span style="color:#ffd675;font-size:11px">(você)</span>':''}</div><div class="mod-user-sub">${escape(until)}</div></div></div><span class="mod-user-state ${color}">${label}</span></div><div class="mod-reason"><label for="reason-${escape(p.id)}">Motivo (opcional):</label><input id="reason-${escape(p.id)}" maxlength="180" placeholder="Ex.: spam no chat" value="${escape(o.reason||'')}"></div><div class="mod-actions">${buttons}</div></article>`;
+ }).join(''):'<div class="mod-empty">Nenhum membro encontrado.</div>';
+}
+async function moderate(id,action,button){
+ if(!adminAccess||!moderatorMe||id===moderatorMe)return status('Ação não permitida.','error');
+ const op=duration.find(v=>v[0]===action);if(!op&&!['unmute','unban'].includes(action))return;
+ const profile=moderatorProfiles.find(p=>p.id===id);if(!profile)return;
+ const current=moderatorActions[id]||{};
+ const reason=(document.getElementById('reason-'+id)?.value||'').trim().slice(0,180);
+ if(op&&action.startsWith('ban')&&!confirm('Suspender o envio de mensagens de '+trimName(profile.username)+'?'))return;
+ const payload={user_id:id,muted_until:current.muted_until||null,banned_until:current.banned_until||null,reason:reason||null,updated_at:new Date().toISOString()};
+ if(op)payload[op[3]]=new Date(Date.now()+op[2]).toISOString();
+ else if(action==='unmute')payload.muted_until=null;
+ else payload.banned_until=null;
+ const oldLabel=button.textContent;button.disabled=true;button.textContent='Aplicando...';status('Aplicando alteração de moderação...');
+ try{const [user,rpc]=await Promise.all([client.auth.getUser(),client.rpc('is_duckzin_admin')]);if(!user.data?.user||rpc.error||rpc.data!==true)throw Error('Sua sessão de administrador expirou');
+ const result=await client.from('moderation').upsert(payload,{onConflict:'user_id'}).select('user_id,muted_until,banned_until,reason,updated_at').single();if(result.error)throw result.error;
+ moderatorActions[id]=result.data;renderMembers();status('Moderação aplicada para '+trimName(profile.username)+'. Afeta o envio de novas mensagens do site.','ok');
+ }catch(err){status('Não foi possível moderar: '+(err.message||err),'error');button.disabled=false;button.textContent=oldLabel;}
+}
+function setupModeration(){
+ if(!$('pubShowModeration')||!client)return;
+ const show=$('pubShowModeration'),box=$('pubModeration');
+ show.addEventListener('click',async()=>{
+ const [current,rpc]=await Promise.all([client.auth.getUser(),client.rpc('is_duckzin_admin')]);adminAccess=!!(current.data?.user&&rpc.data===true&&!rpc.error);moderatorMe=current.data?.user?.id||null;
+ if(!adminAccess){status('Entre como administrador para abrir a moderação.','error');return;}
+ $('pubCreate').hidden=true;$('pubList').hidden=true;box.hidden=false;show.classList.add('is-active');void loadMembers();
+ });
+ for(const id of ['pubShowCreate','pubShowList'])$(id)?.addEventListener('click',()=>{box.hidden=true;show.classList.remove('is-active');});
+ $('modSearch')?.addEventListener('input',renderMembers);
+ $('modReload')?.addEventListener('click',()=>void loadMembers());
+ $('modUserList')?.addEventListener('click',e=>{const b=e.target.closest('button[data-mod-action]');if(b)void moderate(b.dataset.id,b.dataset.modAction,b)});
+ // Acesso direto ao painel administrativo via link, sem bypass de privilégios.
+ const link=document.createElement('button');link.type='button';link.id='v5ModShortcut';link.className='v4-admin-link';link.hidden=true;link.textContent='🛡️ Moderar membros';
+ const bar=$('v4ProfilePanel')?.querySelector('.v4-shortcuts');if(bar)bar.appendChild(link);
+ link.addEventListener('click',()=>{show.click();$('publicar')?.scrollIntoView({behavior:'smooth',block:'start'})});
+ const nav=$('pubNav');if(nav){const obs=new MutationObserver(()=>{link.hidden=nav.hidden});obs.observe(nav,{attributes:true,attributeFilter:['hidden']});link.hidden=nav.hidden;}
+}
+function boot(){effects();setupModeration()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script><script id="duckzin-support-and-particles-v8">(()=>{'use strict';
+const q=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const db=window.supabase?.createClient(window.DUCKZIN_CONFIG?.url||'',window.DUCKZIN_CONFIG?.key||'');
+if(!db)return;
+const topics={financeiro:['💸','Financeiro','Solicitar criação de mods/apps personalizados (serviço pago)'],denuncia:['🚨','Reportar','Reportar usuários, problemas ou bugs'],duvidas:['❓','Dúvidas','Pergunte sobre a comunidade'],suporte:['🛠️','Suporte técnico','Ajuda com mods e aplicativos'],sugestoes:['💡','Sugestões','Compartilhe ideias']};
+let me=null,admin=false,tickets=[],selected=null,chatMessages=[],ownProfiles=new Map(),sub=null,subUser=null,busy=false,loaded=false,loadingMsgs=false;
+let linkedDiscordId=null;
+const stamp=t=>new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+function message(s){q('supportAlert').textContent=s;q('supportAlert').hidden=!s;}
+function sessionBtn(){const btn=q('accountButton');if(btn)btn.click();else message('Use o botão Entrar no topo da página.');}
+function statusHTML(t){return `<span class="support-status ${t.status==='closed'?'closed':''}">${t.status==='open'?'● Aberto':'✓ Fechado'}</span>`}
+function renderList(){
+ const root=q('supportTicketList');if(!root)return;
+ root.innerHTML=tickets.length?tickets.map(t=>`<button type="button" class="support-ticket-item ${selected===t.id?'selected':''}" data-ticket="${esc(t.id)}"><strong>${esc(topics[t.category]?.[0]||'🎫')} ${esc(t.title)}</strong><span>${t.status==='open'?'🟡 Em atendimento':'⚪ Finalizado'} · ${stamp(t.created_at)}${admin?` · ${esc(ownProfiles.get(t.owner_id)?.username||(t.discord_user_id?'Membro do Discord':'Membro'))}`:''}</span></button>`).join(''):'<p class="support-tip">Nenhum ticket por aqui ainda. Clique em + Novo para falar com o suporte.</p>';
+ root.querySelectorAll('[data-ticket]').forEach(b=>b.onclick=()=>openTicket(b.dataset.ticket));
+ q('supportCount').textContent=admin?'Admin · tickets ativos':'Meus tickets ativos';
+}
+function avatar(url,name){try{const u=new URL(url);if(u.protocol==='https:' && (u.hostname.endsWith('supabase.co')||u.hostname==='cdn.discordapp.com'||u.hostname==='media.discordapp.net'))return `<img class="avatar" src="${esc(u.href)}" alt="">`;}catch{}
+ return `<span class="avatar">${esc(String(name||'?').slice(0,2).toUpperCase())}</span>`;
+}
+function drawMsgs(){
+ const t=tickets.find(x=>x.id===selected);if(!t)return;
+ const root=q('supportMessages'),atBottom=root.scrollHeight-root.scrollTop-root.clientHeight<90;
+ root.innerHTML=chatMessages.length?chatMessages.map(m=>{
+ const mine=!!me&&m.author_id===me.id;const sent=m.delivery_status;
+ return `<article class="support-message ${mine?'mine':''}">${avatar(m.avatar_url,m.display_name)}<div class="support-bubble"><div class="support-meta"><b>${esc(m.display_name||(m.source==='discord'?'Equipe':'Membro'))}${m.source==='site'?' · via site':' · Discord'}</b><small>${stamp(m.created_at)}${sent==='pending'&&m.source==='site'?' · aguardando bot':sent==='failed'?' · falhou':''}</small></div><p>${esc(m.body)}</p></div></article>`;
+ }).join(''):'<div class="support-empty"><h3>Seu atendimento começou! 🦆</h3><p>O bot criará um canal privado no Discord. As respostas da equipe aparecerão aqui.</p></div>';
+ if(atBottom||root.dataset.initial==='1'){root.scrollTop=root.scrollHeight;root.dataset.initial='0';}
+}
+async function fetchMessages(){if(!selected||loadingMsgs)return;const key=selected;loadingMsgs=true;
+ try{const r=await db.from('support_ticket_messages').select('id,ticket_id,author_id,source,display_name,avatar_url,body,delivery_status,created_at').eq('ticket_id',key).order('created_at',{ascending:true}).limit(150);
+ if(r.error)throw r.error;if(selected===key){chatMessages=r.data||[];drawMsgs();}}
+ catch(e){message('Falha ao carregar respostas: '+e.message)}finally{loadingMsgs=false}
+}
+async function openTicket(id){const t=tickets.find(x=>x.id===id);if(!t)return;
+ if(!window.DUCKZIN_DISCORD_GUILD_ID){const guild=await db.from('discord_guilds').select('id').limit(1).maybeSingle();if(!guild.error&&guild.data)window.DUCKZIN_DISCORD_GUILD_ID=guild.data.id;}
+ selected=id;chatMessages=[];renderList();message('');
+ q('supportHead').innerHTML=`<div><h3>${esc(topics[t.category]?.[0]||'🎫')} ${esc(t.title)}</h3><small>${esc(topics[t.category]?.[1]||'Suporte')} · ${ticketBridgeStatus(t)} · ${stamp(t.created_at)}</small></div>${statusHTML(t)}`;
+ if(t.discord_channel_id && (admin || (linkedDiscordId && (t.discord_user_id === linkedDiscordId || t.owner_id===me?.id)))){
+  const jump='https://discord.com/channels/'+(window.DUCKZIN_DISCORD_GUILD_ID||'')+'/'+t.discord_channel_id;
+  // Guild id is public metadata; do not display link without a verified guild id.
+  if(/^\d{15,22}$/.test(String(window.DUCKZIN_DISCORD_GUILD_ID||''))) {
+   q('supportHead').insertAdjacentHTML('beforeend',`<a class="support-mini-btn support-discord-jump" href="${jump}" target="_blank" rel="noopener noreferrer">🎫 Ir para o canal privado ↗</a>`);
+  }
+ }
+ q('supportHead').insertAdjacentHTML('beforeend',t.status==='open'?'<button class="support-mini-btn" id="supportCloseTicket">Fechar ticket</button>':'');
+ if(t.status==='open')q('supportCloseTicket').onclick=()=>closeTicket(t.id);
+ q('supportMainContent').innerHTML='<div id="supportMessages" class="support-messages" role="log"><div class="support-empty">Carregando respostas...</div></div><form id="supportReply" class="support-compose"><textarea id="supportText" placeholder="Escreva sua resposta privada..." maxlength="1800" required aria-label="Responder ticket"></textarea><div class="support-compose-actions"><small>Somente você e a equipe de suporte conseguem ler esta conversa.</small><button class="button gold" type="submit">Responder →</button></div></form>';
+ const input=q('supportReply');if(t.status==='closed'){input.querySelector('textarea').disabled=true;input.querySelector('button').disabled=true;input.querySelector('textarea').placeholder='Ticket encerrado';}
+ input.onsubmit=sendReply;q('supportMessages').dataset.initial='1';await fetchMessages();
+}
+let duckLastTicketReply=0;
+async function sendReply(e){e.preventDefault();if(busy)return;const txt=q('supportText').value.trim();if(!txt)return;
+ if(Date.now()-duckLastTicketReply<1000){message('Aguarde 1 segundo entre mensagens.');return;}
+ busy=true;const button=q('supportReply').querySelector('button');button.disabled=true;message('');
+ try{const r=await db.from('support_ticket_messages').insert({ticket_id:selected,author_id:me.id,body:txt}).select('id').single();if(r.error)throw r.error;duckLastTicketReply=Date.now();q('supportText').value='';await fetchMessages();message('Mensagem enviada. O bot entregará a resposta à equipe.');}
+ catch(e){message('Não foi possível responder: '+e.message)}finally{busy=false;button.disabled=false}
+}
+async function closeTicket(id){if(!window.confirm('Encerrar este ticket? Ele desaparecerá dos atendimentos ativos e o bot removerá o canal privado no Discord. O histórico permanecerá guardado.'))return;
+ const r=await db.rpc('close_support_ticket',{ticket:id});if(r.error){message('Não foi possível fechar: '+r.error.message);return;}selected=null;chatMessages=[];renderHome();await loadTickets();message('Ticket encerrado! Ele saiu da lista. O canal privado será removido pelo bot em alguns segundos.');
+}
+function renderHome(){q('supportHead').innerHTML='<div><h3>🎫 Central de atendimento</h3><small>Site + Discord • o mesmo ticket, em dois lugares</small></div>';
+ q('supportMainContent').innerHTML=`<div class="support-launch"><div class="support-launch-top"><div class="support-launch-symbol">🦆</div><span>DUCKZINCOMMUNITY / SUPORTE OFICIAL</span><h3>Como podemos ajudar?</h3><p>Escolha um assunto. A equipe vai conversar com você em um canal privado do Discord, e as respostas aparecem aqui.</p></div><div class="support-topic-grid">${Object.entries(topics).map(([id,t])=>`<button type="button" class="support-topic" data-support-topic="${id}"><span class="support-topic-icon">${t[0]}</span><span><strong>${t[1]}</strong><small>${t[2]}</small></span><span class="support-topic-arrow">↗</span></button>`).join('')}</div><div class="support-launch-bottom">🔒 Só você e a equipe podem ler. Não compartilhe senhas, chaves ou tokens.</div></div>`;
+ q('supportMainContent').querySelectorAll('[data-support-topic]').forEach(b=>b.onclick=()=>startCreate(b.dataset.supportTopic));
+}
+async function linkPanel(){
+ if(!me){sessionBtn();return;}
+ await checkDiscordLink();
+ if(linkedDiscordId){message('Sua conta Discord já está vinculada! Seus tickets ficam juntos nesta aba; por segurança não é possível vincular outra conta por código.');return;}
+ message('');selected=null;renderList();q('supportHead').innerHTML='<div><h3>🔗 Vincular Discord</h3><small>Veja no site os tickets que você abriu pelo Discord</small></div>';
+ q('supportMainContent').innerHTML=`<form id="supportLinkForm" class="support-create support-link-form"><span class="support-link-icon">🔐</span><h3>Sua conta, seus tickets</h3><p>Abra seu servidor Discord, use <strong>/vincular</strong> e copie o código privado enviado pelo bot. Cole abaixo para conectar suas contas. O código dura 10 minutos.</p><label for="supportCode">Código de vinculação</label><input id="supportCode" type="text" required pattern="[a-fA-F0-9]{32}" maxlength="32" autocomplete="off" placeholder="32 caracteres"><div class="support-notice">Nunca compartilhe esse código com outras pessoas. É uma confirmação da sua conta Discord.</div><div class="support-actions"><button type="button" id="supportCancelLink" class="support-mini-btn">Voltar</button><button type="submit" class="button gold">Vincular Discord</button></div></form>`;
+ q('supportCancelLink').onclick=renderHome;
+ q('supportLinkForm').onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;const b=e.target.querySelector('[type=submit]');b.disabled=true;try{
+ const code=q('supportCode').value.trim().toLowerCase();const r=await db.rpc('claim_discord_account',{code_input:code});if(r.error)throw r.error;
+ if(!r.data)throw new Error('Código inválido, expirado ou muitas tentativas. Use /vincular novamente.');
+ await checkDiscordLink();message('Conta vinculada! Seus tickets do Discord agora aparecerão aqui.');selected=null;renderHome();await loadTickets();
+ }catch(err){message('Não foi possível vincular: '+err.message)}finally{busy=false;b.disabled=false;}}
+}
+
+function ticketBridgeStatus(t){
+ if(t.discord_channel_id)return 'Conectado à equipe do Discord';
+ if(t.bridge_error){if(/Missing Permissions|Bot sem permissões/i.test(t.bridge_error))return '⚠️ Bot sem permissão para criar canal. Avise a equipe.';return '⚠️ Falha ao criar canal. Avise a equipe.';}
+ return 'Aguardando o bot criar o canal privado';
+}
+function startCreate(topic='duvidas'){message('');if(!me){sessionBtn();return;}
+ if(tickets.some(t=>t.status==='open'&&t.owner_id===me.id)){message('Você já tem um ticket aberto. Escolha ele na lista para continuar.');return;}
+ selected=null;renderList();q('supportHead').innerHTML='<div><h3>Solicitar suporte</h3><small>Seu atendimento será privado</small></div>';
+ q('supportMainContent').innerHTML=`<form class="support-create" id="supportForm"><h3>Novo ticket 🎫</h3><p>Descreva seu problema para a equipe do DuckzinCommunity.</p><label for="supportCategory">Categoria</label><select id="supportCategory" required>${Object.entries(topics).map(([v,t])=>`<option value="${v}" ${topic===v?'selected':''}>${t[0]} ${t[1]}</option>`).join('')}</select><label for="supportTitle">Assunto</label><input id="supportTitle" maxlength="90" minlength="4" required placeholder="Ex.: Problema ao instalar o DuckCapture"><label for="supportDescription">Explique o que deseja</label><textarea id="supportDescription" minlength="15" maxlength="1500" required placeholder="Descreva o que você deseja solicitar ou o problema que precisa resolver..."></textarea><div class="support-notice">🔒 Este ticket será visível apenas para você e a equipe autorizada.</div><div class="support-actions"><button type="button" class="support-mini-btn" id="supportBack">Voltar</button><button class="button gold" type="submit">Abrir ticket</button></div></form>`;
+ q('supportBack').onclick=renderHome;
+ q('supportForm').onsubmit=async(e)=>{e.preventDefault();if(busy)return;busy=true;const btn=e.target.querySelector('[type=submit]');btn.disabled=true;message('');
+ try{const row={owner_id:me.id,category:q('supportCategory').value,title:q('supportTitle').value.trim(),description:q('supportDescription').value.trim()};
+ const res=await db.from('support_tickets').insert(row).select('id').single();if(res.error)throw res.error;
+ message('Ticket aberto! Aguarde o bot preparar o canal privado.');await loadTickets();await openTicket(res.data.id);
+ }catch(err){message('Erro ao abrir ticket: '+err.message)}finally{busy=false;btn.disabled=false}
+ };
+}
+async function loadTickets(){if(!me)return;try{
+ const r=await db.from('support_tickets').select('id,owner_id,discord_user_id,category,title,description,status,discord_channel_id,bridge_error,created_at,updated_at').eq('status','open').order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;tickets=r.data||[];
+ if(admin&&tickets.length){const ids=[...new Set(tickets.map(t=>t.owner_id).filter(Boolean))];if(ids.length){const p=await db.from('profiles').select('id,username,avatar_url').in('id',ids);if(!p.error)ownProfiles=new Map((p.data||[]).map(x=>[x.id,x]));}}
+ renderList();if(selected&&tickets.some(t=>t.id===selected)){
+ const old=tickets.find(x=>x.id===selected);const box=q('supportHead');if(box){box.querySelector('small')?.replaceChildren(document.createTextNode(ticketBridgeStatus(old)+' · '+stamp(old.created_at)));}
+ if(old.discord_channel_id && (admin || (linkedDiscordId && (old.discord_user_id===linkedDiscordId || old.owner_id===me?.id))) && !box.querySelector('.support-discord-jump') && /^\d{15,22}$/.test(String(window.DUCKZIN_DISCORD_GUILD_ID||''))) box.insertAdjacentHTML('beforeend',`<a class="support-mini-btn support-discord-jump" href="https://discord.com/channels/${window.DUCKZIN_DISCORD_GUILD_ID}/${old.discord_channel_id}" target="_blank" rel="noopener noreferrer">🎫 Ir para o canal privado ↗</a>`);
+ }else if(selected&&!tickets.some(t=>t.id===selected)){selected=null;renderHome();}
+ }catch(e){message('Falha ao carregar tickets: '+e.message)}
+}
+async function checkDiscordLink(){
+ if(!me){linkedDiscordId=null;return;}
+ const l=await db.from('discord_account_links').select('discord_user_id').eq('user_id',me.id).maybeSingle();
+ if(!l.error)linkedDiscordId=l.data?.discord_user_id||null;
+ const b=q('supportLink');if(b){b.innerHTML=linkedDiscordId?'✅ Conta Discord vinculada':'🔗 Vincular minha conta Discord <span>↗</span>';}
+}
+async function identity(){const r=await db.auth.getUser();const before=me?.id;me=r.data.user||null;
+ if(me){const p=await db.rpc('is_duckzin_admin');admin=p.data===true&&!p.error;await checkDiscordLink()}else {admin=false;linkedDiscordId=null;}
+ if(!me){tickets=[];selected=null;renderList();renderHome();q('supportHead').innerHTML='<div><h3>Entre na sua conta para abrir um ticket</h3></div>';return;}
+ if(before!==me.id){selected=null;renderHome();}await loadTickets();}
+function setup(){const root=q('suporte');if(!root)return;
+ q('supportNew').onclick=()=>startCreate();q('supportLink').onclick=linkPanel;q('supportRefresh').onclick=async()=>{await identity();if(selected)await fetchMessages()};renderHome();
+ void identity();
+ db.auth.onAuthStateChange(()=>setTimeout(()=>void identity(),100));
+ sub=db.channel('support-private-v1').on('postgres_changes',{event:'*',schema:'public',table:'support_tickets'},()=>void loadTickets()).on('postgres_changes',{event:'*',schema:'public',table:'support_ticket_messages'},(evt)=>{if(evt.new?.ticket_id===selected||evt.old?.ticket_id===selected)void fetchMessages()}).subscribe();
+ window.setInterval(()=>{if(document.visibilityState!=='visible')return;if(me){void loadTickets();if(selected)void fetchMessages();}},12000);
+ window.addEventListener('hashchange',()=>{if(location.hash==='#suporte'){void identity()}});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
+
+(()=>{'use strict';
+const art=document.querySelector('.hero-art');
+if(!art||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+const canvas=document.createElement('canvas');canvas.id='duckHeroSparks';canvas.setAttribute('aria-hidden','true');art.prepend(canvas);
+const ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return;
+let w=0,h=0,ratio=1,raf=0,lastTime=0,pointerX=.5,pointerY=.5,glideX=.5,glideY=.5,hover=false;
+const dots=Array.from({length:29},(_,i)=>{
+ const k=(i*.618033988749895+.13)%1, j=(i*.754877666246693+.31)%1;
+ return {x:k,y:j,size:.7+((i*7)%8)*.23,phase:i*1.37,depth:.15+((i*11)%7)/7,blink:.5+((i*19)%13)/13};
+});
+function size(){const r=art.getBoundingClientRect();w=r.width;h=r.height;ratio=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.ceil(w*ratio);canvas.height=Math.ceil(h*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);}
+const observer=new ResizeObserver(size);observer.observe(art);size();
+art.addEventListener('pointermove',e=>{const r=art.getBoundingClientRect();if(!r.width||!r.height)return;pointerX=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));pointerY=Math.min(1,Math.max(0,(e.clientY-r.top)/r.height));hover=true},{passive:true});
+art.addEventListener('pointerleave',()=>{hover=false},{passive:true});
+function loop(time){raf=requestAnimationFrame(loop);if(document.hidden||w<1||h<1||time-lastTime<25)return;lastTime=time;
+const aimX=hover?pointerX:.5,aimY=hover?pointerY:.5;glideX+=(aimX-glideX)*.045;glideY+=(aimY-glideY)*.045;
+ctx.clearRect(0,0,w,h);const seconds=time/1000;
+for(const dot of dots){
+ // As bolinhas piscam em fases diferentes e acompanham o cursor sem cobrir o pato.
+ const dx=(.5-glideX)*25*dot.depth,dy=(.5-glideY)*21*dot.depth;
+ const x=dot.x*w+dx+Math.sin(seconds*.5+dot.phase)*6*dot.depth;
+ const y=dot.y*h+dy+Math.cos(seconds*.62+dot.phase)*7*dot.depth;
+ const glow=.3+.7*(.5+.5*Math.sin(seconds*(1.15+dot.blink)+dot.phase));
+ const r=dot.size*(.7+glow*.55);
+ ctx.beginPath();ctx.arc(x,y,r*3.8,0,Math.PI*2);
+ const g=ctx.createRadialGradient(x,y,0,x,y,r*3.8);
+ g.addColorStop(0,`rgba(255,227,138,${glow*.18})`);g.addColorStop(1,'rgba(255,208,64,0)');
+ ctx.fillStyle=g;ctx.fill();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+ ctx.fillStyle=`rgba(255,219,110,${.18+glow*.72})`;ctx.fill();
+ }
+}
+if(document.visibilityState==='visible')raf=requestAnimationFrame(loop);
+document.addEventListener('visibilitychange',()=>{if(!raf)raf=requestAnimationFrame(loop)});
+})();
+
+(()=>{'use strict';const grid=document.getElementById('projectGrid');if(!grid||!matchMedia('(hover:hover) and (pointer:fine)').matches||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+let current=null,req=0,point=null;
+function reset(el){if(!el)return;el.classList.remove('duck-tilt');for(const v of ['--tilt-x','--tilt-y','--depth-x','--depth-y'])el.style.removeProperty(v);el.style.setProperty('--card-x','50%');el.style.setProperty('--card-y','50%')}
+function paint(){req=0;if(!point||!point.el.isConnected)return;const {el,x,y}=point,r=el.getBoundingClientRect();if(r.width===0||r.height===0)return;
+const px=Math.min(1,Math.max(0,(x-r.left)/r.width)),py=Math.min(1,Math.max(0,(y-r.top)/r.height));
+el.style.setProperty('--tilt-x',((.5-py)*13).toFixed(2)+'deg');el.style.setProperty('--tilt-y',((px-.5)*13).toFixed(2)+'deg');
+el.style.setProperty('--card-x',px*100+'%');el.style.setProperty('--card-y',py*100+'%');
+el.style.setProperty('--depth-x',((.5-px)*7).toFixed(2)+'px');el.style.setProperty('--depth-y',((.5-py)*7).toFixed(2)+'px');el.classList.add('duck-tilt')}
+grid.addEventListener('pointermove',e=>{const el=e.target.closest('.project-card');if(!el||!grid.contains(el))return;if(current!==el){reset(current);current=el}point={el,x:e.clientX,y:e.clientY};if(!req)req=requestAnimationFrame(paint)},{passive:true});
+grid.addEventListener('pointerleave',()=>{if(req)cancelAnimationFrame(req);req=0;point=null;reset(current);current=null});})();
+</script><script id="duckzin-sources-runtime">
+/* DuckzinCommunity · arquivos e versões dos projetos */
+(()=>{'use strict';
+const cfg=window.DUCKZIN_CONFIG;
+if(!window.supabase||!cfg?.url||!cfg?.key)return;
+const client=window.supabase.createClient(cfg.url,cfg.key);
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let rows=[],loaded=false,manager=null,working=false;
+const extensions=['zip','jar','exe','msi','apk','7z','rar','dmg','deb','pdf'];
+const link=x=>{try{const v=new URL(x);return v.protocol==='https:'?v.href:'#';}catch{return '#';}};
+const el=(tag,attr={})=>Object.assign(document.createElement(tag),attr);
+const labelRow=f=>`${f.version_label} · ${f.file_name}`;
+async function loadVersionData(){
+ const r=await client.from('project_versions').select('id,project_id,version_label,file_name,file_url,sort_order,created_at').order('sort_order',{ascending:true}).order('created_at',{ascending:false}).limit(1500);
+ if(r.error){console.warn('[Duckzin Sources] Falha ao carregar versões:',r.error.message);return;}
+ rows=r.data||[];loaded=true;paintCards();if(manager)await paintManager();
+}
+function paintCards(){
+ const grid=$('projectGrid');if(!grid||!loaded)return;
+ for(const card of grid.querySelectorAll('.project-card')){
+  const trigger=card.querySelector('[data-project]');if(!trigger)continue;
+  const id=trigger.getAttribute('data-project');const matches=rows.filter(f=>f.project_id===id);
+  const existing=card.querySelector('.duck-version-picker');
+  if(!matches.length){existing?.remove();continue;}
+  if(existing){if(existing.dataset.versions===matches.map(f=>f.id).join(','))continue;existing.remove();}
+  const wrap=el('div',{className:'duck-version-picker'});wrap.dataset.versions=matches.map(f=>f.id).join(',');
+  const top=el('div',{className:'duck-version-caption',textContent:matches.length>1?`📦 ${matches.length} opções de download`:'📦 Arquivo disponível'});wrap.append(top);
+  const select=el('select',{className:'duck-version-select',ariaLabel:'Escolha o arquivo ou a versão para baixar'});
+  for(const f of matches){const opt=el('option',{textContent:labelRow(f),value:f.id});select.append(opt)}
+  const btn=el('a',{className:'duck-version-download',textContent:'⬇ Baixar versão',target:'_blank',rel:'noopener noreferrer'});
+  const update=()=>{const picked=matches.find(v=>v.id===select.value);if(picked)btn.href=link(picked.file_url);btn.setAttribute('aria-label',picked?'Baixar '+labelRow(picked):'Baixar arquivo')};
+  select.addEventListener('change',update);update();
+  wrap.append(select,btn);
+  const body=card.querySelector('.project-body')||card;
+  body.append(wrap);
+ }
+}
+function makeForm(){
+ const panel=el('section',{id:'duckVersionManager',className:'duck-source-manager',hidden:true});
+ panel.innerHTML=`<div class="duck-source-head"><div><h3 id="duckSourceTitle">Versões e arquivos</h3><p>Adicione versões ou arquivos extras a este projeto. Eles aparecerão no card para download.</p></div><button type="button" class="duck-source-close" id="duckSourceClose" aria-label="Fechar gerenciador">✕</button></div>
+ <form id="duckSourceForm" class="duck-source-form"><div class="duck-source-fields"><label>Versão <input name="version_label" maxlength="60" required placeholder="Ex.: 1.21.1, v2.0, Fabric"></label><label>Nome do arquivo <input name="file_name" maxlength="160" placeholder="Ex.: Duck Client Fabric.jar"></label></div><label>Arquivo (até 50 MB)<input name="file" type="file" accept=".zip,.jar,.exe,.msi,.apk,.7z,.rar,.dmg,.deb,.pdf"></label><div class="duck-source-divider">ou</div><label>Link direto para download <input name="file_url" type="url" placeholder="https://..."></label><progress id="duckSourceProgress" max="100" value="0" hidden></progress><p class="duck-source-msg" id="duckSourceStatus" role="status"></p><button class="button gold" id="duckSourceSubmit" type="submit">+ Adicionar versão / arquivo</button></form><div class="duck-source-list" id="duckSourceList"></div>`;
+ const parent=$('pubList');if(!parent)return;
+ parent.append(panel);
+ $('duckSourceClose').addEventListener('click',()=>{panel.hidden=true;manager=null;});
+ $('duckSourceForm').addEventListener('submit',save);
+ panel.querySelector('[name="file"]').addEventListener('change',e=>{
+  const file=e.target.files?.[0],input=panel.querySelector('[name="file_name"]');
+  if(file&&!input.value.trim())input.value=file.name.slice(0,160);
+ });
+ $('duckSourceList').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-remove-version]');if(!b||working)return;
+  const item=rows.find(x=>x.id===b.dataset.removeVersion && x.project_id===manager);
+  if(!item||!confirm(`Remover a versão ${item.version_label} (${item.file_name})?`))return;
+  try{working=true;b.disabled=true;await assertAdmin();const r=await client.from('project_versions').delete().eq('id',item.id).eq('project_id',manager);if(r.error)throw r.error;message('Arquivo retirado do catálogo.');await loadVersionData()}
+  catch(err){message(err.message,true)}finally{working=false;b.disabled=false}
+ });
+}
+function message(text,error=false){const x=$('duckSourceStatus');if(x){x.textContent=text;x.classList.toggle('error',error)}}
+async function assertAdmin(){const [s,a]=await Promise.all([client.auth.getUser(),client.rpc('is_duckzin_admin')]);if(!s.data.user||a.error||a.data!==true)throw Error('Somente o administrador pode gerenciar arquivos.');return s.data.user}
+async function loadTus(){if(window.tus?.Upload)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js';s.onload=()=>window.tus?.Upload?resolve():reject(Error('Biblioteca de upload indisponível'));s.onerror=()=>reject(Error('Não foi possível carregar uploader'));document.head.appendChild(s)})}
+async function uploadFile(file,uid){
+ if(!file.size||file.size>52428800)throw Error('O arquivo precisa ter até 50 MB.');
+ const ext=file.name.toLowerCase().split('.').pop();if(!extensions.includes(ext))throw Error('Extensão não permitida: '+ext);
+ const safe=file.name.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]/g,'_').slice(0,95);
+ const path=`${uid}/${Date.now()}-${Math.random().toString(36).slice(2,9)}-${safe}`;
+ const prog=$('duckSourceProgress');prog.hidden=false;prog.value=0;
+ if(file.size<=6*1024*1024){const r=await client.storage.from('project-files').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'application/octet-stream'});if(r.error)throw r.error;prog.value=100}
+ else{
+  await loadTus();const sess=(await client.auth.getSession()).data.session;if(!sess)throw Error('Faça login novamente.');
+  const host=new URL(cfg.url).hostname.replace('.supabase.co','.storage.supabase.co');
+  await new Promise((resolve,reject)=>{const tus=new window.tus.Upload(file,{endpoint:`https://${host}/storage/v1/upload/resumable`,retryDelays:[0,3000,5000,10000,20000],headers:{authorization:'Bearer '+sess.access_token,apikey:cfg.key},uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,metadata:{bucketName:'project-files',objectName:path,contentType:file.type||'application/octet-stream',cacheControl:'3600'},chunkSize:6*1024*1024,onProgress:(sent,total)=>{prog.value=Math.round(sent/total*100);message('Enviando arquivo: '+prog.value+'%')},onError:reject,onSuccess:resolve});tus.findPreviousUploads().then(old=>{if(old.length)tus.resumeFromPreviousUpload(old[0]);tus.start()}).catch(reject)});
+ }
+ return client.storage.from('project-files').getPublicUrl(path).data.publicUrl;
+}
+async function save(event){event.preventDefault();if(working||!manager)return;working=true;const b=$('duckSourceSubmit');b.disabled=true;
+ try{
+  const user=await assertAdmin();const f=new FormData(event.target);
+  const version=String(f.get('version_label')||'').trim();let name=String(f.get('file_name')||'').trim();let url=String(f.get('file_url')||'').trim();const file=f.get('file');
+  if(!version||version.length>60)throw Error('Informe a versão (até 60 caracteres).');
+  if(file?.size){message('Enviando arquivo...');url=await uploadFile(file,user.id);if(!name)name=file.name}
+  else if(!url)throw Error('Selecione um arquivo ou coloque um link https://.');
+  if(link(url)==='#')throw Error('O link deve começar com https://');
+  if(!name)name=`Download ${version}`;
+  const payload={project_id:manager,version_label:version,file_name:name.slice(0,160),file_url:url,sort_order:0};
+  const result=await client.from('project_versions').insert(payload);
+  if(result.error)throw result.error;
+  message('Versão adicionada ao catálogo!');event.target.reset();$('duckSourceProgress').hidden=true;await loadVersionData();
+ }catch(err){message('Falha: '+(err.message||err),true)}finally{working=false;b.disabled=false}
+}
+async function paintManager(){
+ if(!manager||!$('duckSourceList'))return;
+ const arr=rows.filter(x=>x.project_id===manager);
+ $('duckSourceList').innerHTML=arr.length?arr.map(x=>`<div class="duck-source-entry"><div><b>${esc(x.version_label)}</b> · ${esc(x.file_name)}<small>Arquivo publicado</small></div><a href="${esc(link(x.file_url))}" target="_blank" rel="noopener noreferrer">Testar ↗</a><button type="button" data-remove-version="${esc(x.id)}">Excluir</button></div>`).join(''):'<p class="duck-source-empty">Nenhuma versão extra adicionada. Os downloads antigos do projeto continuam funcionando.</p>';
+}
+function enhanceAdmin(){
+ const list=$('pubItems');if(!list)return;
+ for(const row of list.querySelectorAll('.pub-project-row')){
+  const edit=row.querySelector('[data-act="edit"]');if(!edit||row.querySelector('.duck-source-open'))continue;
+  const id=edit.dataset.id;if(!id)continue;
+  const button=el('button',{className:'button duck-source-open',type:'button',textContent:'📦 Arquivos / versões'});
+  button.dataset.projectId=id;row.querySelector('.pub-actions')?.prepend(button);
+ }
+}
+async function openManager(id){
+ try{await assertAdmin();manager=id;const card=$('duckVersionManager');if(!card)return;
+ card.hidden=false;const label=$('pubItems')?.querySelector(`[data-act="edit"][data-id="${id}"]`)?.closest('.pub-project-row')?.querySelector('b')?.textContent||'Projeto';
+ $('duckSourceTitle').textContent='📦 Arquivos e versões • '+label;
+ message('Adicione outras versões ou arquivos ao projeto.');await paintManager();card.scrollIntoView({behavior:'smooth',block:'nearest'});
+ }catch(err){alert(err.message)}
+}
+function normalizeLegacyCategory(){
+ const form=document.getElementById('projectForm');if(!form)return;
+ for(const option of form.querySelectorAll('[name="category"] option')){
+  if(option.value==='Ferramentas'||option.textContent.trim()==='Ferramentas'){
+   option.value='Sources';option.textContent='Sources';
+  }
+ }
+}
+function main(){
+ const modal=document.getElementById('modalContents');
+ if(modal){new MutationObserver(normalizeLegacyCategory).observe(modal,{childList:true});normalizeLegacyCategory();}
+ const list=$('pubItems');if(list){makeForm();const adminObs=new MutationObserver(enhanceAdmin);adminObs.observe(list,{childList:true});enhanceAdmin();list.addEventListener('click',e=>{const b=e.target.closest('.duck-source-open');if(b)void openManager(b.dataset.projectId);});}
+ const grid=$('projectGrid');if(grid){new MutationObserver(paintCards).observe(grid,{childList:true,subtree:true});paintCards();}
+ void loadVersionData();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',main,{once:true});else main();
+})();
+
+</script><script id="duckzin-profiles-behavior">(()=>{'use strict';
+const byId=id=>document.getElementById(id);
+const root=byId('duckProfilesGrid');if(!root)return;
+const config=window.DUCKZIN_CONFIG;
+if(!config||!window.supabase){root.textContent='Não foi possível carregar os perfis no momento.';return;}
+const db=window.supabase.createClient(config.url,config.key);
+const search=byId('duckProfileSearch'),status=byId('duckProfileMessage'),dialog=byId('duckProfileDialog');
+const dlgBanner=byId('duckProfileDialogBanner'),dlgBody=byId('duckProfileDialogBody');
+const imgUrl=src=>{try{const u=new URL(src);return u.protocol==='https:'&&u.origin===new URL(config.url).origin&&u.pathname.startsWith('/storage/v1/object/public/avatars/')?u.href:null;}catch{return null;}};
+const color=x=>/^#[0-9a-fA-F]{6}$/.test(String(x||''))?x:'#cda03c';
+let data=[],active=null;
+function make(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e;}
+function avatar(p){const src=imgUrl(p.avatar_url);if(src){const img=make('img','duck-profile-avatar');img.src=src;img.alt='Foto do perfil de '+(p.username||'membro');img.loading='lazy';img.referrerPolicy='no-referrer';return img;}return make('span','duck-profile-avatar',String(p.username||'U').slice(0,2).toUpperCase());}
+function close(){dialog.hidden=true;document.body.style.removeProperty('overflow');dlgBody.replaceChildren();active?.focus?.();}
+function view(p,from){active=from;dlgBanner.style.setProperty('--accent',color(p.banner_color));dlgBody.replaceChildren();dlgBody.append(avatar(p));dlgBody.append(make('h3','',p.username||'Membro'));
+const bio=make('p','',p.bio||'Ainda não adicionou uma bio.');dlgBody.append(bio);
+if(p.created_at){const date=new Date(p.created_at);if(!isNaN(date)){dlgBody.append(make('small','','Na comunidade desde '+date.toLocaleDateString('pt-BR')));}}
+dialog.hidden=false;document.body.style.overflow='hidden';byId('duckProfileClose').focus();}
+function render(){const term=(search?.value||'').trim().toLocaleLowerCase('pt-BR');const filtered=data.filter(p=>String(p.username||'').toLocaleLowerCase('pt-BR').includes(term));root.replaceChildren();
+if(!filtered.length){root.append(make('p','duck-profile-note',data.length?'Nenhum perfil encontrado.':'Ainda não há perfis cadastrados.'));return;}
+for(const p of filtered){const card=make('article','duck-profile-card');const banner=make('div','duck-profile-banner');banner.style.setProperty('--accent',color(p.banner_color));card.append(banner,avatar(p));const main=make('div','duck-profile-card-main');main.append(make('h3','',p.username||'Membro'),make('p','',p.bio||'Ainda sem bio.'));
+const btn=make('button','duck-profile-view','Ver perfil');btn.type='button';btn.addEventListener('click',()=>view(p,btn));main.append(btn);card.append(main);root.append(card);}
+}
+async function load(){status.textContent='Carregando membros...';const {data:users,error}=await db.from('profiles').select('id,username,bio,avatar_url,banner_color,created_at').order('created_at',{ascending:false}).limit(200);
+if(error){status.textContent='Erro ao carregar perfis: '+error.message;return;}
+data=users||[];status.textContent=data.length+' perfil(is) da comunidade. E-mails e dados privados não são exibidos.';render();}
+search?.addEventListener('input',render);
+byId('duckProfileClose')?.addEventListener('click',close);
+dialog?.addEventListener('click',e=>{if(e.target===dialog)close();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!dialog.hidden)close();});
+void load();
+})();
+</script></body></html>
