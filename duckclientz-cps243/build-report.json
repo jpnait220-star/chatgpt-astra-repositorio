@@ -1,0 +1,62 @@
+{
+  "1.20.1": {
+    "file": "DuckClientZ-1.20.1-1.5.28-beta.2.43.jar",
+    "version": "1.5.28-beta.2.43",
+    "sha256": "a4c15d66d356981d246c05d35cd6d3fe686eb1fc5fecaacdc0d0280b2dd1d0b1",
+    "size": 13702388,
+    "base": "DuckClientZ-1.20.1-1.5.28-beta.2.42.jar",
+    "changed": [
+      "com/duckswords/mixin/MixinCpsMiddle230.class",
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/AdaptiveCps243.class"
+    ]
+  },
+  "1.21.1": {
+    "file": "DuckClientZ-1.21.1-1.5.28-beta.2.43.jar",
+    "version": "1.5.28-beta.2.43",
+    "sha256": "d745ca60721f5209d20101255577a9e5a33889eef28b0a80e382ceb4f02f5e35",
+    "size": 13788648,
+    "base": "DuckClientZ-1.21.1-1.5.28-beta.2.42.jar",
+    "changed": [
+      "com/duckswords/mixin/MixinCpsMiddle230.class",
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/AdaptiveCps243.class"
+    ]
+  },
+  "1.21.4": {
+    "file": "DuckClientZ-1.21.4-1.5.28-beta.2.43.jar",
+    "version": "1.5.28-beta.2.43",
+    "sha256": "bb53b64a71cd37d20ca86c0d850f8dfe522e714962855c5af9f29ab049cb6b85",
+    "size": 13824624,
+    "base": "DuckClientZ-1.21.4-1.5.28-beta.2.42.jar",
+    "changed": [
+      "com/duckswords/mixin/MixinCpsMiddle230.class",
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/AdaptiveCps243.class"
+    ]
+  },
+  "1.21.11": {
+    "file": "DuckClientZ-1.21.11-1.5.28-beta.2.43.jar",
+    "version": "1.5.28-beta.2.43",
+    "sha256": "a333bbbe6ca64c45103145d39eb1ff0aada475d182c3fd572bb081f26cda7e3c",
+    "size": 12146585,
+    "base": "DuckClientZ-1.21.11-1.5.28-beta.2.42.jar",
+    "changed": [
+      "com/duckswords/mixin/MixinCpsMiddle230.class",
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/AdaptiveCps243.class"
+    ]
+  }
+}
