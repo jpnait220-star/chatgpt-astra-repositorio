@@ -1,13 +1,36 @@
+# Dois sites na mesma host — versão 1.0.1
+
+- https://duckcommunity.go.altare.global/ → Community com catálogo de 138 JARs publicados, busca e filtro por Minecraft.
+- https://duckconnect.go.altare.global/ → Connect com estado da API.
+- Ambos continuam apontando para a mesma aplicação/porta 25668. Não crie outro processo ou outra host.
+- A seleção usa o cabeçalho Host enviado pelo proxy HTTPS. Os caminhos /community/ e /connect/ também abrem cada página em qualquer domínio para diagnóstico.
+
+## Atualizar a instalação existente
+
+1. Pare o app na Altare.
+2. Faça uma cópia dos arquivos atuais. Extraia o conteúdo deste ZIP na raiz, substituindo server.mjs, package.json e as pastas public/, lib/ e test/.
+3. Preserve as variáveis/configurações da host, incluindo a porta 25668. Não precisa alterar os domínios.
+4. Inicie novamente com `npm start`.
+5. Abra os dois domínios e atualize a página com Ctrl+F5. A API /health deve continuar online nos dois.
+
+A Community incluída é uma página nova de downloads; não é uma cópia do site duckzincommunity.vercel.app. A Vercel retorna 402 e não permite recuperar o site antigo. Para preservar o visual e as outras funções antigas, envie o ZIP/código daquele projeto. O catálogo atual é uma lista dos arquivos publicados no GitHub na data deste pacote; novas publicações exigem atualizar public/releases.json. Os JARs são baixados diretamente do GitHub.
+
+O mod não precisa ser reinstalado por causa desta mudança nas páginas. Reiniciar o app limpa o estado temporário em RAM conforme descrito abaixo.
+
+16 testes Node passaram, incluindo seleção por domínio, arquivos estáticos e compatibilidade da API. Busca, filtro, paginação, links e layout móvel também foram verificados em Chromium local. Publicação na sua conta Altare requer enviar este pacote.
+
+---
+
 # Duck Connect + Community — Altare
 
-API compatível com cosméticos, presença, chat e anúncios do DuckClient. Não está publicada na sua conta ainda. O modo dedicado deste pacote não depende de Vercel, Upstash ou Supabase.
+API compatível com cosméticos, presença, chat e anúncios do DuckClient. A API já foi testada no endereço público da Altare. Este pacote 1.0.1 precisa ser enviado à host para atualizar as páginas. O modo dedicado deste pacote não depende de Vercel, Upstash ou Supabase.
 
 A Altare confirma Node.js e endereço HTTPS de app, sem pausa por inatividade: https://altare.gg/en/products/app-hosting . Disponibilidade, recursos e regras precisam ser conferidos na sua conta.
 
 ## Instalar
 
 1. Crie um **app Node.js separado** na Altare. Não reinstale/substitua o servidor Minecraft.
-2. Use Node.js 22 ou 24. Envie o conteúdo deste ZIP para a raiz do app.
+2. Compatível com Node.js 20.20.2 da sua host; para novas instalações, prefira Node.js 22 ou 24. Envie o conteúdo deste ZIP para a raiz do app.
 3. Comando `npm start` ou `node server.mjs`. Arquivo de entrada: `server.mjs`. Não há dependências de execução para instalar.
 4. Configure `PORT` ou `SERVER_PORT` com a **porta realmente alocada** no painel. O processo escuta em `0.0.0.0`. O arquivo `.env.example` é só uma referência; o app não carrega `.env` sozinho.
 5. Use o **endereço HTTPS do App hosting**, não IP:porta de Minecraft nem HTTP sem certificado. O proxy da Altare precisa encaminhar para a porta do processo.

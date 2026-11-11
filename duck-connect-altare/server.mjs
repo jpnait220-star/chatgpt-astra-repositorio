@@ -18,8 +18,28 @@ export function createService(store=new DedicatedStore()){
  const handler=createHandler(store,{clientIp:req=>req.socket?.remoteAddress||'unknown'});
  const server=createServer(async(req,res)=>{
   let url;try{url=new URL(req.url,'http://localhost');}catch{res.writeHead(400);res.end();return;}
-  if(url.pathname==='/'&&req.method==='GET'){
-   try{const html=await readFile(new URL('./public/index.html',import.meta.url));res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=60','X-Content-Type-Options':'nosniff'});res.end(html);}
+  const hostname=String(req.headers.host||'').toLowerCase().split(':')[0];
+  // Host selects only the homepage. Both domains retain the same API/store.
+  // Do not trust forwarded host headers or construct external redirects from them.
+  const homepage=hostname==='duckcommunity.go.altare.global'?'community.html':'index.html';
+  const assets=new Map([
+   ['/',[homepage,'text/html; charset=utf-8']],
+   ['/community/', ['community.html','text/html; charset=utf-8']],
+   ['/connect/', ['index.html','text/html; charset=utf-8']],
+   ['/style.css',['style.css','text/css; charset=utf-8']],
+   ['/app.js',['app.js','text/javascript; charset=utf-8']],
+   ['/duck.svg',['duck.svg','image/svg+xml']],
+   ['/community.css',['community.css','text/css; charset=utf-8']],
+   ['/community.js',['community.js','text/javascript; charset=utf-8']],
+   ['/releases.json',['releases.json','application/json; charset=utf-8']]
+  ]);
+  const asset=assets.get(url.pathname);
+  if(asset&&['GET','HEAD'].includes(req.method)){
+   try{const data=await readFile(new URL('./public/'+asset[0],import.meta.url));res.writeHead(200,{
+    'Content-Type':asset[1],'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff',
+    'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'",
+    'Content-Length':data.length
+   });res.end(req.method==='HEAD'?undefined:data);}
    catch{res.writeHead(503);res.end('Unavailable');}return;
   }return handler(req,res);
  });
