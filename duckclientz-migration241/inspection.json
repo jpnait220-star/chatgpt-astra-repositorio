@@ -1,0 +1,86 @@
+[
+  {
+    "minecraft": "1.20.1",
+    "file": "DuckClientZ-1.20.1-1.5.28-beta.2.40.jar",
+    "version": "1.5.28-beta.2.40",
+    "sha256": "a8f001b31e6e750c43a0350664f6552f3b0dbe8a51525515ff3d6700867e34a2",
+    "compatible_signer": true,
+    "same_updater_as_239": true,
+    "same_downloader_as_239": true,
+    "changed_entries_vs_239": 22,
+    "service_urls": [
+      "https://duck-connect.vercel.app",
+      "https://duck-connect.vercel.app.",
+      "https://duck-connect.vercel.app/announce",
+      "https://duck-connect.vercel.app/announcement-challenge",
+      "https://duck-connect.vercel.app/announcements",
+      "https://duck-connect.vercel.app/chat",
+      "https://duck-connect.vercel.app/community",
+      "https://duck-connect.vercel.app/updates"
+    ],
+    "jar_signature_entries": []
+  },
+  {
+    "minecraft": "1.21.1",
+    "file": "DuckClientZ-1.21.1-1.5.28-beta.2.40.jar",
+    "version": "1.5.28-beta.2.40",
+    "sha256": "e3c7ec10cca49d9c91035e98ce425671e0bfdc7c805f49f7aa5c6ff11085605e",
+    "compatible_signer": true,
+    "same_updater_as_239": true,
+    "same_downloader_as_239": true,
+    "changed_entries_vs_239": 22,
+    "service_urls": [
+      "https://duck-connect.vercel.app",
+      "https://duck-connect.vercel.app.",
+      "https://duck-connect.vercel.app/announce",
+      "https://duck-connect.vercel.app/announcement-challenge",
+      "https://duck-connect.vercel.app/announcements",
+      "https://duck-connect.vercel.app/chat",
+      "https://duck-connect.vercel.app/community",
+      "https://duck-connect.vercel.app/updates"
+    ],
+    "jar_signature_entries": []
+  },
+  {
+    "minecraft": "1.21.11",
+    "file": "DuckClientZ-1.21.11-1.5.28-beta.2.40.jar",
+    "version": "1.5.28-beta.2.40",
+    "sha256": "9398883b343466d507c60081b9a5abbf20c4f8edc0af7d1b27924d7ece46c59f",
+    "compatible_signer": true,
+    "same_updater_as_239": true,
+    "same_downloader_as_239": true,
+    "changed_entries_vs_239": 22,
+    "service_urls": [
+      "https://duck-connect.vercel.app",
+      "https://duck-connect.vercel.app.",
+      "https://duck-connect.vercel.app/announce",
+      "https://duck-connect.vercel.app/announcement-challenge",
+      "https://duck-connect.vercel.app/announcements",
+      "https://duck-connect.vercel.app/chat",
+      "https://duck-connect.vercel.app/community",
+      "https://duck-connect.vercel.app/updates"
+    ],
+    "jar_signature_entries": []
+  },
+  {
+    "minecraft": "1.21.4",
+    "file": "DuckClientZ-1.21.4-1.5.28-beta.2.40.jar",
+    "version": "1.5.28-beta.2.40",
+    "sha256": "33e4fd961f197d843e2c49d578a9f06f958ea749c96c789a49e152cf33fdee75",
+    "compatible_signer": true,
+    "same_updater_as_239": true,
+    "same_downloader_as_239": true,
+    "changed_entries_vs_239": 22,
+    "service_urls": [
+      "https://duck-connect.vercel.app",
+      "https://duck-connect.vercel.app.",
+      "https://duck-connect.vercel.app/announce",
+      "https://duck-connect.vercel.app/announcement-challenge",
+      "https://duck-connect.vercel.app/announcements",
+      "https://duck-connect.vercel.app/chat",
+      "https://duck-connect.vercel.app/community",
+      "https://duck-connect.vercel.app/updates"
+    ],
+    "jar_signature_entries": []
+  }
+]

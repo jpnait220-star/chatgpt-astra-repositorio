@@ -1,0 +1,86 @@
+{
+  "1.20.1": {
+    "file": "DuckClientZ-1.20.1-1.5.28-beta.2.41.jar",
+    "version": "1.5.28-beta.2.41",
+    "base": "DuckClientZ-1.20.1-1.5.28-beta.2.40.jar",
+    "base_sha256": "a8f001b31e6e750c43a0350664f6552f3b0dbe8a51525515ff3d6700867e34a2",
+    "sha256": "224523f8778a751e0d4ba455827a21a95fe7bed141c51e701df0441cf60d043f",
+    "size": 13697037,
+    "changed_existing": [
+      "com/duckswords/modules/CosmeticsOnline.class",
+      "com/duckswords/social/CosmeticSharing.class",
+      "com/duckswords/update/ClientUpdater229.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/connect/ServiceRoute241$Source.class",
+      "com/duckswords/connect/ServiceRoute241$Resolver.class",
+      "com/duckswords/connect/ServiceRoute241.class",
+      "com/duckswords/connect/ServiceRoute241$Document.class"
+    ],
+    "preserved_entries": 1055
+  },
+  "1.21.1": {
+    "file": "DuckClientZ-1.21.1-1.5.28-beta.2.41.jar",
+    "version": "1.5.28-beta.2.41",
+    "base": "DuckClientZ-1.21.1-1.5.28-beta.2.40.jar",
+    "base_sha256": "e3c7ec10cca49d9c91035e98ce425671e0bfdc7c805f49f7aa5c6ff11085605e",
+    "sha256": "4525622c83cb6779921fca72c687c0baa0a84e1406b1bff3768e2432378dce79",
+    "size": 13783239,
+    "changed_existing": [
+      "com/duckswords/modules/CosmeticsOnline.class",
+      "com/duckswords/social/CosmeticSharing.class",
+      "com/duckswords/update/ClientUpdater229.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/connect/ServiceRoute241$Source.class",
+      "com/duckswords/connect/ServiceRoute241$Resolver.class",
+      "com/duckswords/connect/ServiceRoute241.class",
+      "com/duckswords/connect/ServiceRoute241$Document.class"
+    ],
+    "preserved_entries": 1065
+  },
+  "1.21.4": {
+    "file": "DuckClientZ-1.21.4-1.5.28-beta.2.41.jar",
+    "version": "1.5.28-beta.2.41",
+    "base": "DuckClientZ-1.21.4-1.5.28-beta.2.40.jar",
+    "base_sha256": "33e4fd961f197d843e2c49d578a9f06f958ea749c96c789a49e152cf33fdee75",
+    "sha256": "0990f30f1d859590d9441c84d45152dfe556a0f6a9ac904b7fd0c71e36eeaaae",
+    "size": 13819216,
+    "changed_existing": [
+      "com/duckswords/modules/CosmeticsOnline.class",
+      "com/duckswords/social/CosmeticSharing.class",
+      "com/duckswords/update/ClientUpdater229.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/connect/ServiceRoute241$Source.class",
+      "com/duckswords/connect/ServiceRoute241$Resolver.class",
+      "com/duckswords/connect/ServiceRoute241.class",
+      "com/duckswords/connect/ServiceRoute241$Document.class"
+    ],
+    "preserved_entries": 1065
+  },
+  "1.21.11": {
+    "file": "DuckClientZ-1.21.11-1.5.28-beta.2.41.jar",
+    "version": "1.5.28-beta.2.41",
+    "base": "DuckClientZ-1.21.11-1.5.28-beta.2.40.jar",
+    "base_sha256": "9398883b343466d507c60081b9a5abbf20c4f8edc0af7d1b27924d7ece46c59f",
+    "sha256": "053a3d554e15c32262e6c34661f7b25159d2fb006d157a1e14b1d332610e6e51",
+    "size": 12140228,
+    "changed_existing": [
+      "com/duckswords/modules/CosmeticsOnline.class",
+      "com/duckswords/social/CosmeticSharing.class",
+      "com/duckswords/update/ClientUpdater229.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/connect/ServiceRoute241$Source.class",
+      "com/duckswords/connect/ServiceRoute241$Resolver.class",
+      "com/duckswords/connect/ServiceRoute241.class",
+      "com/duckswords/connect/ServiceRoute241$Document.class"
+    ],
+    "preserved_entries": 1017
+  }
+}
