@@ -1,0 +1,62 @@
+{
+  "1.20.1": {
+    "file": "DuckClientZ-1.20.1-1.5.28-beta.2.42.jar",
+    "version": "1.5.28-beta.2.42",
+    "sha256": "a277e011b6be57cfcb90f83deecbb1cee24da22a381d8a062db8dc72ae942a42",
+    "size": 13700901,
+    "base": "DuckClientZ-1.20.1-1.5.28-beta.2.41.jar",
+    "changed": [
+      "com/duckswords/modules/TargetHighlight.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/render/TargetTop242.class",
+      "com/duckswords/render/TargetTopGeometry242.class"
+    ]
+  },
+  "1.21.1": {
+    "file": "DuckClientZ-1.21.1-1.5.28-beta.2.42.jar",
+    "version": "1.5.28-beta.2.42",
+    "sha256": "340006df5e691aaab98a0b46bf2f14826f74907a7f487028f1adac12bd63a2b5",
+    "size": 13787160,
+    "base": "DuckClientZ-1.21.1-1.5.28-beta.2.41.jar",
+    "changed": [
+      "com/duckswords/modules/TargetHighlight.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/render/TargetTop242.class",
+      "com/duckswords/render/TargetTopGeometry242.class"
+    ]
+  },
+  "1.21.4": {
+    "file": "DuckClientZ-1.21.4-1.5.28-beta.2.42.jar",
+    "version": "1.5.28-beta.2.42",
+    "sha256": "5f236c2cbd4d8a6d0acbee13f6d25bbd67f8dd8df759204ba7631c093d438d5e",
+    "size": 13823137,
+    "base": "DuckClientZ-1.21.4-1.5.28-beta.2.41.jar",
+    "changed": [
+      "com/duckswords/modules/TargetHighlight.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/render/TargetTop242.class",
+      "com/duckswords/render/TargetTopGeometry242.class"
+    ]
+  },
+  "1.21.11": {
+    "file": "DuckClientZ-1.21.11-1.5.28-beta.2.42.jar",
+    "version": "1.5.28-beta.2.42",
+    "sha256": "960983e7277b4d8fbbfe980d3c7433712d0d45986f8008b449ab5c8cef0badfd",
+    "size": 12145096,
+    "base": "DuckClientZ-1.21.11-1.5.28-beta.2.41.jar",
+    "changed": [
+      "com/duckswords/modules/TargetHighlight.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/render/TargetTop242.class",
+      "com/duckswords/render/TargetTopGeometry242.class"
+    ]
+  }
+}

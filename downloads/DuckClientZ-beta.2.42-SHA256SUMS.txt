@@ -1,0 +1,8 @@
+a277e011b6be57cfcb90f83deecbb1cee24da22a381d8a062db8dc72ae942a42  DuckClientZ-1.20.1-1.5.28-beta.2.42.jar
+340006df5e691aaab98a0b46bf2f14826f74907a7f487028f1adac12bd63a2b5  DuckClientZ-1.21.1-1.5.28-beta.2.42.jar
+5f236c2cbd4d8a6d0acbee13f6d25bbd67f8dd8df759204ba7631c093d438d5e  DuckClientZ-1.21.4-1.5.28-beta.2.42.jar
+960983e7277b4d8fbbfe980d3c7433712d0d45986f8008b449ab5c8cef0badfd  DuckClientZ-1.21.11-1.5.28-beta.2.42.jar
+d154b119af866ad922721e9ef40644add70b29a2e1911e66f8e62179d79b8289  DuckClientZ-beta.2.42-4-versoes.zip
+25326a15160a74c10bc147bba96def8789b1329eb8f12c6a1866aeedf48a914e  DuckClientZ-beta.2.42-targetlight-fontes.zip
+0dcd0a4ae7f2d252055e4403fb44dc6cb39c25c3e7e14197ff635bd665a73ffc  DuckClientZ-beta.2.42-LEIA-ME.md
+03bb65c8b795c892d43d8a728487bc3bc1899b6dae79daabd036012e51423d91  DuckClientZ-update242.json
