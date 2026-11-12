@@ -1,0 +1,1 @@
+package net.minecraft;import java.util.*;public class class_638 implements class_1922 {public Map<class_2338,class_2680> states=new HashMap<>();public class_2680 method_8320(class_2338 p){return states.getOrDefault(p,new class_2680());}}

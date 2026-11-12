@@ -1,0 +1,1 @@
+package net.minecraft;public class class_238 {public double field_1323,field_1322,field_1321,field_1320,field_1325,field_1324;public class_238(){}public class_238(double x,double y,double z,double xx,double yy,double zz){field_1323=x;field_1322=y;field_1321=z;field_1320=xx;field_1325=yy;field_1324=zz;}}

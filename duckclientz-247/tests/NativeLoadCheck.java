@@ -1,0 +1,1 @@
+public class NativeLoadCheck {public static void main(String[] args)throws Exception{for(String name:args){Class.forName(name,false,NativeLoadCheck.class.getClassLoader()).getDeclaredMethods();System.out.println("PASS native JVM verification "+name);}}}

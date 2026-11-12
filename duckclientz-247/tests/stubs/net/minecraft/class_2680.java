@@ -1,0 +1,1 @@
+package net.minecraft;import java.util.*;public class class_2680 {public List<class_238> boxes=new ArrayList<>();public boolean method_26215(){return boxes.isEmpty();}public class_265 method_26202(class_1922 w,class_2338 p,class_3726 c){return new class_265(boxes);}}

@@ -1,0 +1,1 @@
+import java.util.*;public class Capture247 {public static List<double[]> lines=new ArrayList<>();public static int fallbacks;public static void line(double x,double y,double z,double xx,double yy,double zz,int color,float width){lines.add(new double[]{x,y,z,xx,yy,zz,color,width});}public static void fallback(){fallbacks++;}public static void reset(){lines.clear();fallbacks=0;}}
