@@ -1,0 +1,8 @@
+9e10abcc8cc8360cbfbe8c53a406f40ca2515c44878a52fb6e4748f9ad506f4f  DuckClientZ-1.20.1-1.5.28-beta.2.48.jar
+a13cd35a33b72aecda576a08f541069621ab3b60efe6c8a29a834f184bf30292  DuckClientZ-1.21.1-1.5.28-beta.2.48.jar
+d53c4ef7eb984d020806731b5dbbc6d9e0b9a726c3ff61c5c4ab9b5b5f919e6f  DuckClientZ-1.21.4-1.5.28-beta.2.48.jar
+b71e21547a6b8f975683500328059182cc6de3743f727c844eacb58e00e81605  DuckClientZ-1.21.11-1.5.28-beta.2.48.jar
+9db194aa7c7c290643bfcaf87f5cb5c66be7c7f469bcaf49c0233e09c539b71c  DuckClientZ-beta.2.48-4-versoes.zip
+c088fe82d70e070f4f1d11da571d60899cb808838c62e514c423c3bcccbd7a40  DuckClientZ-beta.2.48-remocao-modulos-fontes.zip
+aa3ae5c8b1e591878e5fa40c20b3cc017e4c83b4fd40be293e63ac1d22577152  DuckClientZ-beta.2.48-LEIA-ME.md
+2e53601f0910f430e16d7b3e78a932e74b540decec35efbc0246397b6e33c1f6  DuckClientZ-update248.json

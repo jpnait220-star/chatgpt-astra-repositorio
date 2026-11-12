@@ -1,0 +1,96 @@
+{
+  "1.20.1": {
+    "file": "DuckClientZ-1.20.1-1.5.28-beta.2.48.jar",
+    "version": "1.5.28-beta.2.48",
+    "sha256": "9e10abcc8cc8360cbfbe8c53a406f40ca2515c44878a52fb6e4748f9ad506f4f",
+    "size": 13688943,
+    "base": "DuckClientZ-1.20.1-1.5.28-beta.2.47.jar",
+    "changed": [
+      "com/duckswords/input/AutoClickerRuntime.class",
+      "com/duckswords/mixin/MixinLivingEntity.class",
+      "com/duckswords/module/ModuleManager.class",
+      "com/duckswords/modules/ElytraFeature.class",
+      "fabric.mod.json"
+    ],
+    "removed": [
+      "assets/duckswords/textures/gui/icons/fireworkkey.png",
+      "com/duckswords/input/FireworkTiming$Restore.class",
+      "com/duckswords/input/FireworkTiming$State.class",
+      "com/duckswords/input/FireworkTiming.class",
+      "com/duckswords/input/FireworkUse.class",
+      "com/duckswords/modules/FireworkKey.class"
+    ],
+    "added": []
+  },
+  "1.21.1": {
+    "file": "DuckClientZ-1.21.1-1.5.28-beta.2.48.jar",
+    "version": "1.5.28-beta.2.48",
+    "sha256": "a13cd35a33b72aecda576a08f541069621ab3b60efe6c8a29a834f184bf30292",
+    "size": 13774610,
+    "base": "DuckClientZ-1.21.1-1.5.28-beta.2.47.jar",
+    "changed": [
+      "com/duckswords/input/AutoClickerRuntime.class",
+      "com/duckswords/module/ModuleManager.class",
+      "com/duckswords/modules/ElytraFeature.class",
+      "duckswords.mixins.json",
+      "duckswords.refmap.json",
+      "fabric.mod.json"
+    ],
+    "removed": [
+      "assets/duckswords/textures/gui/icons/fireworkkey.png",
+      "com/duckswords/input/FireworkTiming$Restore.class",
+      "com/duckswords/input/FireworkTiming$State.class",
+      "com/duckswords/input/FireworkTiming.class",
+      "com/duckswords/input/FireworkUse.class",
+      "com/duckswords/mixin/MixinElytraGlidingFix1211.class",
+      "com/duckswords/modules/FireworkKey.class"
+    ],
+    "added": []
+  },
+  "1.21.4": {
+    "file": "DuckClientZ-1.21.4-1.5.28-beta.2.48.jar",
+    "version": "1.5.28-beta.2.48",
+    "sha256": "d53c4ef7eb984d020806731b5dbbc6d9e0b9a726c3ff61c5c4ab9b5b5f919e6f",
+    "size": 13811182,
+    "base": "DuckClientZ-1.21.4-1.5.28-beta.2.47.jar",
+    "changed": [
+      "com/duckswords/input/AutoClickerRuntime.class",
+      "com/duckswords/mixin/MixinLivingEntity.class",
+      "com/duckswords/module/ModuleManager.class",
+      "com/duckswords/modules/ElytraFeature.class",
+      "fabric.mod.json"
+    ],
+    "removed": [
+      "assets/duckswords/textures/gui/icons/fireworkkey.png",
+      "com/duckswords/input/FireworkTiming$Restore.class",
+      "com/duckswords/input/FireworkTiming$State.class",
+      "com/duckswords/input/FireworkTiming.class",
+      "com/duckswords/input/FireworkUse.class",
+      "com/duckswords/modules/FireworkKey.class"
+    ],
+    "added": []
+  },
+  "1.21.11": {
+    "file": "DuckClientZ-1.21.11-1.5.28-beta.2.48.jar",
+    "version": "1.5.28-beta.2.48",
+    "sha256": "b71e21547a6b8f975683500328059182cc6de3743f727c844eacb58e00e81605",
+    "size": 12133861,
+    "base": "DuckClientZ-1.21.11-1.5.28-beta.2.47.jar",
+    "changed": [
+      "com/duckswords/input/AutoClickerRuntime.class",
+      "com/duckswords/mixin/MixinLivingEntity.class",
+      "com/duckswords/module/ModuleManager.class",
+      "com/duckswords/modules/ElytraFeature.class",
+      "fabric.mod.json"
+    ],
+    "removed": [
+      "assets/duckswords/textures/gui/icons/fireworkkey.png",
+      "com/duckswords/input/FireworkTiming$Restore.class",
+      "com/duckswords/input/FireworkTiming$State.class",
+      "com/duckswords/input/FireworkTiming.class",
+      "com/duckswords/input/FireworkUse.class",
+      "com/duckswords/modules/FireworkKey.class"
+    ],
+    "added": []
+  }
+}

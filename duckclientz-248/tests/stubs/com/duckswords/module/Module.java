@@ -1,0 +1,1 @@
+package com.duckswords.module;import java.util.*;import com.duckswords.setting.Setting;public class Module {private final List<Setting> settings=new ArrayList<>();public Module(String name,String description,Category category){}public <T extends Setting>T add(T s){settings.add(s);return s;}public List<Setting> getSettings(){return settings;}}
