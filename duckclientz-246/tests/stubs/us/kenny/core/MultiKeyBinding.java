@@ -1,0 +1,1 @@
+package us.kenny.core;import net.minecraft.class_3675;public class MultiKeyBinding {final class_3675.class_306 key;public MultiKeyBinding(String name){key=new class_3675.class_306(name);}public class_3675.class_306 getKey(){return key;}}

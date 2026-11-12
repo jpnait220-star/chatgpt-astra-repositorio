@@ -1,0 +1,1 @@
+package us.kenny;import us.kenny.core.MultiKeyBinding;import java.util.*;public class MultiKeyBindingManager {public static List<MultiKeyBinding> attack=new ArrayList<>();public static Collection<MultiKeyBinding> getKeyBindings(String name){if(!name.equals("key.attack"))throw new AssertionError("Wrong action");return attack;}}
