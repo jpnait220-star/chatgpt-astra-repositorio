@@ -1,0 +1,73 @@
+{
+  "releases": [
+    {
+      "file": "DuckClientZ-1.20.1-1.5.28-beta.2.47.jar",
+      "version": "1.5.28-beta.2.47",
+      "sha256": "c40a1a77c4093b4bd7e14c4ab0390cbfae2fe6bae33033d81359f597b5e5eed9",
+      "size": 13711431,
+      "base": "DuckClientZ-1.20.1-1.5.28-beta.2.46.jar",
+      "changed": [
+        "com/duckswords/modules/TargetHighlight.class",
+        "fabric.mod.json",
+        "com/duckswords/render/TargetTop242.class"
+      ],
+      "added": [
+        "com/duckswords/render/BlockShadow247.class",
+        "com/duckswords/render/TargetOverlay247.class",
+        "com/duckswords/render/TargetRawLine247.class"
+      ]
+    },
+    {
+      "file": "DuckClientZ-1.21.1-1.5.28-beta.2.47.jar",
+      "version": "1.5.28-beta.2.47",
+      "sha256": "c61ea36624ba36ae9bcb7f7f8df71e32bcc96ac61e20788359be4e71a2c876ba",
+      "size": 13797736,
+      "base": "DuckClientZ-1.21.1-1.5.28-beta.2.46.jar",
+      "changed": [
+        "com/duckswords/modules/TargetHighlight.class",
+        "fabric.mod.json",
+        "com/duckswords/render/TargetTop242.class"
+      ],
+      "added": [
+        "com/duckswords/render/BlockShadow247.class",
+        "com/duckswords/render/TargetOverlay247.class",
+        "com/duckswords/render/TargetRawLine247.class"
+      ]
+    },
+    {
+      "file": "DuckClientZ-1.21.4-1.5.28-beta.2.47.jar",
+      "version": "1.5.28-beta.2.47",
+      "sha256": "6a6aba54a8148848c5bb7dd1be8cccf0744bfe7d5dffa54142f1d51f2733f081",
+      "size": 13833712,
+      "base": "DuckClientZ-1.21.4-1.5.28-beta.2.46.jar",
+      "changed": [
+        "com/duckswords/modules/TargetHighlight.class",
+        "fabric.mod.json",
+        "com/duckswords/render/TargetTop242.class"
+      ],
+      "added": [
+        "com/duckswords/render/BlockShadow247.class",
+        "com/duckswords/render/TargetOverlay247.class",
+        "com/duckswords/render/TargetRawLine247.class"
+      ]
+    },
+    {
+      "file": "DuckClientZ-1.21.11-1.5.28-beta.2.47.jar",
+      "version": "1.5.28-beta.2.47",
+      "sha256": "a5aeae79cb59c537c5c5c033b97767d2c9c8d2274a7a30b55c6e91a9f7ea4fba",
+      "size": 12156684,
+      "base": "DuckClientZ-1.21.11-1.5.28-beta.2.46.jar",
+      "changed": [
+        "com/duckswords/modules/TargetHighlight.class",
+        "fabric.mod.json",
+        "com/duckswords/render/TargetTop242.class"
+      ],
+      "added": [
+        "com/duckswords/render/BlockShadow247.class",
+        "com/duckswords/render/TargetOverlay247.class",
+        "com/duckswords/render/TargetRawLine247.class"
+      ]
+    }
+  ],
+  "versionedManifestMatches": true
+}
