@@ -1,0 +1,65 @@
+{
+  "releases": [
+    {
+      "file": "DuckClientZ-1.20.1-1.5.28-beta.2.46.jar",
+      "version": "1.5.28-beta.2.46",
+      "sha256": "039bd15b02b74dac983650eca2225d98723ff187aca92d606affdbe7a39f8bc0",
+      "size": 13705046,
+      "base": "DuckClientZ-1.20.1-1.5.28-beta.2.45.jar",
+      "changed": [
+        "fabric.mod.json",
+        "com/duckswords/input/AdaptiveCps243.class",
+        "com/duckswords/input/SmoothCps244.class"
+      ],
+      "added": [
+        "com/duckswords/input/AttackBindings246.class"
+      ]
+    },
+    {
+      "file": "DuckClientZ-1.21.1-1.5.28-beta.2.46.jar",
+      "version": "1.5.28-beta.2.46",
+      "sha256": "182fcd6610092700414b825b428af377cbe60841b608af6d01c67cbb09137005",
+      "size": 13791298,
+      "base": "DuckClientZ-1.21.1-1.5.28-beta.2.45.jar",
+      "changed": [
+        "fabric.mod.json",
+        "com/duckswords/input/AdaptiveCps243.class",
+        "com/duckswords/input/SmoothCps244.class"
+      ],
+      "added": [
+        "com/duckswords/input/AttackBindings246.class"
+      ]
+    },
+    {
+      "file": "DuckClientZ-1.21.4-1.5.28-beta.2.46.jar",
+      "version": "1.5.28-beta.2.46",
+      "sha256": "3771dd15565a34c4afd59eed149c4f5adb71ae71ea7eeedce6bc296b3acb0b9a",
+      "size": 13827274,
+      "base": "DuckClientZ-1.21.4-1.5.28-beta.2.45.jar",
+      "changed": [
+        "fabric.mod.json",
+        "com/duckswords/input/AdaptiveCps243.class",
+        "com/duckswords/input/SmoothCps244.class"
+      ],
+      "added": [
+        "com/duckswords/input/AttackBindings246.class"
+      ]
+    },
+    {
+      "file": "DuckClientZ-1.21.11-1.5.28-beta.2.46.jar",
+      "version": "1.5.28-beta.2.46",
+      "sha256": "f65405b6dd1ac9858a5fc5061f18dd169a6c78c0fd54e4245adc277f31326edf",
+      "size": 12149236,
+      "base": "DuckClientZ-1.21.11-1.5.28-beta.2.45.jar",
+      "changed": [
+        "fabric.mod.json",
+        "com/duckswords/input/AdaptiveCps243.class",
+        "com/duckswords/input/SmoothCps244.class"
+      ],
+      "added": [
+        "com/duckswords/input/AttackBindings246.class"
+      ]
+    }
+  ],
+  "versionedManifestMatches": true
+}
