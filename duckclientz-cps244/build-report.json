@@ -1,0 +1,58 @@
+{
+  "1.20.1": {
+    "file": "DuckClientZ-1.20.1-1.5.28-beta.2.44.jar",
+    "version": "1.5.28-beta.2.44",
+    "sha256": "757768a0826e695a6ec1a774dbec10815b5bc94f2b1ade2857b877a59d6a2146",
+    "size": 13703358,
+    "base": "DuckClientZ-1.20.1-1.5.28-beta.2.43.jar",
+    "changed": [
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/SmoothCps244.class"
+    ]
+  },
+  "1.21.1": {
+    "file": "DuckClientZ-1.21.1-1.5.28-beta.2.44.jar",
+    "version": "1.5.28-beta.2.44",
+    "sha256": "b34d158557b9d6806ed320f16172ba711f89b4a61d90712bc7037ec27ded2d0e",
+    "size": 13789617,
+    "base": "DuckClientZ-1.21.1-1.5.28-beta.2.43.jar",
+    "changed": [
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/SmoothCps244.class"
+    ]
+  },
+  "1.21.4": {
+    "file": "DuckClientZ-1.21.4-1.5.28-beta.2.44.jar",
+    "version": "1.5.28-beta.2.44",
+    "sha256": "7c318290de9e555179923edff6a863139e188c9803dd4d9ac182415c43f7a6af",
+    "size": 13825592,
+    "base": "DuckClientZ-1.21.4-1.5.28-beta.2.43.jar",
+    "changed": [
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/SmoothCps244.class"
+    ]
+  },
+  "1.21.11": {
+    "file": "DuckClientZ-1.21.11-1.5.28-beta.2.44.jar",
+    "version": "1.5.28-beta.2.44",
+    "sha256": "5a23c1a394658adfc0308d946f60314bb8c5f19ff1a495afa15d399084cff171",
+    "size": 12147554,
+    "base": "DuckClientZ-1.21.11-1.5.28-beta.2.43.jar",
+    "changed": [
+      "com/duckswords/modules/CpsDisplay.class",
+      "fabric.mod.json"
+    ],
+    "added": [
+      "com/duckswords/input/SmoothCps244.class"
+    ]
+  }
+}
