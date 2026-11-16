@@ -22,9 +22,17 @@ try:
   code=host.evaluate('NET.id');assert len(code)==6
   guest.evaluate("OUT.pants='a3'");guest.locator('#duo-code').fill(code);assert guest.evaluate('enterDuo(false)')
   guest.wait_for_function('NET.ready&&pl[0].id===1');host.wait_for_function('NET.connected')
+  assert host.evaluate('pl.filter(p=>p.id<2).every(p=>p.hp===200&&p.maxHp===200)')
+  guest.wait_for_function('pl.filter(p=>p.id<2).every(p=>p.hp===200&&p.maxHp===200)')
   host.evaluate("paused=true;pl.forEach(p=>{p.alive=p.id<2?1:0;p.g.visible=!!p.alive;p.st='ground';p.on=1;p.y=0;p.ch.visible=false;p.x=50;p.z=40+p.id*4});pl[0].yaw=0;pl[1].yaw=0;zf.r=150")
   guest.wait_for_function('pl[0].st===\"ground\"')
-  print('PASS: room creation, two-player join, guest identity and SSE state')
+  # Values above the old 100HP cap must survive the real HTTP/SSE round trip.
+  host.evaluate("pl.find(p=>p.id===0).hp=175;pl.find(p=>p.id===1).hp=185")
+  guest.wait_for_function('pl.find(p=>p.id===0).hp===175&&pl[0].hp===185&&pl[0].maxHp===200')
+  guest.wait_for_function("$('health-number').textContent==='185 / 200 HP'&&$('hf').style.width==='92.5%'")
+  host.evaluate('pl.filter(p=>p.id<2).forEach(p=>p.hp=200)')
+  guest.wait_for_function('pl.filter(p=>p.id<2).every(p=>p.hp===200&&p.maxHp===200)')
+  print('PASS: room creation, two players at 200 HP, values above 100 survive SSE, guest HUD uses maximum health')
   # Third player rejected; unauthenticated state writes rejected.
   def post(path,obj,token=None):
    req=urllib.request.Request(base+path,data=json.dumps(obj).encode(),headers={'Content-Type':'application/json',**({'Authorization':'Bearer '+token} if token else {})})
@@ -59,9 +67,10 @@ try:
   guest.wait_for_function("items.some(it=>it.t==='helmet'&&Math.hypot(it.x-pl[0].x,it.z-pl[0].z)<2)")
   guest.keyboard.press('KeyE');host.wait_for_function('pl.find(p=>p.id===1).helmet===100');guest.wait_for_function('pl[0].helmet===100')
   print('PASS: typed ground item, remote pickup and helmet synchronize')
-  host.evaluate("window.shotSolids=solids.splice(0);pl[0].x=50;pl[0].z=50;pl[0].hp=100;pl[0].armor=pl[0].helmet=0;const p=pl.find(p=>p.id===1);p.x=50;p.z=44;p.hp=100;p.mag.pistol=5;p.cur=0;p.cd=p.rl=0")
+  host.evaluate("window.shotSolids=solids.splice(0);pl[0].x=50;pl[0].z=50;pl[0].hp=200;pl[0].armor=pl[0].helmet=0;const p=pl.find(p=>p.id===1);p.x=50;p.z=44;p.hp=200;p.mag.pistol=5;p.cur=0;p.cd=p.rl=0")
   guest.wait_for_function('Math.abs(pl[0].z-44)<.2');guest.evaluate('pl[0].yaw=0;pl[0].pit=-.05')
-  guest.mouse.down();host.wait_for_function('pl[0].hp<100');guest.mouse.up()
+  guest.mouse.down();host.wait_for_function('pl[0].hp<200');guest.mouse.up()
+  guest.wait_for_function('pl.find(p=>p.id===0).hp<200&&pl.find(p=>p.id===0).hp>100')
   guest.wait_for_function('damageEvents.length>0')
   print('PASS: guest shot damages the host and receives a floating damage number')
   host.evaluate('solids.push(...window.shotSolids)')

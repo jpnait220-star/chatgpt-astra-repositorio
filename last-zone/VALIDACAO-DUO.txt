@@ -1,6 +1,31 @@
+REVISÃO 6 — ILHA VERDE E 200 HP
+
+PASSOU: test_health_200.py
+32 atores a 200 HP, kits preservados na vida cheia, cura real dos kits
+pequeno e grande limitada a 200 e barra de 100/200 mostrando 50%.
+
+PASSOU: test_verdant.py
+Terreno horizontal, raycast de altura coerente com a física,390 árvores e 4200
+planos de vegetação. Câmera com rotação imediata, distância 3,8 m em vez de 3,4 m,
+agachamento suave e sem atravessar parede. Assistência limitada a 0,4 rad/s
+sem ADS, somente ao disparar e com linha de visão; respeita câmera livre.
+Renderizações da cidade e vista aérea em qualidade média conferidas.
+Corrigido buffer de profundidade 16 bits que listrava o mapa distante.
+Sem erro JavaScript/shader nos cenários testados.
+
+PASSOU: test_duo.py
+Dois clientes começam a 200 HP;175/185 HP atravessam SSE sem truncamento;
+HUD do convidado 185/200, barra 92,5%; controles, loot, combate e desconexão.
+PASSOU: test_native_proxy.cjs — protocolo 4 e conexão do app ao servidor.
+
+Validação em Chromium com WebGL por software; FPS em GPU física e
+execução Windows ainda não testados.
+
+HISTÓRICO DA REVISÃO 5
+
 REVISÃO 5
 
-PASSOU: python3 test_revamp.py
+PASSOU: python 3 test_revamp.py
 48 kits e marcadores; bot contorna casa, coleta arma e consome kit;
 cura completa de 35 para 60 HP, sem ultrapassar a quantidade do kit.
 Safe usa tempo real; primeiro fechamento após 35 segundos, parede de 180m.
@@ -10,24 +35,24 @@ Sem erros JavaScript/shader nos cenários exercitados.
 
 VALIDAÇÃO LAST ZONE DUO
 
-PASSOU: python3 test_game.py
+PASSOU: python 3 test_game.py
 Lógica de loot e colete, corrida sem gasto de fôlego, gelo e remoção,
 transposição, munição da escopeta, caixas de eliminado e coleta por proximidade,
 três reinícios, qualidade, articulações e shader sem erro.
 
-PASSOU: python3 test_island.py
+PASSOU: python 3 test_island.py
 Áudio após gesto, volume, silêncio e agendamento limitado; 240 árvores e alturas
 de colisão, aceleração/frenagem, diagonal, 30/60 passos, parede fina, telhado,
 agachamento sob teto, qualidade e contato das mãos com a arma.
 
-PASSOU: python3 test_duo.py
+PASSOU: python 3 test_duo.py
 Dois contextos de Chromium no servidor Node HTTP/SSE real. Sala e entrada,
 identidade do convidado, movimento remoto, Ctrl, skin escolhida sincronizada,
 F sem alterar mira, item de capacete replicado e coletado pelo E, tiro do convidado
 contra o anfitrião, número de dano remoto e desconexão.
 Terceiro jogador e gravação sem token recusados.
 Colete: 20 de dano bruto -> 12 de vida. Capacete: 40 bruto na cabeça -> 22 de vida.
-M1014: máximo no corpo de perto 48, a 32 m 9, sem proteção.
+M 1014: máximo no corpo de perto 48, a 32 m 9, sem proteção.
 SCAR no slot 2: quatro ângulos testados, 21 de dano em cada acerto no corpo.
 Bot não vê nem dispara através de parede inserida entre ele e o alvo.
 Sem erros JavaScript/shader capturados.

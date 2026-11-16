@@ -1,4 +1,4 @@
-name: Publish Last Zone v5 downloads
+name: Publish Last Zone downloads
 on:
   push:
     branches: [last-zone-v5-download]
@@ -45,7 +45,7 @@ jobs:
           import assert from 'node:assert/strict';
           const archive='../desktop-dist/LAST ZONE-win32-x64/resources/app.asar';
           assert.deepEqual(extractFile(archive,'game.html'),fs.readFileSync('../LAST ZONE Duo.html'));
-          assert.equal(JSON.parse(extractFile(archive,'package.json')).version,'5.0.0');
+          assert.equal(JSON.parse(extractFile(archive,'package.json')).version,'6.0.0');
           assert.ok(extractFile(archive,'AUDIO-CREDITS.txt').length>1000);
           JS
       - name: Create and verify download packages
@@ -57,13 +57,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG=last-zone-v5.0.0
+          TAG=last-zone-v6.0.0
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" last-zone/release-dist/* --clobber
           else
             gh release create "$TAG" last-zone/release-dist/* \
               --target "${GITHUB_SHA}" \
-              --title "Last Zone v5 — Windows, HTML e servidor" \
+              --title "Last Zone v6 — Ilha verde, câmera estável e 200 HP" \
               --notes-file last-zone/RELEASE-NOTES.md \
               --prerelease
           fi

@@ -5,7 +5,7 @@ Não consegui consultar a documentação da Altare por bloqueio de rede; não es
 atribuindo nomes exatos aos campos do painel nem alegando deploy já validado lá.
 
 ARQUIVOS PARA ENVIAR
-Extraia LastZone-v5-Servidor.zip e envie seu conteúdo à pasta inicial do serviço:
+Extraia LastZone-v6-Servidor.zip e envie seu conteúdo à pasta inicial do serviço:
 server.mjs, LAST ZONE Duo.html, package.json, server-config.json e este guia.
 Não envie a pasta do aplicativo Windows para a hospedagem.
 
@@ -24,7 +24,7 @@ CONFIGURAÇÃO
    Com domínio HTTPS do serviço: https://SEU-DOMINIO
    Com apenas IP e porta HTTP públicos: http://IP-PUBLICO:PORTA
    Não escreva https se aquela porta só oferece HTTP.
-6. Abra /health nesse endereço. O JSON deve mostrar ok:true, game:"last-zone", protocol:3.
+6. Abra /health nesse endereço. O JSON deve mostrar ok:true, game:"last-zone", protocol:4.
    Se não responder, confira serviço iniciado, porta, endereço e se o plano expõe HTTP/TCP.
 
 NOS DOIS APLICATIVOS

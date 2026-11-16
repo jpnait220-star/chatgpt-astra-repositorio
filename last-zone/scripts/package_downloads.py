@@ -15,15 +15,18 @@ assert pe[:2] == b'MZ' and pe[pe_offset:pe_offset+4] == b'PE\0\0'
 assert struct.unpack_from('<H', pe, pe_offset+4)[0] == 0x8664
 for name in ['COMECE-AQUI.txt', 'ALTARE-GUIA.txt', 'AUDIO-CREDITS.txt', 'VALIDACAO-DUO.txt']:
     shutil.copyfile(ROOT / name, APP / name)
-with ZipFile(OUT / 'LastZone-v5-Windows.zip', 'w', ZIP_DEFLATED, compresslevel=1) as archive:
+with ZipFile(OUT / 'LastZone-v6-Windows.zip', 'w', ZIP_DEFLATED, compresslevel=1) as archive:
     for path in sorted(APP.rglob('*')):
         if path.is_file():
             archive.write(path, path.relative_to(APP.parent))
-with ZipFile(OUT / 'LastZone-v5-Servidor.zip', 'w', ZIP_DEFLATED) as archive:
+with ZipFile(OUT / 'LastZone-v6-Servidor.zip', 'w', ZIP_DEFLATED) as archive:
     for name in ['server.mjs', 'LAST ZONE Duo.html', 'package.json', 'server-config.json', 'ALTARE-GUIA.txt', 'AUDIO-CREDITS.txt', 'Dockerfile']:
         archive.write(ROOT / name, name)
-shutil.copyfile(ROOT / 'LAST ZONE Duo.html', OUT / 'LastZone-v5.html')
+shutil.copyfile(ROOT / 'LAST ZONE Duo.html', OUT / 'LastZone-v6.html')
 shutil.copyfile(ROOT / 'ALTARE-GUIA.txt', OUT / 'Guia-Altare.txt')
+for name in ['verdant-town.png', 'verdant-aerial.png']:
+    if (ROOT / name).is_file():
+        shutil.copyfile(ROOT / name, OUT / name)
 for path in OUT.glob('*.zip'):
     with ZipFile(path) as archive:
         assert archive.testzip() is None, path.name

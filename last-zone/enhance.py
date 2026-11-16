@@ -3,6 +3,11 @@ b=Path(__file__).resolve().parent
 s=(b/'original.html').read_text()
 s=s.replace('q.hl-=dt;q.hp=Math.min(100,q.hp+KT[q.hk].a/KT[q.hk].t*dt);', 'const healStep=Math.min(dt,q.hl);q.hl=Math.max(0,q.hl-dt);q.hp=Math.min(100,q.hp+KT[q.hk].a/KT[q.hk].t*healStep);')
 s=s.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','./three.min.js')
+# Keep initial health, medkit eligibility and recovery tied to the shared match limit.
+s=s.replace('id:k,hp:100,alive:1','id:k,hp:GAME_WORLD.maxHealth,maxHp:GAME_WORLD.maxHealth,alive:1')
+s=s.replace('p.hp<100','p.hp<(p.maxHp||GAME_WORLD.maxHealth)')
+s=s.replace('Math.min(100,q.hp+','Math.min(q.maxHp||GAME_WORLD.maxHealth,q.hp+')
+s=s.replace("Math.max(0,p.hp)+'%'","Math.max(0,Math.min(100,100*p.hp/(p.maxHp||GAME_WORLD.maxHealth)))+'%'")
 s=s.replace("rd.setPixelRatio(.6);rd.domElement.style.imageRendering='pixelated';", "rd.setPixelRatio(Math.min(devicePixelRatio,1.25));rd.outputEncoding=T.sRGBEncoding;rd.toneMapping=T.ACESFilmicToneMapping;rd.toneMappingExposure=1.15;rd.shadowMap.type=T.PCFSoftShadowMap;")
 s=s.replace('new T.MeshLambertMaterial({color:c,side:T.DoubleSide})','new T.MeshStandardMaterial({color:c,roughness:.78,metalness:.08})')
 s=s.replace("p.y+1.8<=yl", "p.y+(i.cr?1.15:1.8)<=yl")
@@ -24,6 +29,8 @@ s=s[:collision]+s[collision_end:]
 s=s.replace('let sp=i.cr?2.6:i.run?8.5:5.2;', 'let sp=p.moveSpeed??(i.cr?2.6:i.run?8.5:5.2);')
 s=s.replace("if(document.pointerLockElement&&state==='play'){const p=pl[0];p.yaw", "if(document.pointerLockElement&&state==='play'&&!(typeof BATTLE!=='undefined'&&BATTLE.free.held)){const p=pl[0];p.yaw")
 s=s.replace('rd.domElement.requestPointerLock()', 'requestMouseLock()')
+s=s.replace('e.movementX*.0025*(aim?.6:1)', 'Math.max(-240,Math.min(240,e.movementX))*.00175*(aim?.6:1)')
+s=s.replace('e.movementY*.0025*(aim?.6:1)', 'Math.max(-240,Math.min(240,e.movementY))*.00175*(aim?.6:1)')
 # Controls and deterministic terrain for shared matches.
 s=s.replace('R=Math.random', 'R=(()=>{let seed=120518;return ()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}})()')
 s=s.replace('cr:K.KeyC', 'cr:(K.ControlLeft||K.ControlRight)')
@@ -35,7 +42,7 @@ s=s.replace("if(e.code==='KeyE')useVeh(p)", "if(e.code==='KeyB')useVeh(p)")
 s=s.replace('k?new T.Color().setHSL(R(),.5,.45).getHex()', 'k?[0x526b68,0x576a80,0x7c6555,0x6d617e,0x64784f,0x7b5959,0x526879,0x6d705a][k%8]')
 s=s.replace('c=new T.Color().setHSL(R(),.6,.45).getHex()', 'c=[0x526b68,0x576a80,0x7c6555,0x64784f,0x7b5959][k%5]')
 # Larger deterministic island and guarded end-of-round callbacks.
-s=s.replace('const T=THREE', 'const GAME_WORLD={radius:400,players:32,maxHealth:100};let ROUND_ID=0;const T=THREE')
+s=s.replace('const T=THREE', 'const GAME_WORLD={radius:400,players:32,maxHealth:200};let ROUND_ID=0;const T=THREE')
 s=s.replace('new T.WebGLRenderer({antialias:true})', 'new T.WebGLRenderer({antialias:false,powerPreference:"high-performance"})')
 s=s.replace('new T.CylinderGeometry(155,160,.6,40)', 'new T.CylinderGeometry(GAME_WORLD.radius,GAME_WORLD.radius+5,.6,64)')
 s=s.replace('new T.PlaneGeometry(10,300)', 'new T.PlaneGeometry(10,GAME_WORLD.radius*2-12)')
@@ -61,7 +68,7 @@ for(const [name,cx,cz]of OUTER_DISTRICTS){ZN.push([cx,cz,37]);AR.push([name,cx,c
 s=s.replace('const tg=new T.ConeGeometry', extra_map+'const tg=new T.ConeGeometry')
 s=s.replace('Math.min(.05,clk.getDelta())','Math.min(.1,clk.getDelta())')
 s=s.replace('zr.position.set(zf.x,30,zf.z)','zr.position.set(zf.x,90,zf.z)')
-s=s.replace('newGame.call&&0;loop();', (b/'upgrade.js').read_text()+'\n'+(b/'visuals.js').read_text()+'\n'+(b/'animation.js').read_text()+'\n'+(b/'graphics.js').read_text()+'\n'+(b/'island.js').read_text()+'\n'+(b/'polish.js').read_text()+'\n'+(b/'combat-ui.js').read_text()+'\n'+(b/'multiplayer.js').read_text()+'\n'+(b/'balance.js').read_text()+'\n'+(b/'expansion.js').read_text()+'\n'+(b/'controls.js').read_text()+'\n'+(b/'campaign.js').read_text()+'\n'+(b/'revamp-world.js').read_text()+'\n'+(b/'revamp-movement.js').read_text()+'\n'+(b/'revamp-ai.js').read_text()+'\n'+(b/'audio-assets.js').read_text()+'\n'+(b/'revamp-audio.js').read_text()+'\nloop();')
+s=s.replace('newGame.call&&0;loop();', (b/'upgrade.js').read_text()+'\n'+(b/'visuals.js').read_text()+'\n'+(b/'animation.js').read_text()+'\n'+(b/'graphics.js').read_text()+'\n'+(b/'island.js').read_text()+'\n'+(b/'polish.js').read_text()+'\n'+(b/'combat-ui.js').read_text()+'\n'+(b/'multiplayer.js').read_text()+'\n'+(b/'balance.js').read_text()+'\n'+(b/'expansion.js').read_text()+'\n'+(b/'controls.js').read_text()+'\n'+(b/'campaign.js').read_text()+'\n'+(b/'revamp-world.js').read_text()+'\n'+(b/'revamp-movement.js').read_text()+'\n'+(b/'revamp-ai.js').read_text()+'\n'+(b/'audio-assets.js').read_text()+'\n'+(b/'revamp-audio.js').read_text()+'\n'+(b/'verdant-world.js').read_text()+'\n'+(b/'aim-camera.js').read_text()+'\nloop();')
 s=s.replace('<title>LAST ZONE</title>', '<title>LAST ZONE · Frontier</title><link rel="icon" href="data:,">')
 s=s.replace('</style>', '''
 body.in-menu .hud{display:none}#edition{position:fixed;left:20px;top:53px;letter-spacing:3px;color:#9ef3e9;font-size:11px}#quality{position:fixed;right:20px;top:20px;z-index:8;padding:8px 14px;font-size:12px;background:#122c3b;color:#b8fff3;border:1px solid #5daea4}#extra{left:16px;bottom:70px;font:13px system-ui;color:#aaf5ef;line-height:1.8}#hint{bottom:150px;left:50%;transform:translateX(-50%);background:#071620cc;padding:10px 18px;border:1px solid #66dac8;border-radius:10px;max-width:70vw;text-align:center}#news{position:fixed;left:20px;top:135px;text-align:left;background:#0b1b28d9;border:1px solid #426b79;border-radius:12px;padding:18px;max-width:300px;line-height:1.8;font-size:13px}#news strong{color:#7ef3dc;letter-spacing:2px}#feed{max-height:180px;overflow:hidden}#help{max-height:45vh;overflow:auto}button{transition:filter .15s,transform .15s}button:hover{filter:brightness(1.15);transform:translateY(-2px)}#bplay{background:linear-gradient(110deg,#62f0d0,#e2e97c);box-shadow:0 8px 40px #4edcb844}#top{background:#071620a8;border:1px solid #506a7b;border-radius:8px;padding:8px 24px}#cross{font-size:24px}#menu h1{color:#d4fff4;text-shadow:0 0 24px #45d9b8}#hb{border:1px solid #9ff3df}#ammo{color:#d5fff4}

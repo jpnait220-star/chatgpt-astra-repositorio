@@ -1,10 +1,10 @@
-# Last Zone v5
+# Last Zone v6
 
 Protótipo de battle royale com app Electron Windows, alternativa HTML e servidor Node.js para dois humanos e bots.
 
 ## Downloads
 
-Os pacotes são publicados na [release v5](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/last-zone-v5.0.0) pelo workflow `Publish Last Zone v5 downloads`.
+Os pacotes são publicados na [release v6](https://github.com/jpnait220-star/chatgpt-astra-repositorio/releases/tag/last-zone-v6.0.0) pelo workflow `Publish Last Zone v6 downloads`.
 
 ## Reproduzir os pacotes
 
@@ -27,7 +27,7 @@ Saídas em `release-dist/`. Electron está fixado em 45.3.2 e o empacotador em 2
 node server.mjs
 ```
 
-Leia `ALTARE-GUIA.txt`; a porta vem de `PORT`, `SERVER_PORT`, `server-config.json` ou 8080. Protocolo 3. O servidor usa apenas módulos nativos do Node.
+Leia `ALTARE-GUIA.txt`; a porta vem de `PORT`, `SERVER_PORT`, `server-config.json` ou 8080. Protocolo 4. O servidor usa apenas módulos nativos do Node.
 
 ## Validação e limites
 

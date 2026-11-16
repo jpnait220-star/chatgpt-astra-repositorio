@@ -3,3 +3,8 @@ desktop-dist/
 release-dist/
 __pycache__/
 *.zip
+
+# Generated HTML aliases; the canonical Duo build and desktop copy are tracked.
+LAST ZONE Frontier.html
+LAST ZONE Frontier offline.html
+LAST ZONE Island 2.html

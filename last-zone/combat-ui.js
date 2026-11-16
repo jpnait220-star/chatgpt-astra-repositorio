@@ -49,7 +49,7 @@ function battleHud(){const p=pl[0];if(!p||state!=='play')return;const t=p.w[p.cu
 }
 const battleRender=rd.render.bind(rd);let battlePrev=performance.now(),battleUI=0;
 rd.render=function(scene,camera){const now=performance.now(),dt=Math.min(.05,(now-battlePrev)/1000);battlePrev=now;BATTLE.clock+=dt;zoneTime.value=BATTLE.clock;
- if(scene===sc&&state==='play'){const p=pl[0],f=BATTLE.free;if(!f.held){f.yaw*=Math.exp(-dt*14);f.pitch*=Math.exp(-dt*14)}if(Math.abs(f.yaw)+Math.abs(f.pitch)>.001){const y=p.yaw+f.yaw,pitch=Math.max(-1,Math.min(1,p.pit+f.pitch)),dir=new T.Vector3(Math.sin(y)*Math.cos(pitch),Math.sin(pitch),Math.cos(y)*Math.cos(pitch)),head=new T.Vector3(p.x,p.y+(p.crouched?1.25:1.65),p.z);if(view===1){cam.position.copy(head);cam.lookAt(head.clone().add(dir))}else{rc.set(head,dir.clone().negate());rc.far=3.8;const wall=rc.intersectObjects(solids,false)[0],dist=wall?Math.max(.35,wall.distance-.2):3.4;cam.position.copy(head).addScaledVector(dir,-dist);cam.lookAt(head)}}
+ if(scene===sc&&state==='play'){const p=pl[0],f=BATTLE.free;if(!f.held){f.yaw*=Math.exp(-dt*14);f.pitch*=Math.exp(-dt*14)}if(typeof stableCameraUpdate==='undefined' && (Math.abs(f.yaw)+Math.abs(f.pitch)>.001)){const y=p.yaw+f.yaw,pitch=Math.max(-1,Math.min(1,p.pit+f.pitch)),dir=new T.Vector3(Math.sin(y)*Math.cos(pitch),Math.sin(pitch),Math.cos(y)*Math.cos(pitch)),head=new T.Vector3(p.x,p.y+(p.crouched?1.25:1.65),p.z);if(view===1){cam.position.copy(head);cam.lookAt(head.clone().add(dir))}else{rc.set(head,dir.clone().negate());rc.far=3.8;const wall=rc.intersectObjects(solids,false)[0],dist=wall?Math.max(.35,wall.distance-.2):3.4;cam.position.copy(head).addScaledVector(dir,-dist);cam.lookAt(head)}}
  safeEdge.position.set(zf.x,.065,zf.z);safeEdge.scale.setScalar(zf.r);nextEdge.visible=!!ZP[zph];nextEdge.position.set(z1.x,.07,z1.z);nextEdge.scale.setScalar(z1.r);
  battleUI+=dt;if(battleUI>.10){battleUI=0;battleHud()}for(const [it,g]of ownedItems){if(!items.includes(it)){release(g);ownedItems.delete(it)}}}
  battleRender(scene,camera);
@@ -68,12 +68,12 @@ ai=function(b,dt){b.brain??={scan:0,reaction:.45,side:b.id%2?1:-1,strafe:1.4,tar
  if(best){const dist=Math.hypot(best.x-b.x,best.z-b.z);let bestId=b.w[b.cur],bestScore=-Infinity;for(const id of b.w){if(b.mag[id]+b.ammo[id]<=0)continue;const preferred=id==='awm'?(dist>32?8:1):id==='m1014'?(dist<12?10:0):id==='ump'||id==='mp40'?(dist<25?7:3):id==='pistol'?1:6;if(preferred>bestScore){bestScore=preferred;bestId=id}}if(b.w[b.cur]!==bestId&&b.rl<=0)eq(b,b.w.indexOf(bestId))}
  }
  const enemy=brain.target,visible=enemy?.alive&&botVisible(b,enemy),outside=Math.hypot(b.x-zf.x,b.z-zf.z)>zf.r-7;
- if(b.hp<48&&b.hl<=0&&(!visible||Math.hypot(enemy.x-b.x,enemy.z-b.z)>28))heal(b,b.k100>0?'k100':'k25');
+ if(b.hp<(b.maxHp||GAME_WORLD.maxHealth)*.48&&b.hl<=0&&(!visible||Math.hypot(enemy.x-b.x,enemy.z-b.z)>28))heal(b,b.k100>0?'k100':'k25');
  if(b.mag[b.w[b.cur]]<=0&&b.rl<=0)reload(b);
  if(outside){b.yaw+=ang(b.yaw,Math.atan2(zf.x-b.x,zf.z-b.z))*Math.min(1,dt*4);i.f=1;i.run=1;return botAvoid(b,i)}
  if(visible){const dx=enemy.x-b.x,dz=enemy.z-b.z,dist=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);b.yaw+=ang(b.yaw,angle)*Math.min(1,dt*5.2);
  if(brain.strafe<=0){brain.strafe=1.1+(b.id%4)*.25;brain.side=-brain.side}i.r=brain.side*.45;i.f=dist>30?.65:dist<7?-.65:0;
- if(b.rl>0||b.hp<30){i.f=dist<20?-.6:0;i.r=brain.side*.8;i.cr=b.rl>0&&dist>16?1:0}
+ if(b.rl>0||b.hp<(b.maxHp||GAME_WORLD.maxHealth)*.30){i.f=dist<20?-.6:0;i.r=brain.side*.8;i.cr=b.rl>0&&dist>16?1:0}
  if(b.hl>0){i.f=0;i.r=0;i.cr=1}
  if(brain.reaction<=0&&Math.abs(ang(b.yaw,angle))<.11&&b.cd<=0&&b.rl<=0&&b.hl<=0){const from=new T.Vector3(b.x,b.y+(b.crouched?1:1.5),b.z),target=new T.Vector3(enemy.x,enemy.y+(enemy.crouched?.78:1.1),enemy.z),dir=target.sub(from).normalize(),error=.006+dist*.00008;dir.x+=Math.sin(BATTLE.clock*4+b.id)*error;dir.y+=Math.cos(BATTLE.clock*3+b.id)*error;fire(b,from,dir.normalize());b.cd+=.12+(b.id%4)*.035}
  }else{if(brain.roam<=0||Math.hypot(brain.gx-b.x,brain.gz-b.z)<2){brain.roam=4;let target=null,nearest=28;for(const it of items){const dist=Math.hypot(it.x-b.x,it.z-b.z);const useful=WP[it.t]?!b.w.includes(it.t):it.t==='ammo'||it.t==='armor'||it.t==='k25'&&b.k25<3;if(useful&&dist<nearest){nearest=dist;target=it}}if(target){brain.gx=target.x;brain.gz=target.z}else{const a=R()*PI*2,r=Math.min(zf.r*.65,70)*R();brain.gx=zf.x+Math.sin(a)*r;brain.gz=zf.z+Math.cos(a)*r}}

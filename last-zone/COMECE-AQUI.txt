@@ -1,6 +1,6 @@
 LAST ZONE — APLICATIVO WINDOWS
 
-1. Extraia TODO o ZIP LastZone-v5-Windows.zip.
+1. Extraia TODO o ZIP LastZone-v6-Windows.zip.
 2. Abra a pasta LAST ZONE-win32-x64 e execute LAST ZONE.exe.
 3. Não mova apenas o .exe: mantenha as DLLs e a pasta resources ao lado dele.
 4. Jogue solo imediatamente, ou configure o servidor público no menu do aplicativo.
@@ -15,7 +15,7 @@ O ou botão CONTROLES: menu para alterar cada tecla e botão do mouse.
 Esc pausa/libera mouse. A janela do app confirma antes de sair.
 
 NOVIDADES
-100 HP visíveis; mira dinâmica e auxílio leve somente ao atirar com linha de visão.
+200 HP visíveis; mira dinâmica e auxílio leve somente ao atirar com linha de visão.
 Ilha de 800 m de diâmetro, 8 distritos novos, 32 participantes (31 bots solo, 30 online).
 Bots pousam espalhados, coletam itens e caixas e migram gradualmente com a safe.
 Não há invulnerabilidade nem regra artificial impedindo encontros entre bots.
