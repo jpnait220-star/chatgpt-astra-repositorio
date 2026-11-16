@@ -1,0 +1,16 @@
+LASTZONE FRONTIER — ALPHA 0.2
+
+1. Extraia TODO o ZIP em uma pasta.
+2. Abra LastZoneFrontier.exe.
+3. Mantenha LastZoneFrontier.pck ao lado do executável.
+4. Clique em INICIAR BATALHA. O cofre permite mudar o personagem.
+
+Controles: WASD andar, mouse olhar, Shift correr, Espaço pular/paraquedas,
+Ctrl/C agachar, Q deslizar, V janela, esquerdo atirar, direito mirar,
+R recarregar, 1/2/3 armas, T gelo, G granada, B veículo, H/J kits,
+Tab inventário, M mapa, E coletar, L coleta automática, K jetpack,
+F5 câmera, Alt olhar livre, Esc pausa, F11 tela cheia.
+
+Duo não está nesta versão. Leia README.md para detalhes e créditos.
+Windows 10/11 de 64 bits, driver com OpenGL 3.3.
+Pacote testado no Linux com Godot 4.6.3; Windows e RX 580 não foram testados.

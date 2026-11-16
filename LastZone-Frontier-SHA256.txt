@@ -1,0 +1,2 @@
+c999e8729f8f6cf9e5ab6436f29170653455a63533ee4ce573e0043eee21541c  LastZone-Frontier-Windows-0.2.zip
+83a416d49dd074b81509b3a08d162063f1dd316dd7d53f56656a4082f4e5b7df  LastZone-Frontier-Godot-0.2.zip
