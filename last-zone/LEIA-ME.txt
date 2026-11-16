@@ -1,0 +1,52 @@
+LAST ZONE DUO — REVISÃO DE COMBATE, HUD E MULTIPLAYER
+
+Abra LAST ZONE Duo.html para jogar offline contra bots.
+Para vocês jogarem pela internet, leia MULTIPLAYER.txt: o servidor incluído precisa de hospedagem pública.
+O jogo é para teclado/mouse e WebGL. Não há controle de toque implementado.
+
+CONTROLES
+WASD: mover | Shift: correr sem limite, sem sistema de fôlego.
+Ctrl esquerdo/direito: agachar | Espaço: pular/abrir paraquedas.
+Mouse: mirar | Clique: atirar | Botão direito: aproximar a mira.
+1–3: armas | R: recarregar | H: kit +25 | J: kit +100.
+G: granada | T: parede de gelo | V: transpor janela/obstáculo baixo.
+Segurar F: olhar livre sem alterar a mira do personagem; soltar: câmera retorna.
+E: coletar item próximo/pegar conteúdo da caixa | B: entrar/sair de veículo.
+Q: deslizar | Tab: inventário | M: mapa | F5: perspectiva | Esc: pausa/menu.
+
+HUD E EQUIPAMENTOS
+Loot e itens reais da caixa de eliminado aparecem na lateral direita.
+A coleta de caixas exige proximidade e transfere o inventário disponível.
+Cura, colete e capacete à esquerda; recarga/granada/gelo junto às armas, à direita.
+Colete: absorve 40% do dano no corpo até gastar sua durabilidade.
+Capacete: absorve 45% do dano na cabeça até gastar sua durabilidade.
+Colete e capacete também aparecem no personagem equipado.
+Números sobre o alvo mostram a vida efetivamente removida pelo tiro;
+dourado identifica cabeça, azul identifica alvo protegido.
+Os dois equipamentos começam vazios e são encontrados no mapa.
+
+ARMAS: DANO BASE MÁXIMO NO CORPO (SEM PROTEÇÃO)
+Pistola 18; UMP 13; MP40 11; AK 24; SCAR 21; AWM 65.
+M1014: seis projéteis de 8 pontos a curta distância (48 no total), caindo até 9 no total a 32 m.
+Cada arma tem sua curva de queda por distância. Cabeça multiplica o dano por 1,5 a 1,9.
+Pescoço usa 1,25. A proteção é aplicada depois do multiplicador.
+Dispersão aleatória removida: a trajetória converge do cano para o ponto indicado pela mira.
+A câmera livre bloqueia o disparo enquanto F está pressionado.
+
+OUTRAS MELHORIAS
+Armas modeladas no chão; munição com cartuchos, kits com cruz, coletes, capacetes,
+granadas e cristais de gelo substituem as caixas genéricas.
+A safe tem limite luminoso no chão e parede translúcida animada; a próxima zona é destacada.
+Bots reavaliam linha de visão antes de disparar, priorizam equipamento, usam distâncias
+preferidas, alternam deslocamento lateral, recarregam, curam e procuram a zona segura.
+Animações procedurais com articulações preenchidas, IK das mãos, inclinação do tronco
+e transições de corrida/agachamento. São adaptações próprias; não são animações extraídas de Free Fire.
+Música instrumental sintetizada localmente, iniciada após clique, com volume e silêncio.
+
+LIMITES E TESTES
+Testes em Chromium headless/WebGL por software. Não há benchmark de FPS em GPU física,
+validação de celulares ou publicação do servidor em hospedagem externa.
+As mecânicas foram exercitadas em cenários controlados, não em partidas competitivas extensas.
+A pesquisa histórica de FF 2018/2022 permaneceu bloqueada pela rede; não atribuímos versões históricas.
+Nenhum modelo, áudio ou animação de Free Fire foi copiado.
+Fontes e scripts de reconstrução estão no ZIP. O HTML inclui Three.js r128, sem CDN em runtime.

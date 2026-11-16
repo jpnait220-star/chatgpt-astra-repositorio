@@ -1,0 +1,23 @@
+// World-space surface detail stays consistent on merged building meshes without UVs.
+for(const key in ST){const material=mt(+key);material.roughness=.96;material.metalness=0;material.onBeforeCompile=shader=>{shader.vertexShader='varying vec3 detailWorld;varying vec3 detailNormal;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\ndetailWorld=(modelMatrix*vec4(transformed,1.)).xyz;detailNormal=normalize(mat3(modelMatrix)*normal);');shader.fragmentShader='varying vec3 detailWorld;varying vec3 detailNormal;float grain(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+vec3 nd=abs(normalize(detailNormal));vec2 uvw=nd.y>.7?detailWorld.xz:(nd.x>.7?detailWorld.zy:detailWorld.xy);float surface=grain(floor(uvw*90.));float broad=grain(floor(uvw*3.));float weather=sin(uvw.y*4.+sin(uvw.x*3.))*.018;diffuseColor.rgb*=.86+surface*.15+broad*.06+weather;
+float row=floor(uvw.y*2.8);vec2 bricks=fract(vec2(uvw.x*1.5+mod(row,2.)*.5,uvw.y*2.8));float mortar=(1.-smoothstep(.025,.06,bricks.y))*.12;diffuseColor.rgb*=1.-mortar;`)};material.needsUpdate=true;}
+// Warm sand, muted grass and cool distance separate planes of the landscape.
+sc.background.setHex(0x9cbac7);sc.fog.color.setHex(0x9cbac7);sc.fog.near=95;sc.fog.far=285;
+sun.color.setHex(0xffd9aa);sun.shadow.normalBias=.025;sun.shadow.radius=3;
+const sizeG=new T.Vector2(),postTarget=new T.WebGLRenderTarget(1,1,{minFilter:T.LinearFilter,magFilter:T.LinearFilter,depthBuffer:true});
+const screenScene=new T.Scene(),screenCamera=new T.OrthographicCamera(-1,1,1,-1,0,1);
+const finishShader=new T.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{image:{value:postTarget.texture},pixel:{value:new T.Vector2(1,1)},strength:{value:1}},vertexShader:'varying vec2 tex;void main(){tex=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:`uniform sampler2D image;uniform vec2 pixel;uniform float strength;varying vec2 tex;
+void main(){vec3 c=texture2D(image,tex).rgb;vec3 n=texture2D(image,tex+vec2(0.,pixel.y)).rgb;vec3 s=texture2D(image,tex-vec2(0.,pixel.y)).rgb;vec3 e=texture2D(image,tex+vec2(pixel.x,0.)).rgb;vec3 w=texture2D(image,tex-vec2(pixel.x,0.)).rgb;float contrast=length(c-(n+s+e+w)*.25);c=mix(c,(n+s+e+w+c*4.)*.125,smoothstep(.08,.3,contrast)*.4);vec3 glow=vec3(0.);for(int i=0;i<8;i++){float a=float(i)*.785398;vec3 tap=texture2D(image,tex+vec2(cos(a),sin(a))*pixel*5.).rgb;glow+=max(tap-.82,0.);}c+=glow*.065*strength;float l=dot(c,vec3(.2126,.7152,.0722));c=mix(vec3(l),c,1.08);c*=vec3(1.025,1.005,.98);vec2 v=tex*(1.-tex);float vignette=pow(clamp(v.x*v.y*16.,0.,1.),.16);c*=mix(.88,1.,vignette);gl_FragColor=vec4(max(c,0.),1.);
+#include <encodings_fragment>
+}`});screenScene.add(new T.Mesh(new T.PlaneGeometry(2,2),finishShader));
+const sceneRender=rd.render.bind(rd);
+rd.render=function(scene,camera){if(FRONTIER.quality===0){sceneRender(scene,camera);return}rd.getDrawingBufferSize(sizeG);if(postTarget.width!==sizeG.x||postTarget.height!==sizeG.y){postTarget.setSize(sizeG.x,sizeG.y);finishShader.uniforms.pixel.value.set(1/sizeG.x,1/sizeG.y)}rd.setRenderTarget(postTarget);sceneRender(scene,camera);rd.setRenderTarget(null);oldRender(screenScene,screenCamera)};
+// Long grasses and stones are decorations; all traversable paths keep their original collision.
+$('news').innerHTML='<strong>FRONTIER · VISUAL REWORK</strong><br>Materiais com detalhe e desgaste<br>Água com ondas e reflexos Fresnel<br>Vegetação e nuvens em instâncias<br>Luz quente, sombras suaves e névoa<br>Pós-processamento com brilho e vinheta<br>Angelical escura com asas brancas<br>Cabelo prata com raiz violeta<br><small>Qualidade leve desliga o pós-processamento</small>';
+// Palette values in the source are sRGB swatches. Decode them before physical lighting.
+const decodedMaterials=new WeakSet();function decodePalette(root){root.traverse(o=>{const m=o.material;if(m?.isMeshStandardMaterial&&!decodedMaterials.has(m)){m.color.convertSRGBToLinear();decodedMaterials.add(m)}})}decodePalette(sc);decodePalette(ls);
+const graphicChar=mkChar;mkChar=function(col,o){const q=graphicChar(col,o);decodePalette(q.g);return q};
+// Distant ridge adds a silhouette beyond the flat island, with no gameplay collision changes.
+const ridge=[];for(let i=0;i<17;i++){const a=i/17*PI*2;ridge.push({p:[Math.cos(a)*(GAME_WORLD.radius+120),-4,Math.sin(a)*(GAME_WORLD.radius+120)],s:[22+(i%3)*8,18+(i%5)*7,24],r:[0,a,0]})}instances(new T.ConeGeometry(1,1,7),new T.MeshStandardMaterial({color:0x657783,roughness:1}),ridge);decodePalette(sc);
+showChar();

@@ -1,0 +1,70 @@
+name: Publish Last Zone v5 downloads
+on:
+  push:
+    branches: [last-zone-v5-download]
+    paths:
+      - '.github/workflows/publish-last-zone-v5.yml'
+      - 'last-zone/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: last-zone-v5-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Last Zone sources
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: last-zone
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: last-zone/desktop-build/package-lock.json
+      - name: Install pinned packaging tools
+        working-directory: last-zone/desktop-build
+        run: npm ci --no-audit --no-fund
+      - name: Build self-contained game
+        working-directory: last-zone
+        run: python3 build_release.py
+      - name: Package Electron for Windows x64
+        working-directory: last-zone/desktop-build
+        run: node build.mjs win32
+      - name: Check embedded game, version and audio credits
+        working-directory: last-zone/desktop-build
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import {extractFile} from '@electron/asar';
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const archive='../desktop-dist/LAST ZONE-win32-x64/resources/app.asar';
+          assert.deepEqual(extractFile(archive,'game.html'),fs.readFileSync('../LAST ZONE Duo.html'));
+          assert.equal(JSON.parse(extractFile(archive,'package.json')).version,'5.0.0');
+          assert.ok(extractFile(archive,'AUDIO-CREDITS.txt').length>1000);
+          JS
+      - name: Create and verify download packages
+        working-directory: last-zone
+        run: python3 scripts/package_downloads.py
+      - name: Publish GitHub release downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG=last-zone-v5.0.0
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" last-zone/release-dist/* --clobber
+          else
+            gh release create "$TAG" last-zone/release-dist/* \
+              --target "${GITHUB_SHA}" \
+              --title "Last Zone v5 — Windows, HTML e servidor" \
+              --notes-file last-zone/RELEASE-NOTES.md \
+              --prerelease
+          fi
+          gh release view "$TAG" --json url,assets

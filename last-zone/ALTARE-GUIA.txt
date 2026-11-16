@@ -1,0 +1,43 @@
+LAST ZONE — ALTARE.GG / NODE.JS
+
+Seu plano Node.js foi confirmado por você. A porta será escolhida depois.
+Não consegui consultar a documentação da Altare por bloqueio de rede; não estou
+atribuindo nomes exatos aos campos do painel nem alegando deploy já validado lá.
+
+ARQUIVOS PARA ENVIAR
+Extraia LastZone-v5-Servidor.zip e envie seu conteúdo à pasta inicial do serviço:
+server.mjs, LAST ZONE Duo.html, package.json, server-config.json e este guia.
+Não envie a pasta do aplicativo Windows para a hospedagem.
+
+CONFIGURAÇÃO
+1. Selecione Node.js 20 ou superior no serviço.
+2. Arquivo inicial/comando de inicialização: node server.mjs
+   Se o painel usa npm start, o package.json incluído já tem esse comando.
+   Não há pacotes de produção para instalar, banco ou chave de API.
+3. Use a porta TCP pública que o painel atribuir ao serviço.
+   O servidor lê PORT, depois SERVER_PORT. Se a Altare preencher uma delas, é automático.
+   Se não preencher, abra server-config.json e troque null pelo NÚMERO da porta real:
+   { "port": 12345 }
+   12345 é apenas exemplo: use a porta do seu painel. Não coloque aspas no número.
+4. Inicie o serviço. O console deve dizer: LAST ZONE Duo disponível na porta NÚMERO.
+5. Use o endereço público da aplicação, NÃO o endereço do painel da Altare.
+   Com domínio HTTPS do serviço: https://SEU-DOMINIO
+   Com apenas IP e porta HTTP públicos: http://IP-PUBLICO:PORTA
+   Não escreva https se aquela porta só oferece HTTP.
+6. Abra /health nesse endereço. O JSON deve mostrar ok:true, game:"last-zone", protocol:3.
+   Se não responder, confira serviço iniciado, porta, endereço e se o plano expõe HTTP/TCP.
+
+NOS DOIS APLICATIVOS
+1. No menu principal, em SERVIDOR ONLINE, informe o mesmo endereço público.
+2. Clique SALVAR E TESTAR. O app valida /health antes de salvar.
+3. Um jogador clica CRIAR SALA e compartilha o código de seis caracteres.
+4. O amigo informa o código e clica ENTRAR.
+5. O anfitrião clica CONTINUAR.
+
+LIMITES
+Um processo/instância Node. Salas em memória, apagadas quando o serviço reinicia.
+Dois humanos como adversários e 30 bots. O navegador/app do anfitrião executa a simulação.
+O servidor transmite entradas/estado; ainda não é um servidor competitivo com anti-cheat.
+Mantenha o app do anfitrião aberto. Sair encerra a sala para o amigo.
+A conexão à Altare ainda depende da porta e da publicação no seu painel.
+Se o plano não expuser HTTP/TCP para aplicações Node, será necessário outro tipo de serviço.

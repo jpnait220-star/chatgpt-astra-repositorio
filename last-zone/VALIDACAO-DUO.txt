@@ -1,0 +1,39 @@
+REVISÃO 5
+
+PASSOU: python3 test_revamp.py
+48 kits e marcadores; bot contorna casa, coleta arma e consome kit;
+cura completa de 35 para 60 HP, sem ultrapassar a quantidade do kit.
+Safe usa tempo real; primeiro fechamento após 35 segundos, parede de 180m.
+Deslizamento em parede, tolerância de salto e inércia controlada no paraquedas.
+7 samples decodificados, amplitude normalizada, vozes liberadas e música em 80%.
+Sem erros JavaScript/shader nos cenários exercitados.
+
+VALIDAÇÃO LAST ZONE DUO
+
+PASSOU: python3 test_game.py
+Lógica de loot e colete, corrida sem gasto de fôlego, gelo e remoção,
+transposição, munição da escopeta, caixas de eliminado e coleta por proximidade,
+três reinícios, qualidade, articulações e shader sem erro.
+
+PASSOU: python3 test_island.py
+Áudio após gesto, volume, silêncio e agendamento limitado; 240 árvores e alturas
+de colisão, aceleração/frenagem, diagonal, 30/60 passos, parede fina, telhado,
+agachamento sob teto, qualidade e contato das mãos com a arma.
+
+PASSOU: python3 test_duo.py
+Dois contextos de Chromium no servidor Node HTTP/SSE real. Sala e entrada,
+identidade do convidado, movimento remoto, Ctrl, skin escolhida sincronizada,
+F sem alterar mira, item de capacete replicado e coletado pelo E, tiro do convidado
+contra o anfitrião, número de dano remoto e desconexão.
+Terceiro jogador e gravação sem token recusados.
+Colete: 20 de dano bruto -> 12 de vida. Capacete: 40 bruto na cabeça -> 22 de vida.
+M1014: máximo no corpo de perto 48, a 32 m 9, sem proteção.
+SCAR no slot 2: quatro ângulos testados, 21 de dano em cada acerto no corpo.
+Bot não vê nem dispara através de parede inserida entre ele e o alvo.
+Sem erros JavaScript/shader capturados.
+
+LIMITES
+Chromium headless com WebGL por software; sem medição de FPS em GPU física.
+Cenários controlados; não substituem testes extensos de balanceamento.
+Servidor público ainda não publicado; conexão entre redes reais não foi testada.
+Não foi executado build do contêiner Docker; o servidor Node foi executado diretamente.

@@ -1,0 +1,55 @@
+LAST ZONE DUO — TESTAR EM REDES DIFERENTES
+
+O HTML sozinho permite jogar contra bots. Para multiplayer pela internet, é necessário
+publicar o servidor Node incluído. Não há um servidor público operado por esta entrega.
+Não basta enviar o arquivo HTML ou usar um endereço localhost no PC do amigo.
+
+PUBLICAR NA INTERNET (exemplo: Render)
+1. Extraia o ZIP e envie estes arquivos a um repositório seu no GitHub:
+   server.mjs, LAST ZONE Duo.html, Dockerfile, render.yaml, package.json.
+   Mantenha os nomes, incluindo os espaços do HTML.
+2. No painel da Render, crie um Web Service a partir desse repositório.
+   Use Docker como ambiente, Dockerfile da raiz e /health como Health Check.
+   O render.yaml também fornece essa configuração para importação por Blueprint.
+   Confira os planos/preços disponíveis na sua conta antes de confirmar a hospedagem.
+3. Aguarde o deploy e copie a URL HTTPS fornecida pelo serviço.
+4. Os dois jogadores abrem ESSA MESMA URL no navegador.
+5. Jogador 1: CRIAR SALA. Compartilhe o código de 6 caracteres que aparece na tela.
+6. Jogador 2: digite o código e clique ENTRAR.
+7. No anfitrião, clique CONTINUAR quando o amigo tiver entrado.
+   Se o navegador não capturar o mouse, clique CONTINUAR novamente.
+
+Outro serviço Node/Docker com HTTP de longa duração (SSE) também pode executar o servidor.
+Use apenas UMA instância do processo, pois as salas ficam em memória.
+A aplicação usa a variável PORT da hospedagem; o padrão é 8080.
+Não precisa de banco, chave de API, npm install ou biblioteca de rede externa.
+
+TESTE LOCAL DO SERVIDOR
+Requer Node.js 20 ou superior.
+Na pasta extraída: node server.mjs
+Abra http://localhost:8080 no próprio PC. Para duas redes diferentes, use o deploy público.
+O servidor escuta 0.0.0.0; serviços de hospedagem devem expô-lo por HTTPS.
+
+COMO FUNCIONA E LIMITES
+Dois humanos na mesma partida, com 13 bots. Os humanos são adversários, não uma equipe.
+O navegador do anfitrião executa a simulação; o servidor faz a comunicação da sala.
+Mantenha a aba do anfitrião aberta e ativa para evitar lentidão/interrupção da partida.
+Movimento, tiros, dano, armas, munição, vida, equipamentos, skins escolhidas, itens, caixas, gelo e zona
+são enviados para o convidado. Entrada do convidado é aplicada pelo anfitrião.
+Não é um servidor competitivo com anti-cheat ou persistência de contas.
+A sala é encerrada quando o anfitrião sai. Reiniciar a hospedagem apaga todas as salas.
+Conexões podem ser retomadas por até 15 segundos; depois é necessário criar/entrar de novo.
+Para uma nova partida online, o anfitrião usa JOGAR DE NOVO.
+
+VALIDAÇÃO DESTA ENTREGA
+Dois contextos reais do Chromium conectaram ao servidor HTTP/SSE de teste:
+criação/entrada, movimento remoto, Ctrl, F, coleta pelo E, sincronização de capacete,
+proteção e multiplicadores, acertos da arma no slot 2 em quatro ângulos e saída da sala.
+Um terceiro jogador e gravação sem token foram recusados.
+A publicação em um endereço público e a latência entre redes reais ainda não foram validadas.
+
+REPETIR
+python3 test_duo.py — requer Python, Playwright e /usr/bin/chromium.
+python3 test_game.py — mecânicas e geração do jogo.
+python3 test_island.py — áudio, movimento e cenário.
+python3 build_release.py — recria o HTML com biblioteca embutida e o ZIP.

@@ -1,0 +1,42 @@
+LAST ZONE — APLICATIVO WINDOWS
+
+1. Extraia TODO o ZIP LastZone-v5-Windows.zip.
+2. Abra a pasta LAST ZONE-win32-x64 e execute LAST ZONE.exe.
+3. Não mova apenas o .exe: mantenha as DLLs e a pasta resources ao lado dele.
+4. Jogue solo imediatamente, ou configure o servidor público no menu do aplicativo.
+
+CONTROLES
+Ctrl: toque e solte para alternar agachamento. C: segure para agachar.
+Evite segurar Ctrl com W na versão de navegador: Ctrl+W é um atalho de fechar aba.
+WASD mover; Shift correr sem limite; Espaço saltar/paraquedas; mouse mirar.
+Clique atirar; botão direito aproximar; R recarregar; 1–3 trocar arma.
+E coletar; F olhar livre; H/J kits; T gelo; G granada; B veículo; V transpor.
+O ou botão CONTROLES: menu para alterar cada tecla e botão do mouse.
+Esc pausa/libera mouse. A janela do app confirma antes de sair.
+
+NOVIDADES
+100 HP visíveis; mira dinâmica e auxílio leve somente ao atirar com linha de visão.
+Ilha de 800 m de diâmetro, 8 distritos novos, 32 participantes (31 bots solo, 30 online).
+Bots pousam espalhados, coletam itens e caixas e migram gradualmente com a safe.
+Não há invulnerabilidade nem regra artificial impedindo encontros entre bots.
+Animações com mãos apoiadas na arma, pés articulados, corrida, salto e recarga.
+Trilha eletrônica com volume padrão de 80% e samples licenciados para efeitos.
+48 kits por partida, cruz identificadora e bots usam cura quando estão feridos.
+Safe começa a fechar após 35 segundos; parede visível e próxima zona no minimapa.
+Movimento com deslizamento em paredes, salto com tolerância e animação de deslocamento.
+Terreno ondulado, detalhes faciais e árvores adaptadas à altura do chão.
+Configurações e teclas são salvas no perfil local do aplicativo.
+
+ESTABILIDADE E VALIDAÇÃO
+Corrigido descarte de efeitos: quatro lotes de disparos mantiveram 613 geometrias após limpeza.
+Testados: morte sem fechar a página, reinício rápido sem derrota antiga, remapeamento,
+coleta e migração de bots, tiros/dano e dois clientes conectados ao servidor real.
+O aplicativo Electron foi aberto e testado nativamente em Linux, incluindo Ctrl+W,
+ponte de configuração, persistência e conexão ao servidor.
+O .exe foi gerado como Windows x64 e sua estrutura e conteúdo foram conferidos.
+A execução no Windows ainda precisa ser validada no seu PC. Protótipo sem assinatura digital.
+Windows 10/11 64 bits. Não é um instalador: é uma pasta de aplicativo portátil.
+
+ONLINE
+Leia ALTARE-GUIA.txt. O servidor não foi publicado na sua conta.
+Você pode informar a URL/porta depois pelo menu, sem recompilar o aplicativo.

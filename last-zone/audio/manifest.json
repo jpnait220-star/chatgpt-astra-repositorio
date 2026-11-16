@@ -1,0 +1,44 @@
+{
+  "shot": {
+    "source": "player/audio/shoot.wav",
+    "project": "Godot TPS Demo",
+    "bytes": 8358,
+    "sha256": "0f82cc0fca724928965890020c8c1908e427adf456cef08ef462884c30578f48"
+  },
+  "step": {
+    "source": "player/audio/step.wav",
+    "project": "Godot TPS Demo",
+    "bytes": 9235,
+    "sha256": "fab9db12fb5fec9b5065819270fbff619c60582162afab13a63deb293cd651c7"
+  },
+  "land": {
+    "source": "player/audio/land.wav",
+    "project": "Godot TPS Demo",
+    "bytes": 8017,
+    "sha256": "69c26d769d5013009367ccc6a6d6df512553eec90854ecbd342101b1b2fd693b"
+  },
+  "jump": {
+    "source": "player/audio/jump.wav",
+    "project": "Godot TPS Demo",
+    "bytes": 6404,
+    "sha256": "75d94928e51abba3c38c8e1c25ec5df42f6e0de5d0727c63a184594b0de05964"
+  },
+  "impact": {
+    "source": "player/bullet/bullet_explode.wav",
+    "project": "Godot TPS Demo",
+    "bytes": 17012,
+    "sha256": "0adbf6374a62d1b022cee0811bfd4aab95aa2300e13f39444f96d48598be1fa9"
+  },
+  "reload": {
+    "source": "sounds/weapon_change.ogg",
+    "project": "Kenney Starter Kit FPS",
+    "bytes": 8450,
+    "sha256": "49806f35fc437f072aa1c8ac365c359ce4cfe28ecec4442e1dc5f5a344881f40"
+  },
+  "wood": {
+    "source": "sounds/walking.ogg",
+    "project": "Kenney Starter Kit FPS",
+    "bytes": 40799,
+    "sha256": "0044b0e908a3c95030afb015e1ebe624cbcfc17c65aa37f4cf3ea10d8ef88b02"
+  }
+}

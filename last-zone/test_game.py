@@ -1,0 +1,20 @@
+from playwright.sync_api import sync_playwright
+import functools,http.server,threading,json
+from pathlib import Path
+root=Path(__file__).parent
+server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(root)))
+threading.Thread(target=server.serve_forever,daemon=True).start()
+with sync_playwright() as p:
+ browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
+ page=browser.new_page(viewport={'width':1280,'height':720});errors=[]
+ page.on('pageerror',lambda e:errors.append(str(e)))
+ page.on('console',lambda m:errors.append(m.text) if m.type=='error' else None)
+ page.goto(f'http://127.0.0.1:{server.server_port}/LAST%20ZONE%20Frontier%20offline.html');page.wait_for_timeout(2200)
+ page.evaluate('HTMLCanvasElement.prototype.requestPointerLock=function(){};newGame();paused=true;pl.forEach(p=>{p.st="ground";p.y=0;p.ch.visible=false});pl[0].x=45;pl[0].z=45;pl[0].on=1;window.savedTerrain=terrainHeight;terrainHeight=()=>0;window.savedObs=obs.splice(0);pl.slice(1).forEach(p=>{p.x=-130;p.z=-130})')
+ print(page.evaluate('''()=>{const p=pl[0];pick(p,{t:'mp40'});pick(p,{t:'m1014'});pick(p,{t:'scar'});pick(p,{t:'armor'});const hp=p.hp;dmg(p,null,'body',20);if(p.hp!==hp-12||p.armor!==52)throw Error('armor');p.ice=2;iceWall(p);if(cover.length!==1||p.ice!==1)throw Error('cover');const c=cover[0];c.hp=0;paused=false;rd.render(sc,cam);paused=true;if(cover.length)throw Error('cover cleanup');p.stamina=100;mv(p,.1,{f:1,r:0,run:1});if(p.stamina!==100)throw Error('stamina');FRONTIER.autoLoot=false;const m=new T.Mesh(new T.BoxGeometry(.3,.3,.3),mt(0xff0000));sc.add(m);const it={t:'ice',x:p.x,z:p.z,y:p.y,m};items.push(it);mv(p,.01,{f:0,r:0});if(!items.includes(it))throw Error('manual loot');pick(p,it);items.splice(items.indexOf(it),1);release(m);for(let n=0;n<3;n++)newGame();paused=true;if(pl.length!==32||cover.length||crates.length)throw Error('restart');setQuality(0);setQuality(2);return {players:pl.length,weapons:Object.keys(WP),checks:'armor, cover, expiry, stamina, manual loot, restart, quality'} }'''))
+ print(page.evaluate("""()=>{const p=pl[0];pl.slice(1).forEach(p=>{p.x=-130;p.z=-130});p.st='ground';p.x=60;p.z=45;p.y=0;p.on=1;p.yaw=0;p.vy=0;const sill={x0:58,x1:62,z0:46,z1:46.5,y0:0,y1:.9};obs.push(sill);if(!vault(p))throw Error('vault initiation');for(let n=0;n<6;n++)mv(p,.1,{});if(p.vault||Math.abs(p.z-47.7)>.01||p.y!==0)throw Error('vault landing');obs.pop();p.x=60;p.z=45;p.on=1;p.ice=2;FRONTIER.wallCD=0;iceWall(p);if(cover.length!==1)throw Error('wall spawn');p.w=['m1014'];p.cur=0;p.mag.m1014=6;p.ammo.m1014=0;p.cd=0;p.rl=0;p.h=false;fire(p,new T.Vector3(p.x,1.25,p.z),new T.Vector3(0,0,1));p.h=true;if(p.mag.m1014!==5||cover[0].hp>=300)throw Error('pellets/wall damage');const bot=pl[1];bot.x=65;bot.z=45;bot.y=0;bot.k25=1;die(bot,p,'body');if(crates.length!==1||FRONTIER.kills!==1)throw Error('death crate');p.x=64;collectCrate(p,crates[0]);if(crates.length)throw Error('crate pickup');return 'PASS: vault, shotgun ammo and destructible cover, death crate and pickup'}"""))
+ page.evaluate('terrainHeight=window.savedTerrain;obs.push(...window.savedObs);paused=false');page.wait_for_timeout(1800);page.screenshot(path=str(root/'gameplay.png'))
+ page.evaluate("pl[0].x=4;pl[0].z=42;pl[0].y=0;pl[0].st='ground';pl[0].yaw=Math.PI;pl[0].pit=-.08;pl[0].ch.visible=false");page.wait_for_timeout(500);page.screenshot(path=str(root/'world-details.png'));page.evaluate('toMenu()');page.wait_for_timeout(300);page.screenshot(path=str(root/'lobby.png'))
+ print(page.evaluate("()=>{const q=lp,r=q.rig;pose(q,.1,true);const a=r.head.rotation.x;FRONTIER.time+=1;ISLAND.time+=1;pose(q,.1,true);if(a===r.head.rotation.x)throw Error('head animation');if(r.legs.length!==2||r.hands.length!==2)throw Error('rig joints');if(!postTarget.width)throw Error('post process');return 'PASS: articulated joints, head animation, postprocessing target'}"));print('ERRORS',json.dumps(errors));assert not errors
+ browser.close()
+server.shutdown()
