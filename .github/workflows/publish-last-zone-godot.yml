@@ -1,0 +1,113 @@
+name: Publish Last Zone Godot prototype
+on:
+  push:
+    branches: [last-zone-v5-download]
+    paths:
+      - '.github/workflows/publish-last-zone-godot.yml'
+      - 'last-zone-godot/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: last-zone-godot-prototype-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: '4.6.3'
+      GODOT_BIN: ${{ runner.temp }}/lastzone-godot/Godot_v4.6.3-stable_linux.x86_64
+      XDG_DATA_HOME: ${{ runner.temp }}/lastzone-godot-data
+      XDG_CONFIG_HOME: ${{ runner.temp }}/lastzone-godot-config
+      GODOT_SILENCE_ROOT_WARNING: '1'
+    steps:
+      - name: Checkout native Godot project
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: last-zone-godot
+      - name: Download official editor and templates, verify SHA-512
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/lastzone-godot"
+          cd "${RUNNER_TEMP}/lastzone-godot"
+          BASE="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          EDITOR="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          TEMPLATES="Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          for file in SHA512-SUMS.txt "$EDITOR" "$TEMPLATES"; do
+            curl -fLsS --retry 3 --retry-delay 3 --connect-timeout 30 --max-time 900 -o "$file" "${BASE}/${file}"
+          done
+          awk -v editor="$EDITOR" -v templates="$TEMPLATES" '$2 == editor || $2 == templates' SHA512-SUMS.txt > REQUIRED-SHA512SUMS.txt
+          test "$(wc -l < REQUIRED-SHA512SUMS.txt)" -eq 2
+          sha512sum --check REQUIRED-SHA512SUMS.txt
+          unzip -q "$EDITOR"
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --version
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import os
+          version = os.environ['GODOT_VERSION']
+          target = Path(os.environ['XDG_DATA_HOME']) / 'godot' / 'export_templates' / f'{version}.stable'
+          target.mkdir(parents=True, exist_ok=True)
+          selected = ['version.txt', 'windows_debug_x86_64.exe', 'windows_release_x86_64.exe', 'linux_debug.x86_64', 'linux_release.x86_64']
+          with ZipFile(f'Godot_v{version}-stable_export_templates.tpz') as archive:
+              for name in selected:
+                  data = archive.read('templates/' + name)
+                  path = target / name
+                  path.write_bytes(data)
+                  if name.startswith('linux_'):
+                      path.chmod(0o755)
+          print('Installed verified Windows/Linux x64 export templates:', target)
+          PY
+      - name: Import project and run native gameplay smoke tests
+        working-directory: last-zone-godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path . --editor --import 2>&1 | tee "${RUNNER_TEMP}/lastzone-godot-import.log"
+          "$GODOT_BIN" --headless --path . --script res://tests/smoke.gd 2>&1 | tee "${RUNNER_TEMP}/lastzone-godot-smoke.log"
+          python3 - <<'PYLOG'
+          from pathlib import Path
+          import os, re
+          for name in ['lastzone-godot-import.log', 'lastzone-godot-smoke.log']:
+              text = (Path(os.environ['RUNNER_TEMP']) / name).read_text()
+              if re.search(r'SCRIPT ERROR:|Parse Error:|Failed to load script|Failed loading resource', text):
+                  raise SystemExit('Godot runtime/import error in ' + name)
+          PYLOG
+      - name: Export Windows and Linux release binaries
+        working-directory: last-zone-godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/windows build/linux
+          "$GODOT_BIN" --headless --path . --export-release "Windows Desktop" build/windows/LastZone.exe
+          "$GODOT_BIN" --headless --path . --export-release "Linux" build/linux/LastZone.x86_64
+          chmod +x build/linux/LastZone.x86_64
+          build/linux/LastZone.x86_64 --headless --quit-after 90 -- --smoke-test 2>&1 | tee "${RUNNER_TEMP}/lastzone-godot-native.log"
+          python3 - <<'PYLOG'
+          from pathlib import Path
+          import os, re
+          text = (Path(os.environ['RUNNER_TEMP']) / 'lastzone-godot-native.log').read_text()
+          if re.search(r'SCRIPT ERROR:|Parse Error:|Failed to load script|Failed loading resource', text):
+              raise SystemExit('Exported Linux game has a Godot runtime error')
+          PYLOG
+          python3 scripts/package_release.py
+      - name: Publish native prototype release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG=last-zone-godot-v0.1.0
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" last-zone-godot/build/downloads/* --clobber
+          else
+            gh release create "$TAG" last-zone-godot/build/downloads/* \
+              --target "${GITHUB_SHA}" \
+              --title "Last Zone Godot 0.1 — Projeto editável e protótipo solo" \
+              --notes-file last-zone-godot/README.md \
+              --prerelease
+          fi
+          gh release view "$TAG" --json url,assets
