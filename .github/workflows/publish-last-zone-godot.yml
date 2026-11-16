@@ -17,11 +17,12 @@ jobs:
     timeout-minutes: 30
     env:
       GODOT_VERSION: '4.6.3'
-      GODOT_BIN: ${{ runner.temp }}/lastzone-godot/Godot_v4.6.3-stable_linux.x86_64
-      XDG_DATA_HOME: ${{ runner.temp }}/lastzone-godot-data
-      XDG_CONFIG_HOME: ${{ runner.temp }}/lastzone-godot-config
       GODOT_SILENCE_ROOT_WARNING: '1'
     steps:
+      - name: Set runtime tool paths
+        shell: bash
+        run: |
+          printf '%s\n' "GODOT_BIN=${RUNNER_TEMP}/lastzone-godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "XDG_DATA_HOME=${RUNNER_TEMP}/lastzone-godot-data" "XDG_CONFIG_HOME=${RUNNER_TEMP}/lastzone-godot-config" >> "$GITHUB_ENV"
       - name: Checkout native Godot project
         uses: actions/checkout@v4
         with:
