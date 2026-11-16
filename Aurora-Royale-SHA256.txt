@@ -1,0 +1,3 @@
+2b5b2787b3eb49e01c777e7fdabc1094e0efda66775740afc842ea179ad8d7a5  Aurora-Royale-Windows-0.1.zip
+cdfcc335ced53b8df68bb59d1940b12f9c57bd65f4abbaf453a5a4eef467b5a6  Aurora-Royale-Godot-0.1.zip
+d82393ad2342ff3cd1067f9b6726106df2d9da1bc0e11362afda88ea61e2a7ab  Aurora-Royale-Guia.txt

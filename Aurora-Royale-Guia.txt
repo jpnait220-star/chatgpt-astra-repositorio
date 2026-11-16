@@ -1,0 +1,36 @@
+AURORA ROYALE — ALPHA 0.1
+
+COMO ABRIR
+1. Extraia o ZIP Windows inteiro em uma pasta.
+2. Abra AuroraRoyale.exe.
+3. Clique em JOGAR AGORA.
+Mantenha AuroraRoyale.pck junto do EXE. Não precisa instalar Godot para jogar.
+O ZIP de projeto Godot é separado, para quem quer editar o jogo.
+
+CONTROLES
+WASD: mover | Mouse: olhar
+Shift: correr | Ctrl: andar devagar
+Espaço: pular; perto de uma janela aberta, olhar para ela e apertar Espaço para atravessar.
+Esquerdo: atirar | Direito: mirar | R: recarregar
+1: fuzil | 2: Vector | 3: escopeta (2 e 3 são liberadas ao coletar)
+G: colocar gelo
+B: entrar/sair da construção | Z: parede | X: rampa | C: piso
+Na construção, clique para colocar e R para girar.
+H: kit de cura (2,8s; dano interrompe)
+E: coletar perto (também coleta ao aproximar)
+J: liga/desliga jetpack | Segure Espaço com ele ligado para voar
+Esc: pausa | F1: ajuda | F11: tela cheia
+
+O QUE TEM
+50 bots + você, ilha com construções abertas, saques, três armas, dano por distância,
+coletes e capacetes de níveis 1–3, gelo destruível, parede/rampa/piso, zona que fecha,
+dois jetpacks raros no mapa e sons posicionais.
+A escopeta é muito forte perto e perde força longe. A Vector favorece curta distância.
+O jetpack tem combustível limitado. Coletes e capacetes perdem durabilidade.
+
+AJUSTES
+Comece em EQUILIBRADO; se precisar, escolha LEVE. Sensibilidade e volume ficam no menu.
+O jogo é offline. Esta é uma primeira alpha, com visual e animações ainda em evolução.
+Testado na Godot/Linux; o pacote exportado passou 35 testes. Sem teste nativo no Windows/RX580.
+Os sons estão implementados; este ambiente não permite conferir o áudio por caixas físicas.
+Créditos e licenças estão no README e dentro do jogo.
